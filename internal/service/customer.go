@@ -377,8 +377,21 @@ func (s *Service) GetCustomerList(ctx context.Context, req *billingpb.ListCustom
 			shortCustomer.Country = customer.Address.Country
 		}
 
+		merchantsCache := map[string]*billingpb.Merchant{}
+
 		for key, activityItem := range customer.PaymentActivity {
 			if (len(req.MerchantId) > 0 && key == req.MerchantId) || len(req.MerchantId) == 0 {
+				var merchant *billingpb.Merchant
+				var ok bool
+				if merchant, ok = merchantsCache[key]; !ok {
+					merchant, err = s.merchantRepository.GetById(ctx, key)
+					if err != nil {
+						zap.L().Error("can't get merchant by id", zap.Error(err), zap.String("merchant_id", key))
+						return err
+					}
+					merchantsCache[key] = merchant
+				}
+
 				if activityItem.Count != nil {
 					shortCustomer.Orders += activityItem.Count.Payment
 				}
@@ -388,6 +401,7 @@ func (s *Service) GetCustomerList(ctx context.Context, req *billingpb.ListCustom
 				if activityItem.LastTxnAt != nil && activityItem.LastTxnAt.Payment != nil && shortCustomer.LastOrder.Seconds < activityItem.LastTxnAt.Payment.Seconds {
 					shortCustomer.LastOrder = activityItem.LastTxnAt.Payment
 				}
+				shortCustomer.Currency = merchant.GetPayoutCurrency()
 			}
 		}
 
