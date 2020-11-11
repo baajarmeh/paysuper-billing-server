@@ -1267,11 +1267,13 @@ func (h *royaltyHandler) buildMerchantRoyaltyReportRoundedAmounts(
 	if err != nil {
 		return nil, nil, err
 	}
+	report.StringPeriodFrom = h.from.Format("2006-01-02")
 
 	report.PeriodTo, err = ptypes.TimestampProto(h.to)
 	if err != nil {
 		return nil, nil, err
 	}
+	report.StringPeriodTo = h.to.Format("2006-01-02")
 
 	report.AcceptExpireAt, err = ptypes.TimestampProto(time.Now().Add(time.Duration(h.cfg.RoyaltyReportAcceptTimeout) * time.Second))
 	if err != nil {
