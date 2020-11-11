@@ -275,14 +275,24 @@ func (s *Service) GetCustomerList(ctx context.Context, req *billingpb.ListCustom
 	query := bson.M{}
 	rsp.Status = billingpb.ResponseStatusSystemError
 
+	paymentElemMatch := bson.M{}
+	paymentActivityQuery := bson.M{
+		"$elemMatch": paymentElemMatch,
+	}
+
 	if len(req.MerchantId) > 0 {
-		query["payment_activity"] = bson.M{
-			"$elemMatch": bson.M{
-				"merchant_id":   req.MerchantId,
-				"count.payment": bson.M{"$gt": 0},
-			},
+		paymentElemMatch["merchant_id"] = req.MerchantId
+		paymentElemMatch["count.payment"] = bson.M{"$gt": 0}
+	}
+
+	if req.Amount != nil {
+		paymentElemMatch["revenue.payment"] = bson.M{
+			"$gte": req.Amount.From,
+			"$lte": req.Amount.To,
 		}
 	}
+
+	query["payment_activity"] = paymentActivityQuery
 
 	if len(req.Country) > 0 {
 		query["address.country"] = req.Country
@@ -336,24 +346,6 @@ func (s *Service) GetCustomerList(ctx context.Context, req *billingpb.ListCustom
 			{"name": bson.M{"$regex": r, "$exists": true}},
 			{"locale": bson.M{"$regex": r, "$exists": true}},
 		}
-	}
-
-	if req.Amount != nil {
-		elemMatchSubQuery := bson.M{
-			"revenue.payment": bson.M{
-				"$gte": req.Amount.From,
-				"$lte": req.Amount.To,
-			},
-		}
-
-		if len(req.MerchantId) > 0 {
-			elemMatchSubQuery["merchant_id"] = req.MerchantId
-		}
-
-		paSubQuery := bson.M{
-			"$elemMatch": elemMatchSubQuery,
-		}
-		query["payment_activity"] = paSubQuery
 	}
 
 	opts := options.Find()
