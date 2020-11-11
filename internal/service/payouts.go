@@ -61,6 +61,7 @@ var (
 	statusForBecomeFailed = map[string]bool{
 		pkg.PayoutDocumentStatusFailed:   true,
 		pkg.PayoutDocumentStatusCanceled: true,
+		pkg.PayoutDocumentStatusSkip:     true,
 	}
 )
 
