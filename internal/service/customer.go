@@ -339,10 +339,21 @@ func (s *Service) GetCustomerList(ctx context.Context, req *billingpb.ListCustom
 	}
 
 	if req.Amount != nil {
-		query["payment_activity.revenue.payment"] = bson.M{
-			"$gte": req.Amount.From,
-			"$lte": req.Amount.To,
+		elemMatchSubQuery := bson.M{
+			"revenue.payment": bson.M{
+				"$gte": req.Amount.From,
+				"$lte": req.Amount.To,
+			},
 		}
+
+		if len(req.MerchantId) > 0 {
+			elemMatchSubQuery["merchant_id"] = req.MerchantId
+		}
+
+		paSubQuery := bson.M{
+			"$elemMatch": elemMatchSubQuery,
+		}
+		query["payment_activity"] = paSubQuery
 	}
 
 	opts := options.Find()
