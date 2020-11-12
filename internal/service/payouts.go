@@ -194,29 +194,36 @@ func (s *Service) createPayoutDocument(
 		stringTimes = append(stringTimes, r.StringPeriodFrom, r.StringPeriodTo)
 	}
 
-	if !req.IsAutoGeneration {
-		currency := merchant.GetPayoutCurrency()
-		var minimal float32
-		var ok bool
+	currency := merchant.GetPayoutCurrency()
+	var minimal float32
+	var ok bool
 
-		if merchant.Tariff == nil {
-			zap.L().Error("merchant does not have tariff", zap.String("merchant_id", merchant.Id))
-			res.Status = billingpb.ResponseStatusBadData
-			res.Message = errorPayoutTarrifNotFound
+	if merchant.Tariff == nil {
+		zap.L().Error("merchant does not have tariff", zap.String("merchant_id", merchant.Id))
+		res.Status = billingpb.ResponseStatusBadData
+		res.Message = errorPayoutTarrifNotFound
+		return nil
+	}
+
+	if minimal, ok = merchant.Tariff.MinimalPayout[currency]; !ok {
+		res.Status = billingpb.ResponseStatusBadData
+		res.Message = errorPayoutTarrifNotFound
+		return nil
+	}
+
+	if balanceAmount < float64(minimal) {
+		if req.IsAutoGeneration {
+			zap.L().Info("balance is less than minimal in tariff for merchant currency. skipping auto-generation payout",
+				zap.String("merchant_id", merchant.Id),
+				zap.Float32("minimal", minimal),
+				zap.Float64("amount", balanceAmount),
+				zap.String("currency", currency))
+			res.Status = billingpb.ResponseStatusOk
 			return nil
 		}
-
-		if minimal, ok = merchant.Tariff.MinimalPayout[currency]; !ok {
-			res.Status = billingpb.ResponseStatusBadData
-			res.Message = errorPayoutTarrifNotFound
-			return nil
-		}
-
-		if balanceAmount < float64(minimal) {
-			res.Status = billingpb.ResponseStatusBadData
-			res.Message = errorPayoutTarrifMinimal
-			return nil
-		}
+		res.Status = billingpb.ResponseStatusBadData
+		res.Message = errorPayoutTarrifMinimal
+		return nil
 	}
 
 	pd.TotalFees = math.Round(totalFeesAmount*100) / 100
