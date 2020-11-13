@@ -214,6 +214,10 @@ func (s *Service) getOrdersList(
 					statuses = append(statuses, "refunded")
 					types = append(types, "order")
 					break
+				case "chargeback":
+					statuses = append(statuses, "chargeback")
+					types = append(types, "refund")
+					break
 				default:
 					break
 				}
