@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
+	"github.com/paysuper/paysuper-billing-server/internal/helper"
 	pkg2 "github.com/paysuper/paysuper-billing-server/internal/pkg"
 	"github.com/paysuper/paysuper-billing-server/internal/repository/models"
 	"github.com/paysuper/paysuper-billing-server/pkg"
@@ -1357,4 +1358,93 @@ func (m *DashboardReportProcessor) ExecuteCustomersChart(ctx context.Context, st
 	}
 
 	return chart, nil
+}
+
+func (m *DashboardReportProcessor) ExecuteCustomerARPPU(ctx context.Context) (interface{}, error) {
+	query := []bson.M{
+		{"$match": m.Match},
+		{
+			"$project": bson.M{
+				"user": "$user.external_id",
+				"revenue_amount": bson.M{
+					"$cond": []interface{}{
+						bson.M{"$eq": []string{"$status", "processed"}}, "$payment_gross_revenue.amount", 0,
+					},
+				},
+				"currency": bson.M{"$ifNull": []string{"$payment_gross_revenue.currency", ""}},
+			},
+		},
+		{
+			"$group": bson.M{
+				"_id": bson.M{
+					"user":     "$user",
+					"currency": "$currency",
+				},
+				"gross_revenue": bson.M{"$sum": "$revenue_amount"},
+			},
+		},
+		{
+			"$group": bson.M{
+				"_id":           "$_id.currency",
+				"gross_revenue": bson.M{"$sum": "$gross_revenue"},
+				"users_count":   bson.M{"$sum": 1},
+			},
+		},
+		{
+			"$project": bson.M{
+				"currency": "$_id",
+				"arppu": bson.M{
+					"$divide": []string{
+						"$gross_revenue", "$users_count",
+					},
+				},
+			},
+		},
+	}
+
+	cursor, err := m.Db.Collection(m.Collection).Aggregate(ctx, query)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, m.Collection),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+		)
+		return nil, err
+	}
+
+	type arppu struct {
+		Result float64 `json:"arppu" bson:"arppu"`
+		Currency string `json:"currency" bson:"currency"`
+	}
+	receiverObj := []*arppu{}
+
+	res := &billingpb.OrderViewMoney{
+	}
+
+	err = cursor.All(ctx, &receiverObj)
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorQueryCursorExecutionFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, m.Collection),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+		)
+		return res, err
+	}
+
+	if len(receiverObj) == 0 {
+		return res, nil
+	}
+
+	if len(receiverObj) > 1 {
+		zap.L().Error("data set has more than 1 currency for gross revenue calculating", zap.Any("query", query), zap.Any("result", receiverObj))
+	}
+
+	res.AmountRounded = helper.Round(receiverObj[0].Result)
+	res.Amount = receiverObj[0].Result
+	res.Currency = receiverObj[0].Currency
+
+	return res, nil
 }

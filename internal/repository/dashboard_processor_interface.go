@@ -22,4 +22,5 @@ type DashboardProcessorRepositoryInterface interface {
 	ExecuteCustomers(ctx context.Context, out interface{}) (interface{}, error)
 	ExecuteCustomersCount(ctx context.Context, out interface{}) (interface{}, error)
 	ExecuteCustomersChart(ctx context.Context, startDate time.Time, end time.Time) (interface{}, error)
+	ExecuteCustomerARPPU(ctx context.Context) (interface{}, error)
 }
