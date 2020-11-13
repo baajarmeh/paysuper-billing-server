@@ -60,6 +60,7 @@ type PayoutsTestSuite struct {
 	payout5 *billingpb.PayoutDocument
 	payout6 *billingpb.PayoutDocument
 	payout7 *billingpb.PayoutDocument
+	report8   *billingpb.RoyaltyReport
 
 	dateFrom1 *timestamp.Timestamp
 	dateFrom2 *timestamp.Timestamp
@@ -145,6 +146,13 @@ func (suite *PayoutsTestSuite) SetupTest() {
 		LastPayout: &billingpb.MerchantLastPayout{
 			Date:   date,
 			Amount: 999999,
+		},
+		Tariff: &billingpb.MerchantTariff{
+			MinimalPayout: map[string]float32{
+				"USD": 50,
+				"RUB": 50,
+				"EUR": 50,
+			},
 		},
 		IsSigned:             true,
 		PaymentMethods:       map[string]*billingpb.MerchantPaymentMethod{},
@@ -368,6 +376,34 @@ func (suite *PayoutsTestSuite) SetupTest() {
 		CreatedAt:          ptypes.TimestampNow(),
 		PeriodFrom:         ptypes.TimestampNow(),
 		PeriodTo:           ptypes.TimestampNow(),
+		AcceptExpireAt:     ptypes.TimestampNow(),
+		Currency:           suite.merchant.GetPayoutCurrency(),
+		OperatingCompanyId: suite.operatingCompany.Id,
+	}
+
+	suite.report8 = &billingpb.RoyaltyReport{
+		Id:         primitive.NewObjectID().Hex(),
+		MerchantId: suite.merchant.Id,
+		Totals: &billingpb.RoyaltyReportTotals{
+			TransactionsCount: 1,
+			PayoutAmount:      30,
+			VatAmount:         5,
+			FeeAmount:         5,
+		},
+		Summary: &billingpb.RoyaltyReportSummary{
+			ProductsTotal: &billingpb.RoyaltyReportProductSummaryItem{
+				SalesCount:        1,
+				TotalTransactions: 1,
+				GrossTotalAmount:  30 + 5 + 5,
+				PayoutAmount:      30,
+				TotalVat:          5,
+				TotalFees:         5,
+			},
+		},
+		Status:             billingpb.RoyaltyReportStatusAccepted,
+		CreatedAt:          ptypes.TimestampNow(),
+		PeriodFrom:         suite.dateFrom2,
+		PeriodTo:           suite.dateTo2,
 		AcceptExpireAt:     ptypes.TimestampNow(),
 		Currency:           suite.merchant.GetPayoutCurrency(),
 		OperatingCompanyId: suite.operatingCompany.Id,
@@ -663,6 +699,29 @@ func (suite *PayoutsTestSuite) TestPayouts_CreatePayoutDocument_Ok_Pending() {
 	assert.NotZero(suite.T(), res.Items[0].AutoincrementId)
 }
 
+func (suite *PayoutsTestSuite) TestPayouts_CreatePayoutDocument_Error_LessMinimalAmountTariff() {
+	reporting := &reportingMocks.ReporterService{}
+	reporting.On("CreateFile", mock2.Anything, mock2.Anything).Return(nil, nil)
+	suite.service.reporterService = reporting
+
+	suite.helperInsertRoyaltyReports([]*billingpb.RoyaltyReport{suite.report8})
+
+	_, err := suite.service.updateMerchantBalance(context.TODO(), suite.merchant.Id)
+	assert.NoError(suite.T(), err)
+
+	req := &billingpb.CreatePayoutDocumentRequest{
+		MerchantId:  suite.merchant.Id,
+		Description: "test payout",
+		Ip:          "127.0.0.1",
+	}
+
+	res := &billingpb.CreatePayoutDocumentResponse{}
+
+	err = suite.service.CreatePayoutDocument(context.TODO(), req, res)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), res.Status, billingpb.ResponseStatusBadData)
+}
+
 func (suite *PayoutsTestSuite) TestPayouts_CreatePayoutDocument_Ok_SkipByAmount() {
 	reporting := &reportingMocks.ReporterService{}
 	reporting.On("CreateFile", mock2.Anything, mock2.Anything).Return(nil, nil)
@@ -776,7 +835,7 @@ func (suite *PayoutsTestSuite) TestPayouts_CreatePayoutDocument_Failed_ZeroAmoun
 	err = suite.service.CreatePayoutDocument(context.TODO(), req, res)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), res.Status, billingpb.ResponseStatusBadData)
-	assert.Equal(suite.T(), res.Message, errorPayoutAmountInvalid)
+	assert.Equal(suite.T(), res.Message, errorPayoutTarrifMinimal)
 }
 
 func (suite *PayoutsTestSuite) TestPayouts_CreatePayoutDocument_Failed_NoBalance() {

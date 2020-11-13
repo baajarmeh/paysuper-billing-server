@@ -52,15 +52,17 @@ func (s *Service) GetActsOfCompletionList(
 
 	monthsCount := monthsCountSince(dFrom)
 
+	rsp.Items = make([]*billingpb.ActsOfCompletionListItem, monthsCount)
+
 	for i := 0; i < monthsCount; i++ {
 		b := now.New(dFrom).BeginningOfMonth()
 		e := now.New(dFrom).EndOfMonth()
 
-		rsp.Items = append(rsp.Items, &billingpb.ActsOfCompletionListItem{
+		rsp.Items[monthsCount-(i+1)] = &billingpb.ActsOfCompletionListItem{
 			DateTitle: b.Format("2006-01"),
 			DateFrom:  b.Format("2006-01-02"),
 			DateTo:    e.Format("2006-01-02"),
-		})
+		}
 		dFrom = e.AddDate(0, 0, 1)
 	}
 

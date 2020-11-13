@@ -47,6 +47,8 @@ var (
 	errorPayoutAutoPayoutsDisabled     = errors.NewBillingServerErrorMsg("po000016", "auto payouts disabled")
 	errorPayoutAutoPayoutsWithErrors   = errors.NewBillingServerErrorMsg("po000017", "auto payouts creation finished with errors")
 	errorPayoutRequireFailureFields    = errors.NewBillingServerErrorMsg("po000018", "fields failure_code and failure_message is required when status changing to failure")
+	errorPayoutTarrifNotFound          = errors.NewBillingServerErrorMsg("po000019", "not found minimal tarrif for payout currency")
+	errorPayoutTarrifMinimal           = errors.NewBillingServerErrorMsg("po000020", "minimal payout should be greater")
 
 	statusForUpdateBalance = map[string]bool{
 		pkg.PayoutDocumentStatusPending: true,
@@ -190,6 +192,38 @@ func (s *Service) createPayoutDocument(
 		}
 		times = append(times, from, to)
 		stringTimes = append(stringTimes, r.StringPeriodFrom, r.StringPeriodTo)
+	}
+
+	currency := merchant.GetPayoutCurrency()
+	var minimal float32
+	var ok bool
+
+	if merchant.Tariff == nil {
+		zap.L().Error("merchant does not have tariff", zap.String("merchant_id", merchant.Id))
+		res.Status = billingpb.ResponseStatusBadData
+		res.Message = errorPayoutTarrifNotFound
+		return nil
+	}
+
+	if minimal, ok = merchant.Tariff.MinimalPayout[currency]; !ok {
+		res.Status = billingpb.ResponseStatusBadData
+		res.Message = errorPayoutTarrifNotFound
+		return nil
+	}
+
+	if balanceAmount < float64(minimal) {
+		if req.IsAutoGeneration {
+			zap.L().Info("balance is less than minimal in tariff for merchant currency. skipping auto-generation payout",
+				zap.String("merchant_id", merchant.Id),
+				zap.Float32("minimal", minimal),
+				zap.Float64("amount", balanceAmount),
+				zap.String("currency", currency))
+			res.Status = billingpb.ResponseStatusOk
+			return nil
+		}
+		res.Status = billingpb.ResponseStatusBadData
+		res.Message = errorPayoutTarrifMinimal
+		return nil
 	}
 
 	pd.TotalFees = math.Round(totalFeesAmount*100) / 100
