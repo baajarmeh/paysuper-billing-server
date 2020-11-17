@@ -205,7 +205,7 @@ func (r *dashboardRepository) getCustomersAvgLtv(ctx context.Context, merchantId
 	return ltv.(float32), nil
 }
 
-func (r *dashboardRepository) getCustomersAvgOrdersCount(ctx context.Context, merchantId string, period string) (float32, error) {
+func (r *dashboardRepository) getCustomersAvgOrdersCount(ctx context.Context, merchantId string, period string) (float64, error) {
 	processorCurrent, err := r.newDashboardReportProcessor(
 		merchantId,
 		period,
@@ -222,7 +222,7 @@ func (r *dashboardRepository) getCustomersAvgOrdersCount(ctx context.Context, me
 		return 0.0, err
 	}
 
-	return avgCount.(float32), nil
+	return avgCount.(float64), nil
 }
 
 func (r *dashboardRepository) getTop20Customers(ctx context.Context, merchantId string, period string) (*billingpb.Top20Customers, error) {
@@ -375,8 +375,8 @@ func (r *dashboardRepository) GetCustomersReport(ctx context.Context, merchantId
 		NewCustomersPercentage:       newCustomers,
 		ReturningCustomersPercentage: returning,
 		LostCustomersPercentage:      1 - returning,
-		AvgLtvCustomer:               float32(helper.Round(float64(ltv))),
-		AvgOrdersCount:               avgOrders,
+		AvgLtvCustomer:               helper.Round(float64(ltv)),
+		AvgOrdersCount:               helper.Round(avgOrders),
 		Top20Customers:               top20,
 		Chart:                        chart,
 		Arppu: &billingpb.ArppuData{
