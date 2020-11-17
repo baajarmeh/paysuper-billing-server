@@ -55,6 +55,9 @@ type EmailTemplates struct {
 	MerchantAgreementSigned        string `envconfig:"EMAIL_MERCHANT_AGREEMENT_SIGNED" default:"p1_agreement_fully_signed"`
 	RoyaltyReportFinancier         string `envconfig:"EMAIL_ROYALTY_REPORT_FINANCIER" default:"p1_royalty_report_financier"`
 	PayoutInvoiceFinancier         string `envconfig:"EMAIL_PAYOUT_INVOICE_FINANCIER" default:"p1_payout_invoice_financier"`
+
+	MerchantDocumentUploaded string `envconfig:"EMAIL_MERCHANT_DOCUMENT_UPLOAD_TEMPLATE" default:"p1_merchant_upload_document"`
+	AdminDocumentUploaded    string `envconfig:"EMAIL_ADMIN_DOCUMENT_UPLOAD_TEMPLATE" default:"p1_admin_upload_document"`
 }
 
 type Centrifugo struct {

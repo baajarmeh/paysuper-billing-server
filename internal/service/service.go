@@ -111,6 +111,7 @@ type Service struct {
 	merchantPaymentMethodHistoryRepository repository.MerchantPaymentMethodHistoryRepositoryInterface
 	feedbackRepository                     repository.FeedbackRepositoryInterface
 	dashboardRepository                    repository.DashboardRepositoryInterface
+	merchantDocumentRepository             repository.MerchantDocumentRepositoryInterface
 	validateUserBroker                     rabbitmq.BrokerInterface
 	autoincrementRepository                repository.AutoincrementRepositoryInterface
 	moneyRegistry                          map[string]*helper.Money
@@ -202,6 +203,7 @@ func (s *Service) Init() (err error) {
 	s.feedbackRepository = repository.NewFeedbackRepository(s.db)
 	s.dashboardRepository = repository.NewDashboardRepository(s.db, s.cacher)
 	s.autoincrementRepository = repository.NewAutoincrementRepository(s.db)
+	s.merchantDocumentRepository = repository.NewMerchantDocumentRepository(s.db)
 
 	sCurr, err := s.curService.GetSupportedCurrencies(context.TODO(), &currenciespb.EmptyRequest{})
 	if err != nil {

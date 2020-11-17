@@ -112,9 +112,10 @@ func (s *Service) GetDashboardBaseReport(
 
 func (s *Service) GetDashboardCustomersReport(ctx context.Context, req *billingpb.DashboardCustomerReportRequest, rsp *billingpb.GetDashboardCustomerReportResponse) error {
 	report, err := s.dashboardRepository.GetCustomersReport(ctx, req.MerchantId, req.Period)
+
 	if err != nil {
 		rsp.Status = billingpb.ResponseStatusNotFound
-		rsp.Message = merchantErrorNotFound
+		rsp.Message = merchantErrorBadData
 
 		if err != mongo.ErrNoDocuments {
 			rsp.Status = billingpb.ResponseStatusSystemError

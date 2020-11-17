@@ -1062,7 +1062,7 @@ func (m *DashboardReportProcessor) ExecuteCustomerAvgTransactionsCount(ctx conte
 
 	type avgOrdersCountItem struct {
 		Id  string  `json:"id" bson:"id"`
-		Avg float32 `json:"avg" bson:"avg"`
+		Avg float64 `json:"avg" bson:"avg"`
 	}
 
 	type avgOrdersCountWrapper struct {
@@ -1070,7 +1070,7 @@ func (m *DashboardReportProcessor) ExecuteCustomerAvgTransactionsCount(ctx conte
 	}
 	receiverObj := &avgOrdersCountWrapper{}
 
-	zero := float32(0.0)
+	zero := float64(0.0)
 	if cursor.Next(ctx) {
 		err = cursor.Decode(receiverObj)
 
