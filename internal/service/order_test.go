@@ -4101,7 +4101,6 @@ func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_RecurringSettings_Merc
 
 	assert.Nil(suite.T(), err)
 	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp.Status)
-	fmt.Println(rsp.Message)
 }
 
 func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_RecurringSettings_MerchantDateEnd_MaxMonthLimit_Error() {
