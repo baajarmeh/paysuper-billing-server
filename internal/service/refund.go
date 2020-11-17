@@ -465,8 +465,24 @@ func (s *Service) createOrderByRefund(ctx context.Context, order *billingpb.Orde
 
 	refundOrder.ChargeAmount = refund.Amount
 
-	refundOrder.Tax.Amount = tools.FormatAmount(tools.GetPercentPartFromAmount(refund.Amount, refundOrder.Tax.Rate))
-	refundOrder.OrderAmount = tools.FormatAmount(refundOrder.TotalPaymentAmount - refundOrder.Tax.Amount)
+	switch refundOrder.VatPayer {
+
+	case billingpb.VatPayerBuyer:
+		refundOrder.OrderAmount = tools.FormatAmount(refundOrder.TotalPaymentAmount - refundOrder.Tax.Amount)
+		break
+
+	case billingpb.VatPayerSeller:
+		refundOrder.Tax.Amount = tools.FormatAmount(tools.GetPercentPartFromAmount(refund.Amount, refundOrder.Tax.Rate))
+		break
+
+	case billingpb.VatPayerNobody:
+		// do nothing
+		break
+
+	default:
+		return nil, orderErrorVatPayerUnknown
+	}
+
 	refundOrder.ReceiptId = uuid.New().String()
 	refundOrder.ReceiptUrl = s.cfg.GetReceiptRefundUrl(refundOrder.Uuid, refundOrder.ReceiptId)
 
