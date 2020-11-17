@@ -462,6 +462,7 @@ func (s *Service) createOrderByRefund(ctx context.Context, order *billingpb.Orde
 	}
 	refundOrder.IsVatDeduction = isVatDeduction
 	refundOrder.ParentPaymentAt = order.PaymentMethodOrderClosedAt
+	refundOrder.RoyaltyReportId = ""
 
 	refundOrder.ChargeAmount = refund.Amount
 
