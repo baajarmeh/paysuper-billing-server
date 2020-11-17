@@ -1135,7 +1135,6 @@ func (s *Service) PaymentCreateProcess(
 		subscription, url, err = s.addRecurringSubscription(ctx, order, h, req.Data)
 
 		if err != nil {
-			fmt.Println(err)
 			if e, ok := err.(*billingpb.ResponseErrorMessage); ok {
 				rsp.Status = billingpb.ResponseStatusSystemError
 				rsp.Message = e

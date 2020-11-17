@@ -184,7 +184,7 @@ func (r *dashboardRepository) getCustomersNew(ctx context.Context, merchantId st
 	return res, nil
 }
 
-func (r *dashboardRepository) getCustomersAvgLtv(ctx context.Context, merchantId string, period string) (float32, error) {
+func (r *dashboardRepository) getCustomersAvgLtv(ctx context.Context, merchantId string, period string) (float64, string, error) {
 	processorCurrent, err := r.newDashboardReportProcessor(
 		merchantId,
 		period,
@@ -193,16 +193,16 @@ func (r *dashboardRepository) getCustomersAvgLtv(ctx context.Context, merchantId
 	)
 
 	if err != nil {
-		return 0.0, err
+		return 0.0, "", err
 	}
 
-	ltv, err := processorCurrent.ExecuteCustomerLTV(ctx, nil)
+	ltv, currency, err := processorCurrent.ExecuteCustomerLTV(ctx, nil)
 
 	if err != nil {
-		return 0.0, err
+		return 0.0, "", err
 	}
 
-	return ltv.(float32), nil
+	return ltv.(float64), currency.(string), nil
 }
 
 func (r *dashboardRepository) getCustomersAvgOrdersCount(ctx context.Context, merchantId string, period string) (float64, error) {
@@ -332,7 +332,7 @@ func (r *dashboardRepository) GetCustomersReport(ctx context.Context, merchantId
 		return nil, err
 	}
 
-	ltv, err := r.getCustomersAvgLtv(ctx, merchantId, period)
+	ltv, ltvCurrency, err := r.getCustomersAvgLtv(ctx, merchantId, period)
 	if err != nil {
 		return nil, err
 	}
@@ -375,7 +375,8 @@ func (r *dashboardRepository) GetCustomersReport(ctx context.Context, merchantId
 		NewCustomersPercentage:       newCustomers,
 		ReturningCustomersPercentage: returning,
 		LostCustomersPercentage:      1 - returning,
-		AvgLtvCustomer:               helper.Round(float64(ltv)),
+		AvgLtvCustomer:               helper.Round(ltv),
+		AvgLtvCurrency:               ltvCurrency,
 		AvgOrdersCount:               helper.Round(avgOrders),
 		Top20Customers:               top20,
 		Chart:                        chart,

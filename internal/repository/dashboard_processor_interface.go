@@ -15,7 +15,7 @@ type DashboardProcessorRepositoryInterface interface {
 	ExecuteSalesTodayReport(ctx context.Context, out interface{}) (interface{}, error)
 	ExecuteSourcesReport(ctx context.Context, out interface{}) (interface{}, error)
 
-	ExecuteCustomerLTV(ctx context.Context, out interface{}) (interface{}, error)
+	ExecuteCustomerLTV(ctx context.Context, out interface{}) (interface{}, interface{}, error)
 	ExecuteCustomerARPU(ctx context.Context, customerId string) (interface{}, error)
 	ExecuteCustomerAvgTransactionsCount(ctx context.Context, out interface{}) (interface{}, error)
 	ExecuteCustomerTop20(ctx context.Context, out interface{}) (interface{}, error)
