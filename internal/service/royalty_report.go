@@ -674,10 +674,11 @@ func (h *royaltyHandler) createMerchantRoyaltyReport(ctx context.Context, mercha
 func (h *royaltyHandler) buildMerchantRoyaltyReport(
 	ctx context.Context, merchant *billingpb.Merchant, hasExistsReportId bool,
 ) (*billingpb.RoyaltyReport, []primitive.ObjectID, error) {
+	merchantPayoutCurrency := merchant.GetPayoutCurrency()
 	summaryItems, summaryTotal, ordersIds, err := h.orderViewRepository.GetRoyaltySummary(
 		ctx,
 		merchant.Id,
-		merchant.GetPayoutCurrency(),
+		merchantPayoutCurrency,
 		h.from,
 		h.to,
 		hasExistsReportId,
@@ -687,12 +688,12 @@ func (h *royaltyHandler) buildMerchantRoyaltyReport(
 		return nil, nil, err
 	}
 
-	corrections, correctionsTotal, err := h.getRoyaltyReportCorrections(ctx, merchant.Id, merchant.GetPayoutCurrency())
+	corrections, correctionsTotal, err := h.getRoyaltyReportCorrections(ctx, merchant.Id, merchantPayoutCurrency)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	reserves, reservesTotal, err := h.getRoyaltyReportRollingReserves(ctx, merchant.Id, merchant.GetPayoutCurrency())
+	reserves, reservesTotal, err := h.getRoyaltyReportRollingReserves(ctx, merchant.Id, merchantPayoutCurrency)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -795,7 +796,14 @@ func (h *royaltyHandler) buildMerchantRoyaltyReport(
 	if err != nil {
 		return nil, nil, err
 	}
-	report.StringPeriodTo = h.to.Format("2006-01-02")
+
+	// temporary f*cking magic, will be deleted after switch royalty reports generation to UTC time
+	to, err := ptypes.Timestamp(report.PeriodTo)
+	if err != nil {
+		return nil, nil, err
+	}
+	to = now.New(to).EndOfDay()
+	report.StringPeriodTo = to.Format("2006-01-02")
 
 	report.AcceptExpireAt, err = ptypes.TimestampProto(time.Now().Add(time.Duration(h.cfg.RoyaltyReportAcceptTimeout) * time.Second))
 	if err != nil {
@@ -1273,7 +1281,14 @@ func (h *royaltyHandler) buildMerchantRoyaltyReportRoundedAmounts(
 	if err != nil {
 		return nil, nil, err
 	}
-	report.StringPeriodTo = h.to.Format("2006-01-02")
+
+	// temporary f*cking magic, will be deleted after switch royalty reports generation to UTC time
+	to, err := ptypes.Timestamp(report.PeriodTo)
+	if err != nil {
+		return nil, nil, err
+	}
+	to = now.New(to).EndOfDay()
+	report.StringPeriodTo = to.Format("2006-01-02")
 
 	report.AcceptExpireAt, err = ptypes.TimestampProto(time.Now().Add(time.Duration(h.cfg.RoyaltyReportAcceptTimeout) * time.Second))
 	if err != nil {
