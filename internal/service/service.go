@@ -418,7 +418,7 @@ func (s *Service) TaskFixReportDates(ctx context.Context) (err error) {
 				return err
 			}
 		}
-		report.StringPeriodTo = to.In(loc).Format("2006-01-02")
+		report.StringPeriodTo = to.Format("2006-01-02") // .In(loc)
 
 		err = s.royaltyReportRepository.Update(ctx, report, ip, source)
 		if err != nil {
