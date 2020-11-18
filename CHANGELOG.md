@@ -1,6 +1,24 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [1.8.0] - 2020-11-18
+
+### Added
+- Payment subscriptions (recurrings) functionality
+- Task with manual regeneration of failed accounting entries
+- Order view calculation moved from DB to code (for performance optimization)
+- Merchant tariffs and some info may me changed by administrator before ageement sign start
+- Pass current year in emails data models
+- Prevent create payouts if  merchant's available balance is lower than minimal payout amount
+- List of Acts of completion added
+
+### Changed
+- Royalty reports dates will be displaying correctly (do not include of next week's monday) for reports started from 14 July 2020
+- Merchant balance will be recalculated immediately on change payout status to Skip
+- Some minor fixes added
+    
+***
+
 ## [1.7.0] - 2020-09-10
 
 ### Changed
