@@ -1,0 +1,16 @@
+[
+  {
+    "update": "user_profile",
+    "updates": [
+      {
+        "q": {},
+        "u": {
+          "$set": {
+            "locale": "en"
+          }
+        },
+        "multi": true
+      }
+    ]
+  }
+]
