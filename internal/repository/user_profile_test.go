@@ -303,5 +303,6 @@ func (suite *UserProfileTestSuite) getUserProfileTemplate() *billingpb.UserProfi
 			Other:                          false,
 		},
 		LastStep: "step2",
+		Locale:   "en",
 	}
 }

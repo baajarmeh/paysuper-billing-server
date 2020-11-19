@@ -171,6 +171,7 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_New
 	assert.NotEmpty(suite.T(), rsp.Item.Id)
 	assert.NotEmpty(suite.T(), rsp.Item.CreatedAt)
 	assert.NotEmpty(suite.T(), rsp.Item.UpdatedAt)
+	assert.Equal(suite.T(), billingpb.UserLocaleEn, rsp.Item.Locale)
 
 	profile, err = suite.service.userProfileRepository.GetByUserId(context.TODO(), req.UserId)
 	assert.Nil(suite.T(), err)
@@ -188,6 +189,7 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_New
 	assert.Equal(suite.T(), profile.Help.ReleasedGamePromotion, rsp.Item.Help.ReleasedGamePromotion)
 	assert.Equal(suite.T(), profile.Help.ProductPromotionAndDevelopment, rsp.Item.Help.ProductPromotionAndDevelopment)
 	assert.NotEmpty(suite.T(), rsp.Item.CentrifugoToken)
+	assert.Equal(suite.T(), billingpb.UserLocaleEn, rsp.Item.Locale)
 
 	b, ok := suite.service.postmarkBroker.(*mocks.BrokerMockOk)
 	assert.True(suite.T(), ok)
@@ -228,6 +230,7 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_Cha
 	assert.NotEmpty(suite.T(), rsp.Item.Id)
 	assert.NotEmpty(suite.T(), rsp.Item.CreatedAt)
 	assert.NotEmpty(suite.T(), rsp.Item.UpdatedAt)
+	assert.Equal(suite.T(), billingpb.UserLocaleEn, rsp.Item.Locale)
 
 	req = &billingpb.UserProfile{
 		UserId: req.UserId,
@@ -246,6 +249,7 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_Cha
 			},
 		},
 		LastStep: "step3",
+		Locale:   billingpb.UserLocaleRu,
 	}
 	err = suite.service.CreateOrUpdateUserProfile(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
@@ -269,6 +273,7 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_Cha
 	assert.Equal(suite.T(), profile.Help.ReleasedGamePromotion, rsp.Item.Help.ReleasedGamePromotion)
 	assert.Equal(suite.T(), profile.Help.ProductPromotionAndDevelopment, rsp.Item.Help.ProductPromotionAndDevelopment)
 	assert.NotEmpty(suite.T(), rsp.Item.CentrifugoToken)
+	assert.Equal(suite.T(), billingpb.UserLocaleRu, profile.Locale)
 
 	b, ok := suite.service.postmarkBroker.(*mocks.BrokerMockOk)
 	assert.True(suite.T(), ok)
@@ -984,4 +989,60 @@ func (suite *UserProfileTestSuite) TestUserProfile_GetCommonUserProfile_HasProje
 	assert.NotNil(suite.T(), rsp.Profile.Merchant)
 	assert.Equal(suite.T(), merchant.Id, rsp.Profile.Merchant.Id)
 	assert.True(suite.T(), rsp.Profile.Merchant.HasProjects)
+}
+
+func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_SetUnavailableLocaleAsDefaultLocale_Ok() {
+	req := &billingpb.UserProfile{
+		UserId: primitive.NewObjectID().Hex(),
+		Email: &billingpb.UserProfileEmail{
+			Email: "test@unit.test",
+		},
+		Personal: &billingpb.UserProfilePersonal{
+			FirstName: "Unit test",
+			LastName:  "Unit Test",
+			Position:  "test",
+		},
+		Help: &billingpb.UserProfileHelp{
+			ProductPromotionAndDevelopment: false,
+			ReleasedGamePromotion:          true,
+			InternationalSales:             true,
+			Other:                          false,
+		},
+		LastStep: "step1",
+	}
+	rsp := &billingpb.GetUserProfileResponse{}
+
+	err := suite.service.CreateOrUpdateUserProfile(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp.Status)
+	assert.Empty(suite.T(), rsp.Message)
+	assert.NotNil(suite.T(), rsp.Item)
+	assert.IsType(suite.T(), &billingpb.UserProfile{}, rsp.Item)
+	assert.NotEmpty(suite.T(), rsp.Item.Id)
+	assert.NotEmpty(suite.T(), rsp.Item.CreatedAt)
+	assert.NotEmpty(suite.T(), rsp.Item.UpdatedAt)
+	assert.Equal(suite.T(), billingpb.UserLocaleEn, rsp.Item.Locale)
+
+	profile, err := suite.service.userProfileRepository.GetByUserId(context.TODO(), req.UserId)
+	assert.Nil(suite.T(), err)
+	assert.NotNil(suite.T(), profile)
+	assert.NotNil(suite.T(), rsp.Item)
+	assert.IsType(suite.T(), &billingpb.UserProfile{}, rsp.Item)
+	assert.Equal(suite.T(), billingpb.UserLocaleEn, rsp.Item.Locale)
+
+	req.Locale = "ua"
+	err = suite.service.CreateOrUpdateUserProfile(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp.Status)
+	assert.Empty(suite.T(), rsp.Message)
+	assert.NotNil(suite.T(), rsp.Item)
+	assert.IsType(suite.T(), &billingpb.UserProfile{}, rsp.Item)
+	assert.Equal(suite.T(), billingpb.UserLocaleEn, rsp.Item.Locale)
+
+	profile, err = suite.service.userProfileRepository.GetByUserId(context.TODO(), req.UserId)
+	assert.Nil(suite.T(), err)
+	assert.NotNil(suite.T(), profile)
+	assert.NotNil(suite.T(), rsp.Item)
+	assert.IsType(suite.T(), &billingpb.UserProfile{}, rsp.Item)
+	assert.Equal(suite.T(), billingpb.UserLocaleEn, rsp.Item.Locale)
 }

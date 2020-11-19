@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/golang/protobuf/ptypes"
+	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/pkg/errors"
 	"github.com/paysuper/paysuper-proto/go/billingpb"
 	"github.com/paysuper/paysuper-proto/go/postmarkpb"
@@ -54,6 +55,7 @@ func (s *Service) CreateOrUpdateUserProfile(
 		profile = req
 		profile.Id = primitive.NewObjectID().Hex()
 		profile.CreatedAt = ptypes.TimestampNow()
+		profile.Locale = billingpb.UserLocaleEn
 	} else {
 		profile = s.updateOnboardingProfile(profile, req)
 	}
@@ -270,6 +272,14 @@ func (s *Service) updateOnboardingProfile(profile, profileReq *billingpb.UserPro
 		profile.LastStep = profileReq.LastStep
 	}
 
+	if profileReq.Locale != "" {
+		if _, ok := billingpb.UserLocaleAllowed[profileReq.Locale]; !ok {
+			profileReq.Locale = billingpb.UserLocaleEn
+		}
+
+		profile.Locale = profileReq.Locale
+	}
+
 	return profile
 }
 
@@ -369,8 +379,14 @@ func (s *Service) getUserEmailConfirmationToken(token string) (string, error) {
 }
 
 func (s *Service) sendUserEmailConfirmationToken(ctx context.Context, profile *billingpb.UserProfile) error {
+	template, err := s.cfg.EmailTemplates.GetTemplate(config.EmailTemplateConfirmAccount, profile.Locale)
+
+	if err != nil {
+		return err
+	}
+
 	payload := &postmarkpb.Payload{
-		TemplateAlias: s.cfg.EmailTemplates.ConfirmAccount,
+		TemplateAlias: template,
 		TemplateModel: map[string]string{
 			"confirm_url":  profile.Email.ConfirmationUrl,
 			"current_year": time.Now().UTC().Format("2006"),
@@ -378,7 +394,7 @@ func (s *Service) sendUserEmailConfirmationToken(ctx context.Context, profile *b
 		To: profile.Email.Email,
 	}
 
-	err := s.postmarkBroker.Publish(postmarkpb.PostmarkSenderTopicName, payload, amqp.Table{})
+	err = s.postmarkBroker.Publish(postmarkpb.PostmarkSenderTopicName, payload, amqp.Table{})
 
 	if err != nil {
 		zap.S().Error(
