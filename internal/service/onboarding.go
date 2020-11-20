@@ -446,6 +446,8 @@ func (s *Service) ChangeMerchant(
 	}
 
 	merchant.CentrifugoToken = s.centrifugoDashboard.GetChannelToken(merchant.Id, time.Now().Add(time.Hour*3).Unix())
+	projectCount, _ := s.project.CountByMerchantId(ctx, merchant.Id)
+	merchant.HasProjects = projectCount > 0
 
 	if !isNewMerchant {
 		rsp.Status = billingpb.ResponseStatusOk
