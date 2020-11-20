@@ -49,7 +49,7 @@ func (s *Service) AddMerchantDocument(
 		return nil
 	}
 
-	merchant.Status = billingpb.MerchantStatusOpCompanySelected
+	merchant.Status = billingpb.MerchantStatusKycStarted
 	merchant.StatusLastUpdatedAt = ptypes.TimestampNow()
 	err = s.merchantRepository.Update(ctx, merchant)
 

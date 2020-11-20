@@ -155,6 +155,11 @@ func (suite *MerchantDocumentTestSuite) TestMerchantDocument_AddMerchantDocument
 	b, ok := suite.service.postmarkBroker.(*mocks.BrokerMockOk)
 	assert.True(suite.T(), ok)
 	assert.True(suite.T(), b.IsSent)
+
+	merchant, err := suite.service.merchantRepository.GetById(context.Background(), suite.merchant.Id)
+	assert.NoError(suite.T(), err)
+	assert.NotEmpty(suite.T(), merchant)
+	assert.Equal(suite.T(), billingpb.MerchantStatusKycStarted, merchant.Status)
 }
 
 func (suite *MerchantDocumentTestSuite) TestMerchantDocument_AddMerchantDocument_Error_MerchantNotFound() {
