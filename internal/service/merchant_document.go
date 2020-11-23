@@ -34,10 +34,23 @@ func (s *Service) AddMerchantDocument(
 		return nil
 	}
 
-	if !merchant.CanChangeStatusTo(billingpb.MerchantStatusKycStarted) {
-		res.Status = billingpb.ResponseStatusSystemError
-		res.Message = errorMerchantDocumentIncorrectStatus
-		return nil
+	if merchant.Status != billingpb.MerchantStatusKycStarted {
+		if !merchant.CanChangeStatusTo(billingpb.MerchantStatusKycStarted) {
+			res.Status = billingpb.ResponseStatusSystemError
+			res.Message = errorMerchantDocumentIncorrectStatus
+			return nil
+		}
+
+		merchant.Status = billingpb.MerchantStatusKycStarted
+		merchant.StatusLastUpdatedAt = ptypes.TimestampNow()
+		err = s.merchantRepository.Update(ctx, merchant)
+
+		if err != nil {
+			res.Status = billingpb.ResponseStatusSystemError
+			res.Message = errorMerchantDocumentUnableInsert
+
+			return nil
+		}
 	}
 
 	req.Id = primitive.NewObjectID().Hex()
@@ -46,17 +59,6 @@ func (s *Service) AddMerchantDocument(
 	if err != nil {
 		res.Status = billingpb.ResponseStatusSystemError
 		res.Message = errorMerchantDocumentUnableInsert
-		return nil
-	}
-
-	merchant.Status = billingpb.MerchantStatusKycStarted
-	merchant.StatusLastUpdatedAt = ptypes.TimestampNow()
-	err = s.merchantRepository.Update(ctx, merchant)
-
-	if err != nil {
-		res.Status = billingpb.ResponseStatusSystemError
-		res.Message = errorMerchantDocumentUnableInsert
-
 		return nil
 	}
 
