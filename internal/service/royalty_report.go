@@ -79,7 +79,8 @@ func (s *Service) CreateRoyaltyReport(
 	}
 
 	// prevent to include next day into date - PAY-37849
-	to := now.Monday().Add(-1 * time.Nanosecond).In(loc)
+	to := now.Monday().Add(-1 * time.Nanosecond)
+	// .In(loc) - disable local time format for end of period, as a 1st stage of PAY-35784
 
 	from := to.Add(-time.Duration(s.cfg.RoyaltyReportPeriod) * time.Second).Add(1 * time.Nanosecond).In(loc)
 	from = now.New(from).BeginningOfDay()
