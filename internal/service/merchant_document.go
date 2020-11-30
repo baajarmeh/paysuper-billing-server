@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/golang/protobuf/ptypes"
+	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/errors"
 	"github.com/paysuper/paysuper-proto/go/billingpb"
 	"github.com/paysuper/paysuper-proto/go/postmarkpb"
@@ -62,31 +63,32 @@ func (s *Service) AddMerchantDocument(
 		return nil
 	}
 
-	var payload *postmarkpb.Payload
-
-	if merchant.User.Id == req.UserId {
-		payload = &postmarkpb.Payload{
-			TemplateAlias: s.cfg.EmailTemplates.MerchantDocumentUploaded,
-			TemplateModel: map[string]string{
-				"merchant_id": req.MerchantId,
-				"document_id": req.Id,
-				"user_id":     req.UserId,
-				"name":        req.OriginalName,
-				"file_path":   fmt.Sprintf("%s/documents/%s", s.cfg.DashboardUrl, req.Id),
-			},
-			To: s.cfg.EmailOnboardingAdminRecipient,
-		}
-	} else {
-		payload = &postmarkpb.Payload{
-			TemplateAlias: s.cfg.EmailTemplates.AdminDocumentUploaded,
-			TemplateModel: map[string]string{},
-			To:            merchant.User.Email,
-		}
+	models := map[string]string{
+		"merchant_name":          merchant.Company.Name,
+		"merchant_dashboard_url": fmt.Sprintf(pkg.MerchantKycListUrl, s.cfg.DashboardUrl),
+		"admin_dashboard_url":    fmt.Sprintf(pkg.AdminKycListUrl, s.cfg.DashboardUrl, req.MerchantId),
 	}
 
-	err = s.postmarkBroker.Publish(postmarkpb.PostmarkSenderTopicName, payload, amqp.Table{})
+	merchantPayload := &postmarkpb.Payload{
+		TemplateAlias: s.cfg.EmailTemplates.MerchantDocumentUploaded,
+		TemplateModel: models,
+		To:            merchant.User.Email,
+	}
+
+	err = s.postmarkBroker.Publish(postmarkpb.PostmarkSenderTopicName, merchantPayload, amqp.Table{})
 	if err != nil {
-		zap.L().Error("can't send email", zap.Error(err), zap.Any("payload", payload))
+		zap.L().Error("can't send email", zap.Error(err), zap.Any("payload", merchantPayload))
+	}
+
+	adminPayload := &postmarkpb.Payload{
+		TemplateAlias: s.cfg.EmailTemplates.AdminDocumentUploaded,
+		TemplateModel: models,
+		To:            s.cfg.EmailOnboardingAdminRecipient,
+	}
+
+	err = s.postmarkBroker.Publish(postmarkpb.PostmarkSenderTopicName, adminPayload, amqp.Table{})
+	if err != nil {
+		zap.L().Error("can't send email", zap.Error(err), zap.Any("payload", adminPayload))
 	}
 
 	res.Item = req

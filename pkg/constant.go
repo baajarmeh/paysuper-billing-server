@@ -242,6 +242,8 @@ const (
 	AdminOnboardingRequestsUrl = "%s/agreement-requests"
 	UserInviteUrl              = "%s/login?invite_token=%s"
 	SystemPayoutUrl            = "%s/system-payouts/%s"
+	MerchantKycListUrl         = "%s/settings/company?expandedItem=documents"
+	AdminKycListUrl            = "%s/merchants/%s/company-documents"
 
 	OrderType_simple         = "simple"
 	OrderType_key            = "key"
