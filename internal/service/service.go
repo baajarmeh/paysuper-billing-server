@@ -32,7 +32,6 @@ import (
 	"sort"
 	"strings"
 	"sync"
-	"time"
 )
 
 const (
@@ -378,13 +377,6 @@ func (s *Service) TaskFixReportDates(ctx context.Context) (err error) {
 	ip := "127.0.0.1"
 	source := "system_task"
 
-	loc, err := time.LoadLocation(s.cfg.RoyaltyReportTimeZone)
-
-	if err != nil {
-		zap.L().Error(royaltyReportErrorTimezoneIncorrect.Error(), zap.Error(err))
-		return err
-	}
-
 	reports, err := s.royaltyReportRepository.GetAll(ctx)
 	if err != nil {
 		return err
@@ -407,7 +399,7 @@ func (s *Service) TaskFixReportDates(ctx context.Context) (err error) {
 				return err
 			}
 		}
-		report.StringPeriodFrom = from.In(loc).Format("2006-01-02")
+		report.StringPeriodFrom = from.Format("2006-01-02")
 
 		to, err := ptypes.Timestamp(report.PeriodTo)
 		if err != nil {
@@ -420,7 +412,7 @@ func (s *Service) TaskFixReportDates(ctx context.Context) (err error) {
 				return err
 			}
 		}
-		report.StringPeriodTo = to.Format("2006-01-02") // .In(loc)
+		report.StringPeriodTo = to.Format("2006-01-02")
 
 		err = s.royaltyReportRepository.Update(ctx, report, ip, source)
 		if err != nil {
