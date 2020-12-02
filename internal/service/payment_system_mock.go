@@ -2,7 +2,6 @@ package service
 
 import (
 	"errors"
-	"fmt"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
@@ -148,7 +147,6 @@ func (m *PaymentSystemMockOk) CreateRecurringSubscription(_ *billingpb.Order, _ 
 }
 
 func (m *PaymentSystemMockOk) IsSubscriptionCallback(_ proto.Message) bool {
-	fmt.Println(222)
 	return false
 }
 
@@ -191,7 +189,6 @@ func (m *PaymentSystemMockError) CreateRecurringSubscription(_ *billingpb.Order,
 }
 
 func (m *PaymentSystemMockError) IsSubscriptionCallback(_ proto.Message) bool {
-	fmt.Println(111)
 	return false
 }
 

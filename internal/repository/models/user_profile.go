@@ -21,6 +21,7 @@ type MgoUserProfile struct {
 	Help      *billingpb.UserProfileHelp     `bson:"help"`
 	Company   *billingpb.UserProfileCompany  `bson:"company"`
 	LastStep  string                         `bson:"last_step"`
+	Locale    string                         `bson:"locale"`
 	CreatedAt time.Time                      `bson:"created_at"`
 	UpdatedAt time.Time                      `bson:"updated_at"`
 }
@@ -41,6 +42,7 @@ func (m *userProfileMapper) MapObjectToMgo(obj interface{}) (interface{}, error)
 		Help:     in.Help,
 		Company:  in.Company,
 		LastStep: in.LastStep,
+		Locale:   in.Locale,
 	}
 
 	if len(in.Id) <= 0 {
@@ -109,6 +111,7 @@ func (m *userProfileMapper) MapMgoToObject(obj interface{}) (interface{}, error)
 		Help:     in.Help,
 		Company:  in.Company,
 		LastStep: in.LastStep,
+		Locale:   in.Locale,
 	}
 
 	out.CreatedAt, err = ptypes.TimestampProto(in.CreatedAt)

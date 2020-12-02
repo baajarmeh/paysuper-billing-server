@@ -3,12 +3,19 @@ package config
 import (
 	"crypto/rsa"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/paysuper/paysuper-billing-server/pkg"
+	"github.com/paysuper/paysuper-proto/go/billingpb"
+	"go.uber.org/zap"
 	"net/url"
 	"time"
+)
+
+const (
+	EmailTemplateConfirmAccount = "confirm_account"
 )
 
 type PaymentSystemConfig struct {
@@ -40,7 +47,8 @@ type CacheRedis struct {
 
 // EmailTemplates defines of the Postmark template names for sending letters.
 type EmailTemplates struct {
-	ConfirmAccount                 string `envconfig:"EMAIL_CONFIRM_TEMPLATE" default:"p1_verify_letter"`
+	ConfirmAccountEn               string `envconfig:"EMAIL_CONFIRM_TEMPLATE" default:"p1_verify_letter"`
+	ConfirmAccountRu               string `envconfig:"EMAIL_CONFIRM_TEMPLATE_RU" default:"p1_verify_letter_ru"`
 	NewRoyaltyReport               string `envconfig:"EMAIL_NEW_ROYALTY_REPORT_TEMPLATE" default:"p1_new_royalty_report"`
 	NewPayout                      string `envconfig:"EMAIL_NEW_PAYOUT_TEMPLATE" default:"p1_new_payout"`
 	UpdateRoyaltyReport            string `envconfig:"EMAIL_UPDATE_ROYALTY_REPORT_TEMPLATE" default:"p1_update_royalty_report"`
@@ -55,6 +63,37 @@ type EmailTemplates struct {
 	MerchantAgreementSigned        string `envconfig:"EMAIL_MERCHANT_AGREEMENT_SIGNED" default:"p1_agreement_fully_signed"`
 	RoyaltyReportFinancier         string `envconfig:"EMAIL_ROYALTY_REPORT_FINANCIER" default:"p1_royalty_report_financier"`
 	PayoutInvoiceFinancier         string `envconfig:"EMAIL_PAYOUT_INVOICE_FINANCIER" default:"p1_payout_invoice_financier"`
+	MerchantDocumentUploaded       string `envconfig:"EMAIL_MERCHANT_DOCUMENT_UPLOAD_TEMPLATE" default:"p1_merchant_upload_document"`
+	AdminDocumentUploaded          string `envconfig:"EMAIL_ADMIN_DOCUMENT_UPLOAD_TEMPLATE" default:"p1_admin_upload_document"`
+
+	MultiLanguage map[string]map[string]string
+}
+
+func (t *EmailTemplates) GetTemplate(name, locale string) (string, error) {
+	template, ok := t.MultiLanguage[name]
+
+	if !ok {
+		zap.S().Error(
+			"Unable to find template",
+			zap.Any("name", name),
+		)
+
+		return "", errors.New("template not found")
+	}
+
+	tLocale, ok := template[locale]
+
+	if !ok {
+		zap.S().Error(
+			"Unable to find template for locale",
+			zap.Any("name", name),
+			zap.Any("locale", locale),
+		)
+
+		return "", errors.New("template for locale not found")
+	}
+
+	return tLocale, nil
 }
 
 type Centrifugo struct {
@@ -77,9 +116,8 @@ type Config struct {
 
 	MicroRegistry string `envconfig:"MICRO_REGISTRY" required:"false"`
 
-	RoyaltyReportPeriod        int64  `envconfig:"ROYALTY_REPORT_PERIOD" default:"604800"`
-	RoyaltyReportTimeZone      string `envconfig:"ROYALTY_REPORT_TIMEZONE" default:"Europe/Moscow"`
-	RoyaltyReportAcceptTimeout int64  `envconfig:"ROYALTY_REPORT_ACCEPT_TIMEZONE" default:"432000"`
+	RoyaltyReportPeriod        int64 `envconfig:"ROYALTY_REPORT_PERIOD" default:"604800"`
+	RoyaltyReportAcceptTimeout int64 `envconfig:"ROYALTY_REPORT_ACCEPT_TIMEZONE" default:"432000"`
 
 	CentrifugoMerchantChannel  string `envconfig:"CENTRIFUGO_MERCHANT_CHANNEL" default:"paysuper:merchant#%s"`
 	CentrifugoFinancierChannel string `envconfig:"CENTRIFUGO_FINANCIER_CHANNEL" default:"paysuper:financier"`
@@ -174,6 +212,8 @@ func NewConfig() (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	cfg.EmailTemplates.MultiLanguage = cfg.buildMultiLanguageTemplates()
 
 	return cfg, err
 }
@@ -274,4 +314,13 @@ func (cfg *Config) GetAdminOnboardingRequestsUrl() string {
 
 func (cfg *Config) GetUserInviteUrl(token string) string {
 	return fmt.Sprintf(pkg.UserInviteUrl, cfg.DashboardUrl, token)
+}
+
+func (cfg *Config) buildMultiLanguageTemplates() map[string]map[string]string {
+	return map[string]map[string]string{
+		EmailTemplateConfirmAccount: {
+			billingpb.UserLocaleEn: cfg.EmailTemplates.ConfirmAccountEn,
+			billingpb.UserLocaleRu: cfg.EmailTemplates.ConfirmAccountRu,
+		},
+	}
 }

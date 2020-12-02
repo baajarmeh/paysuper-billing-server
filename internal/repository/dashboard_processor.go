@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
+	"github.com/paysuper/paysuper-billing-server/internal/helper"
 	pkg2 "github.com/paysuper/paysuper-billing-server/internal/pkg"
 	"github.com/paysuper/paysuper-billing-server/internal/repository/models"
 	"github.com/paysuper/paysuper-billing-server/pkg"
@@ -803,14 +804,15 @@ func (m *DashboardReportProcessor) ExecuteSourcesReport(ctx context.Context, rec
 	return receiver, nil
 }
 
-func (m *DashboardReportProcessor) ExecuteCustomerLTV(ctx context.Context, i interface{}) (interface{}, error) {
+func (m *DashboardReportProcessor) ExecuteCustomerLTV(ctx context.Context, i interface{}) (interface{}, interface{}, error) {
 	query := []bson.M{
 		{"$match": m.Match},
 		{
 			"$group": bson.M{
-				"_id":     "$user.external_id",
-				"sum":     bson.M{"$sum": 1},
-				"revenue": bson.M{"$sum": "$net_revenue.amount"},
+				"_id":      "$user.external_id",
+				"sum":      bson.M{"$sum": 1},
+				"revenue":  bson.M{"$sum": "$net_revenue.amount"},
+				"currency": bson.M{"$max": "$payment_gross_revenue.currency"},
 			},
 		},
 		{
@@ -821,6 +823,7 @@ func (m *DashboardReportProcessor) ExecuteCustomerLTV(ctx context.Context, i int
 							"_id":        nil,
 							"user_count": bson.M{"$sum": 1},
 							"revenue":    bson.M{"$sum": "$revenue"},
+							"currency":   bson.M{"$max": "$currency"},
 						},
 					},
 					{
@@ -830,6 +833,7 @@ func (m *DashboardReportProcessor) ExecuteCustomerLTV(ctx context.Context, i int
 									"$revenue", "$user_count",
 								},
 							},
+							"currency": "$currency",
 						},
 					},
 				},
@@ -846,14 +850,15 @@ func (m *DashboardReportProcessor) ExecuteCustomerLTV(ctx context.Context, i int
 			zap.String(pkg.ErrorDatabaseFieldCollection, m.Collection),
 			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
 		)
-		return nil, err
+		return nil, nil, err
 	}
 
 	defer cursor.Close(ctx)
 
 	type avgOrdersCountItem struct {
-		Id  string  `json:"id" bson:"id"`
-		Avg float64 `json:"avg" bson:"avg"`
+		Id       string  `json:"id" bson:"id"`
+		Avg      float64 `json:"avg" bson:"avg"`
+		Currency string  `json:"currency" bson:"currency"`
 	}
 
 	type avgOrdersCountWrapper struct {
@@ -861,7 +866,7 @@ func (m *DashboardReportProcessor) ExecuteCustomerLTV(ctx context.Context, i int
 	}
 	receiverObj := &avgOrdersCountWrapper{}
 
-	zero := float32(0.0)
+	zero := 0.0
 	if cursor.Next(ctx) {
 		err = cursor.Decode(receiverObj)
 
@@ -872,18 +877,17 @@ func (m *DashboardReportProcessor) ExecuteCustomerLTV(ctx context.Context, i int
 				zap.String(pkg.ErrorDatabaseFieldCollection, m.Collection),
 				zap.Any(pkg.ErrorDatabaseFieldQuery, query),
 			)
-			return nil, err
+			return nil, nil, err
 		}
 
 		if len(receiverObj.Result) == 0 {
-			return zero, nil
+			return zero, "", nil
 		}
 
-		res := float32(receiverObj.Result[0].Avg)
-		return res, nil
+		return receiverObj.Result[0].Avg, receiverObj.Result[0].Currency, nil
 	}
 
-	return zero, nil
+	return zero, "", nil
 }
 
 func (m *DashboardReportProcessor) ExecuteCustomerARPU(ctx context.Context, customerId string) (interface{}, error) {
@@ -1061,7 +1065,7 @@ func (m *DashboardReportProcessor) ExecuteCustomerAvgTransactionsCount(ctx conte
 
 	type avgOrdersCountItem struct {
 		Id  string  `json:"id" bson:"id"`
-		Avg float32 `json:"avg" bson:"avg"`
+		Avg float64 `json:"avg" bson:"avg"`
 	}
 
 	type avgOrdersCountWrapper struct {
@@ -1069,7 +1073,7 @@ func (m *DashboardReportProcessor) ExecuteCustomerAvgTransactionsCount(ctx conte
 	}
 	receiverObj := &avgOrdersCountWrapper{}
 
-	zero := float32(0.0)
+	zero := float64(0.0)
 	if cursor.Next(ctx) {
 		err = cursor.Decode(receiverObj)
 
@@ -1095,7 +1099,8 @@ func (m *DashboardReportProcessor) ExecuteCustomerAvgTransactionsCount(ctx conte
 
 func (m *DashboardReportProcessor) ExecuteCustomerTop20(ctx context.Context, i interface{}) (interface{}, error) {
 	type top20revenue struct {
-		Revenue float64 `json:"revenue" bson:"revenue"`
+		Revenue  float64 `json:"revenue" bson:"revenue"`
+		Currency string  `json:"currency" bson:"currency"`
 	}
 
 	type top20revenueWrapper struct {
@@ -1104,8 +1109,9 @@ func (m *DashboardReportProcessor) ExecuteCustomerTop20(ctx context.Context, i i
 	var receiverObj top20revenueWrapper
 
 	res := &billingpb.Top20Customers{
-		Count:   0,
-		Revenue: 0,
+		Count:    0,
+		Revenue:  0,
+		Currency: "",
 	}
 
 	customersCount, err := m.executeCustomersCount(ctx)
@@ -1123,8 +1129,9 @@ func (m *DashboardReportProcessor) ExecuteCustomerTop20(ctx context.Context, i i
 		{"$match": m.Match},
 		{
 			"$group": bson.M{
-				"_id":     "$user.external_id",
-				"revenue": bson.M{"$sum": "$net_revenue.amount"},
+				"_id":      "$user.external_id",
+				"revenue":  bson.M{"$sum": "$net_revenue.amount"},
+				"currency": bson.M{"$max": "$payment_gross_revenue.currency"},
 			},
 		},
 		{"$sort": bson.M{"revenue": -1}},
@@ -1134,8 +1141,9 @@ func (m *DashboardReportProcessor) ExecuteCustomerTop20(ctx context.Context, i i
 				"result": []bson.M{
 					{
 						"$group": bson.M{
-							"_id":     nil,
-							"revenue": bson.M{"$sum": "$revenue"},
+							"_id":      nil,
+							"revenue":  bson.M{"$sum": "$revenue"},
+							"currency": bson.M{"$max": "$currency"},
 						},
 					},
 				},
@@ -1171,6 +1179,7 @@ func (m *DashboardReportProcessor) ExecuteCustomerTop20(ctx context.Context, i i
 
 		res.Count = top20
 		res.Revenue = float32(receiverObj.Result[0].Revenue)
+		res.Currency = receiverObj.Result[0].Currency
 
 		return res, nil
 	}
@@ -1337,7 +1346,7 @@ func (m *DashboardReportProcessor) ExecuteCustomersChart(ctx context.Context, st
 	for i := 0; i < days; i++ {
 		lastDate = lastDate.AddDate(0, 0, 1)
 		val := &billingpb.DashboardChartItemInt{
-			Label: int64(i + 1),
+			Label: lastDate.Unix(),
 		}
 		chart[i] = val
 
@@ -1357,4 +1366,92 @@ func (m *DashboardReportProcessor) ExecuteCustomersChart(ctx context.Context, st
 	}
 
 	return chart, nil
+}
+
+func (m *DashboardReportProcessor) ExecuteCustomerARPPU(ctx context.Context) (interface{}, error) {
+	query := []bson.M{
+		{"$match": m.Match},
+		{
+			"$project": bson.M{
+				"user": "$user.external_id",
+				"revenue_amount": bson.M{
+					"$cond": []interface{}{
+						bson.M{"$eq": []string{"$status", "processed"}}, "$payment_gross_revenue.amount", 0,
+					},
+				},
+				"currency": bson.M{"$ifNull": []string{"$payment_gross_revenue.currency", ""}},
+			},
+		},
+		{
+			"$group": bson.M{
+				"_id": bson.M{
+					"user":     "$user",
+					"currency": "$currency",
+				},
+				"gross_revenue": bson.M{"$sum": "$revenue_amount"},
+			},
+		},
+		{
+			"$group": bson.M{
+				"_id":           "$_id.currency",
+				"gross_revenue": bson.M{"$sum": "$gross_revenue"},
+				"users_count":   bson.M{"$sum": 1},
+			},
+		},
+		{
+			"$project": bson.M{
+				"currency": "$_id",
+				"arppu": bson.M{
+					"$divide": []string{
+						"$gross_revenue", "$users_count",
+					},
+				},
+			},
+		},
+	}
+
+	cursor, err := m.Db.Collection(m.Collection).Aggregate(ctx, query)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, m.Collection),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+		)
+		return nil, err
+	}
+
+	type arppu struct {
+		Result   float64 `json:"arppu" bson:"arppu"`
+		Currency string  `json:"currency" bson:"currency"`
+	}
+	receiverObj := []*arppu{}
+
+	res := &billingpb.OrderViewMoney{}
+
+	err = cursor.All(ctx, &receiverObj)
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorQueryCursorExecutionFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, m.Collection),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+		)
+		return res, err
+	}
+
+	if len(receiverObj) == 0 {
+		return res, nil
+	}
+
+	if len(receiverObj) > 1 {
+		zap.L().Error("data set has more than 1 currency for gross revenue calculating", zap.Any("query", query), zap.Any("result", receiverObj))
+	}
+
+	res.AmountRounded = helper.Round(receiverObj[0].Result)
+	res.Amount = receiverObj[0].Result
+	res.Currency = receiverObj[0].Currency
+
+	return res, nil
 }

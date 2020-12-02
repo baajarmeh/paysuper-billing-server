@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/jinzhu/now"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
+	"github.com/paysuper/paysuper-billing-server/internal/helper"
 	pkg2 "github.com/paysuper/paysuper-billing-server/internal/pkg"
 	"github.com/paysuper/paysuper-billing-server/internal/repository/models"
 	"github.com/paysuper/paysuper-billing-server/pkg"
@@ -25,7 +26,7 @@ const (
 	dashboardBaseRevenueByCountryCacheKey         = "dashboard:base:revenue_by_country:%x"
 	dashboardBaseSalesTodayCacheKey               = "dashboard:base:sales_today:%x"
 	dashboardBaseSourcesCacheKey                  = "dashboard:base:sources:%x"
-	dashboardCustomerCacheKey                  = "dashboard:customers:%x"
+	dashboardCustomerCacheKey                     = "dashboard:customers:%x"
 
 	dashboardReportGroupByHour        = "$hour"
 	dashboardReportGroupByDay         = "$day"
@@ -50,7 +51,6 @@ var (
 )
 
 type dashboardRepository repository
-
 
 // NewDashboardRepository create and return an object for working with the key repository.
 // The returned object implements the DashboardRepositoryInterface interface.
@@ -184,7 +184,7 @@ func (r *dashboardRepository) getCustomersNew(ctx context.Context, merchantId st
 	return res, nil
 }
 
-func (r *dashboardRepository) getCustomersAvgLtv(ctx context.Context, merchantId string, period string) (float32, error) {
+func (r *dashboardRepository) getCustomersAvgLtv(ctx context.Context, merchantId string, period string) (float64, string, error) {
 	processorCurrent, err := r.newDashboardReportProcessor(
 		merchantId,
 		period,
@@ -193,19 +193,19 @@ func (r *dashboardRepository) getCustomersAvgLtv(ctx context.Context, merchantId
 	)
 
 	if err != nil {
-		return 0.0, err
+		return 0.0, "", err
 	}
 
-	ltv, err := processorCurrent.ExecuteCustomerLTV(ctx, nil)
+	ltv, currency, err := processorCurrent.ExecuteCustomerLTV(ctx, nil)
 
 	if err != nil {
-		return 0.0, err
+		return 0.0, "", err
 	}
 
-	return ltv.(float32), nil
+	return ltv.(float64), currency.(string), nil
 }
 
-func (r *dashboardRepository) getCustomersAvgOrdersCount(ctx context.Context, merchantId string, period string) (float32, error) {
+func (r *dashboardRepository) getCustomersAvgOrdersCount(ctx context.Context, merchantId string, period string) (float64, error) {
 	processorCurrent, err := r.newDashboardReportProcessor(
 		merchantId,
 		period,
@@ -222,7 +222,7 @@ func (r *dashboardRepository) getCustomersAvgOrdersCount(ctx context.Context, me
 		return 0.0, err
 	}
 
-	return avgCount.(float32), nil
+	return avgCount.(float64), nil
 }
 
 func (r *dashboardRepository) getTop20Customers(ctx context.Context, merchantId string, period string) (*billingpb.Top20Customers, error) {
@@ -244,7 +244,6 @@ func (r *dashboardRepository) getTop20Customers(ctx context.Context, merchantId 
 
 	return res.(*billingpb.Top20Customers), nil
 }
-
 
 func (r *dashboardRepository) getCustomersNewAndReturningChart(ctx context.Context, merchantId string, period string) ([]*billingpb.DashboardChartItemInt, error) {
 	processorCurrent, err := r.newDashboardReportProcessor(
@@ -269,6 +268,26 @@ func (r *dashboardRepository) getCustomersNewAndReturningChart(ctx context.Conte
 	}
 
 	return res.([]*billingpb.DashboardChartItemInt), nil
+}
+
+func (r *dashboardRepository) getCustomersArppu(ctx context.Context, merchantId string, period string) (float32, error) {
+	processorCurrent, err := r.newDashboardReportProcessor(
+		merchantId,
+		period,
+		dashboardCustomerCacheKey,
+		"processed",
+	)
+
+	if err != nil {
+		return 0.0, err
+	}
+
+	arppu, err := processorCurrent.ExecuteCustomerARPPU(ctx)
+	if err != nil {
+		return 0.0, err
+	}
+
+	return arppu.(float32), nil
 }
 
 func (r *dashboardRepository) getCustomerArpu(ctx context.Context, merchantId string, customerId string) (*billingpb.DashboardAmountItemWithChart, error) {
@@ -313,7 +332,7 @@ func (r *dashboardRepository) GetCustomersReport(ctx context.Context, merchantId
 		return nil, err
 	}
 
-	ltv, err := r.getCustomersAvgLtv(ctx, merchantId, period)
+	ltv, ltvCurrency, err := r.getCustomersAvgLtv(ctx, merchantId, period)
 	if err != nil {
 		return nil, err
 	}
@@ -333,14 +352,40 @@ func (r *dashboardRepository) GetCustomersReport(ctx context.Context, merchantId
 		return nil, err
 	}
 
+	arppu, err := r.getCustomerArppu(ctx, merchantId, period)
+	if err != nil {
+		return nil, err
+	}
+
+	prevArppu, err := r.getCustomerArppu(ctx, merchantId, dashboardReportBasePreviousPeriodsNames[period])
+	if err != nil {
+		return nil, err
+	}
+
+	var percent float32
+
+	newNumber := arppu.Amount - prevArppu.Amount
+	if prevArppu.Amount > 0 {
+		percent = float32(helper.Round(newNumber / prevArppu.Amount * 100))
+	} else {
+		percent = 100
+	}
+
 	report := &billingpb.DashboardCustomerReport{
 		NewCustomersPercentage:       newCustomers,
 		ReturningCustomersPercentage: returning,
 		LostCustomersPercentage:      1 - returning,
-		AvgLtvCustomer:               ltv,
-		AvgOrdersCount:               avgOrders,
-		Top20Customers: 			  top20,
-		Chart: chart,
+		AvgLtvCustomer:               helper.Round(ltv),
+		AvgLtvCurrency:               ltvCurrency,
+		AvgOrdersCount:               helper.Round(avgOrders),
+		Top20Customers:               top20,
+		Chart:                        chart,
+		Arppu: &billingpb.ArppuData{
+			Current:  arppu,
+			Previous: prevArppu,
+			Delta:    float32(arppu.Amount - prevArppu.Amount),
+			Percent:  percent,
+		},
 	}
 
 	return report, nil
@@ -918,3 +963,22 @@ func (r *dashboardRepository) newDashboardReportProcessor(
 	return processor, nil
 }
 
+func (r *dashboardRepository) getCustomerArppu(ctx context.Context, merchantId string, period string) (*billingpb.OrderViewMoney, error) {
+	processorCurrent, err := r.newDashboardReportProcessor(
+		merchantId,
+		period,
+		dashboardCustomerCacheKey,
+		"processed",
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	arppu, err := processorCurrent.ExecuteCustomerARPPU(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return arppu.(*billingpb.OrderViewMoney), nil
+}
