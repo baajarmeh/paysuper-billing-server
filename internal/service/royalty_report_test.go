@@ -314,7 +314,7 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_CreateRoyaltyReport_AllMe
 	assert.Contains(suite.T(), rsp.Merchants, suite.merchant1.Id)
 	assert.Contains(suite.T(), rsp.Merchants, suite.merchant2.Id)
 
-	loc, err := time.LoadLocation("Europe/Moscow")
+	loc, err := time.LoadLocation("UTC")
 	assert.NoError(suite.T(), err)
 
 	to := now.Monday().Add(-1 * time.Millisecond).In(loc)
@@ -392,7 +392,7 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_CreateRoyaltyReport_Selec
 
 	var existMerchants []string
 
-	loc, err := time.LoadLocation("Europe/Moscow")
+	loc, err := time.LoadLocation("UTC")
 	assert.NoError(suite.T(), err)
 
 	to := now.Monday().Add(-1 * time.Millisecond).In(loc)
