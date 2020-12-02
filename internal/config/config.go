@@ -116,9 +116,8 @@ type Config struct {
 
 	MicroRegistry string `envconfig:"MICRO_REGISTRY" required:"false"`
 
-	RoyaltyReportPeriod        int64  `envconfig:"ROYALTY_REPORT_PERIOD" default:"604800"`
-	RoyaltyReportTimeZone      string `envconfig:"ROYALTY_REPORT_TIMEZONE" default:"Europe/Moscow"`
-	RoyaltyReportAcceptTimeout int64  `envconfig:"ROYALTY_REPORT_ACCEPT_TIMEZONE" default:"432000"`
+	RoyaltyReportPeriod        int64 `envconfig:"ROYALTY_REPORT_PERIOD" default:"604800"`
+	RoyaltyReportAcceptTimeout int64 `envconfig:"ROYALTY_REPORT_ACCEPT_TIMEZONE" default:"432000"`
 
 	CentrifugoMerchantChannel  string `envconfig:"CENTRIFUGO_MERCHANT_CHANNEL" default:"paysuper:merchant#%s"`
 	CentrifugoFinancierChannel string `envconfig:"CENTRIFUGO_FINANCIER_CHANNEL" default:"paysuper:financier"`
