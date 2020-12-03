@@ -71,17 +71,10 @@ func (s *Service) CreateRoyaltyReport(
 ) error {
 	zap.L().Info("start royalty reports processing")
 
-	loc, err := time.LoadLocation(s.cfg.RoyaltyReportTimeZone)
-
-	if err != nil {
-		zap.L().Error(royaltyReportErrorTimezoneIncorrect.Error(), zap.Error(err))
-		return royaltyReportErrorTimezoneIncorrect
-	}
-
 	// prevent to include next day into date - PAY-37849
-	to := now.Monday().Add(-1 * time.Nanosecond).In(loc)
+	to := now.Monday().Add(-1 * time.Nanosecond)
 
-	from := to.Add(-time.Duration(s.cfg.RoyaltyReportPeriod) * time.Second).Add(1 * time.Nanosecond).In(loc)
+	from := to.Add(-time.Duration(s.cfg.RoyaltyReportPeriod) * time.Second).Add(1 * time.Nanosecond)
 	from = now.New(from).BeginningOfDay()
 
 	var merchants []*pkg2.RoyaltyReportMerchant
