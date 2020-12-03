@@ -1,6 +1,16 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [1.9.0] - 2020-12-03
+
+### Added
+- KYC procedure for merchant onbording
+
+### Changed
+- Royalty reports calculation moved from Europe/Moscow timezone to UTC 
+    
+***
+
 ## [1.8.0] - 2020-11-18
 
 ### Added
