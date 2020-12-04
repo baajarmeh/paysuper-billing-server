@@ -3,6 +3,8 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
+	"github.com/go-redis/redis"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/mongodb"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
@@ -13,6 +15,7 @@ import (
 	errors2 "github.com/paysuper/paysuper-billing-server/pkg/errors"
 	"github.com/paysuper/paysuper-proto/go/billingpb"
 	casbinMocks "github.com/paysuper/paysuper-proto/go/casbinpb/mocks"
+	"github.com/paysuper/paysuper-proto/go/postmarkpb"
 	reportingMocks "github.com/paysuper/paysuper-proto/go/reporterpb/mocks"
 	"github.com/stretchr/testify/assert"
 	mock2 "github.com/stretchr/testify/mock"
@@ -71,7 +74,7 @@ func (suite *KeyTestSuite) SetupTest() {
 		mocks.NewRepositoryServiceOk(),
 		mocks.NewTaxServiceOkMock(),
 		nil,
-		nil,
+		redisdb,
 		suite.cache,
 		mocks.NewCurrencyServiceMockOk(),
 		mocks.NewDocumentSignerMockOk(),
@@ -627,4 +630,291 @@ func (suite *KeyTestSuite) TestKey_FindUnfinished_Ok() {
 	assert.NoError(suite.T(), err)
 	assert.Len(suite.T(), keys, 1)
 	assert.Equal(suite.T(), keyReserveExpire.Id, keys[0].Id)
+}
+
+func (suite *KeyTestSuite) TestKey_checkAndNotifyProductKeys_ErrorIfKeyProductNotFound() {
+	err := suite.service.checkAndNotifyProductKeys(&billingpb.Key{})
+	assert.Error(suite.T(), err)
+}
+
+func (suite *KeyTestSuite) TestKey_checkAndNotifyProductKeys_SkipIfCountGreaterMinimal() {
+	keyProduct := &billingpb.KeyProduct{
+		Id:                 primitive.NewObjectID().Hex(),
+		MinimalLimitNotify: defaultMinimalLimitNotify,
+	}
+	key := &billingpb.Key{
+		KeyProductId: keyProduct.Id,
+		PlatformId:   "steam",
+	}
+
+	kpr := &mocks.KeyProductRepositoryInterface{}
+	kpr.On("GetById", mock2.Anything, key.KeyProductId).Return(keyProduct, nil)
+	suite.service.keyProductRepository = kpr
+
+	kr := &mocks.KeyRepositoryInterface{}
+	kr.On("CountKeysByProductPlatform", mock2.Anything, key.KeyProductId, key.PlatformId).Return(int64(defaultMinimalLimitNotify+1), nil)
+	suite.service.keyRepository = kr
+
+	err := suite.service.checkAndNotifyProductKeys(key)
+	assert.NoError(suite.T(), err)
+}
+
+func (suite *KeyTestSuite) TestKey_checkAndNotifyProductKeys_ErrorIfCountKeysByProductPlatformReturnError() {
+	keyProduct := &billingpb.KeyProduct{
+		Id:                 primitive.NewObjectID().Hex(),
+		MinimalLimitNotify: defaultMinimalLimitNotify,
+	}
+	key := &billingpb.Key{
+		KeyProductId: keyProduct.Id,
+		PlatformId:   "steam",
+	}
+
+	kpr := &mocks.KeyProductRepositoryInterface{}
+	kpr.On("GetById", mock2.Anything, key.KeyProductId).Return(keyProduct, nil)
+	suite.service.keyProductRepository = kpr
+
+	kr := &mocks.KeyRepositoryInterface{}
+	kr.On("CountKeysByProductPlatform", mock2.Anything, key.KeyProductId, key.PlatformId).Return(int64(0), errors.New("error"))
+	suite.service.keyRepository = kr
+
+	err := suite.service.checkAndNotifyProductKeys(key)
+	assert.Error(suite.T(), err)
+}
+
+func (suite *KeyTestSuite) TestKey_checkAndNotifyProductKeys_SkipIfMinimalMarkerExists() {
+	keyProduct := &billingpb.KeyProduct{
+		Id:                 primitive.NewObjectID().Hex(),
+		MinimalLimitNotify: defaultMinimalLimitNotify,
+	}
+	key := &billingpb.Key{
+		KeyProductId: keyProduct.Id,
+		PlatformId:   "steam",
+	}
+
+	kpr := &mocks.KeyProductRepositoryInterface{}
+	kpr.On("GetById", mock2.Anything, key.KeyProductId).Return(keyProduct, nil)
+	suite.service.keyProductRepository = kpr
+
+	kr := &mocks.KeyRepositoryInterface{}
+	kr.On("CountKeysByProductPlatform", mock2.Anything, key.KeyProductId, key.PlatformId).Return(int64(defaultMinimalLimitNotify), nil)
+	suite.service.keyRepository = kr
+
+	redisClient := database.NewRedis(
+		&redis.Options{
+			Addr:     suite.service.cfg.RedisHost,
+			Password: suite.service.cfg.RedisPassword,
+		},
+	)
+	storageKey := fmt.Sprintf(minimalKeysNotifyKey, key.KeyProductId, key.PlatformId)
+	redisClient.Set(storageKey, 1, 0)
+	suite.service.redis = redisClient
+
+	err := suite.service.checkAndNotifyProductKeys(key)
+	assert.NoError(suite.T(), err)
+}
+
+func (suite *KeyTestSuite) TestKey_checkAndNotifyProductKeys_SkipIfEmptyMarkerExists() {
+	keyProduct := &billingpb.KeyProduct{
+		Id:                 primitive.NewObjectID().Hex(),
+		MinimalLimitNotify: defaultMinimalLimitNotify,
+	}
+	key := &billingpb.Key{
+		KeyProductId: keyProduct.Id,
+		PlatformId:   "steam",
+	}
+
+	kpr := &mocks.KeyProductRepositoryInterface{}
+	kpr.On("GetById", mock2.Anything, key.KeyProductId).Return(keyProduct, nil)
+	suite.service.keyProductRepository = kpr
+
+	kr := &mocks.KeyRepositoryInterface{}
+	kr.On("CountKeysByProductPlatform", mock2.Anything, key.KeyProductId, key.PlatformId).Return(int64(0), nil)
+	suite.service.keyRepository = kr
+
+	redisClient := database.NewRedis(
+		&redis.Options{
+			Addr:     suite.service.cfg.RedisHost,
+			Password: suite.service.cfg.RedisPassword,
+		},
+	)
+	storageKey := fmt.Sprintf(emptyKeysNotifyKey, key.KeyProductId, key.PlatformId)
+	redisClient.Set(storageKey, 1, 0)
+	suite.service.redis = redisClient
+
+	err := suite.service.checkAndNotifyProductKeys(key)
+	assert.NoError(suite.T(), err)
+}
+
+func (suite *KeyTestSuite) TestKey_checkAndNotifyProductKeys_ErrorIfProjectNotFound() {
+	project := &billingpb.Project{
+		Id: primitive.NewObjectID().Hex(),
+	}
+	keyProduct := &billingpb.KeyProduct{
+		Id:                 primitive.NewObjectID().Hex(),
+		MinimalLimitNotify: defaultMinimalLimitNotify,
+		ProjectId:          project.Id,
+	}
+	key := &billingpb.Key{
+		KeyProductId: keyProduct.Id,
+		PlatformId:   "steam",
+	}
+
+	kpr := &mocks.KeyProductRepositoryInterface{}
+	kpr.On("GetById", mock2.Anything, key.KeyProductId).Return(keyProduct, nil)
+	suite.service.keyProductRepository = kpr
+
+	kr := &mocks.KeyRepositoryInterface{}
+	kr.On("CountKeysByProductPlatform", mock2.Anything, key.KeyProductId, key.PlatformId).Return(int64(0), nil)
+	suite.service.keyRepository = kr
+
+	pr := &mocks.ProjectRepositoryInterface{}
+	pr.On("GetById", mock2.Anything, keyProduct.ProjectId).Return(nil, errors.New("error"))
+	suite.service.project = pr
+
+	err := suite.service.checkAndNotifyProductKeys(key)
+	assert.Error(suite.T(), err)
+}
+
+func (suite *KeyTestSuite) TestKey_checkAndNotifyProductKeys_ErrorIfPostmarkError() {
+	project := &billingpb.Project{
+		Id: primitive.NewObjectID().Hex(),
+	}
+	keyProduct := &billingpb.KeyProduct{
+		Id:                 primitive.NewObjectID().Hex(),
+		MinimalLimitNotify: defaultMinimalLimitNotify,
+		ProjectId:          project.Id,
+	}
+	key := &billingpb.Key{
+		KeyProductId: keyProduct.Id,
+		PlatformId:   "steam",
+	}
+
+	kpr := &mocks.KeyProductRepositoryInterface{}
+	kpr.On("GetById", mock2.Anything, key.KeyProductId).Return(keyProduct, nil)
+	suite.service.keyProductRepository = kpr
+
+	kr := &mocks.KeyRepositoryInterface{}
+	kr.On("CountKeysByProductPlatform", mock2.Anything, key.KeyProductId, key.PlatformId).Return(int64(0), nil)
+	suite.service.keyRepository = kr
+
+	pr := &mocks.ProjectRepositoryInterface{}
+	pr.On("GetById", mock2.Anything, keyProduct.ProjectId).Return(project, nil)
+	suite.service.project = pr
+
+	postmark := &mocks.BrokerInterface{}
+	postmark.On("Publish", postmarkpb.PostmarkSenderTopicName, mock2.MatchedBy(func(input *postmarkpb.Payload) bool {
+		if _, ok := input.TemplateModel["project_name"]; !ok {
+			return false
+		}
+		if _, ok := input.TemplateModel["product_name"]; !ok {
+			return false
+		}
+		if _, ok := input.TemplateModel["platform_name"]; !ok {
+			return false
+		}
+		if _, ok := input.TemplateModel["minimal_limit"]; !ok {
+			return false
+		}
+		if _, ok := input.TemplateModel["key_upload_url"]; !ok {
+			return false
+		}
+		return true
+	}), mock2.Anything).Return(errors.New("error"))
+	suite.service.postmarkBroker = postmark
+
+	err := suite.service.checkAndNotifyProductKeys(key)
+	assert.Error(suite.T(), err)
+}
+
+func (suite *KeyTestSuite) TestKey_checkAndNotifyProductKeys_ErrorIfCentSendCentrifugoMessage() {
+	project := &billingpb.Project{
+		Id: primitive.NewObjectID().Hex(),
+	}
+	keyProduct := &billingpb.KeyProduct{
+		Id:                 primitive.NewObjectID().Hex(),
+		MinimalLimitNotify: defaultMinimalLimitNotify,
+		ProjectId:          project.Id,
+	}
+	key := &billingpb.Key{
+		KeyProductId: keyProduct.Id,
+		PlatformId:   "steam",
+	}
+
+	kpr := &mocks.KeyProductRepositoryInterface{}
+	kpr.On("GetById", mock2.Anything, key.KeyProductId).Return(keyProduct, nil)
+	suite.service.keyProductRepository = kpr
+
+	kr := &mocks.KeyRepositoryInterface{}
+	kr.On("CountKeysByProductPlatform", mock2.Anything, key.KeyProductId, key.PlatformId).Return(int64(0), nil)
+	suite.service.keyRepository = kr
+
+	pr := &mocks.ProjectRepositoryInterface{}
+	pr.On("GetById", mock2.Anything, keyProduct.ProjectId).Return(project, nil)
+	suite.service.project = pr
+
+	postmark := &mocks.BrokerInterface{}
+	postmark.On("Publish", postmarkpb.PostmarkSenderTopicName, mock2.Anything, mock2.Anything).Return(nil)
+	suite.service.postmarkBroker = postmark
+
+	centrifugoMock := &mocks.CentrifugoInterface{}
+	centrifugoMock.On("Publish", mock2.Anything, mock2.Anything, mock2.Anything).Return(errors.New("error"))
+	suite.service.centrifugoDashboard = centrifugoMock
+
+	err := suite.service.checkAndNotifyProductKeys(key)
+	assert.Error(suite.T(), err)
+}
+
+func (suite *KeyTestSuite) TestKey_checkAndNotifyProductKeys_Ok() {
+	project := &billingpb.Project{
+		Id: primitive.NewObjectID().Hex(),
+	}
+	keyProduct := &billingpb.KeyProduct{
+		Id:                 primitive.NewObjectID().Hex(),
+		MinimalLimitNotify: defaultMinimalLimitNotify,
+		ProjectId:          project.Id,
+	}
+	key := &billingpb.Key{
+		KeyProductId: keyProduct.Id,
+		PlatformId:   "steam",
+	}
+
+	kpr := &mocks.KeyProductRepositoryInterface{}
+	kpr.On("GetById", mock2.Anything, key.KeyProductId).Return(keyProduct, nil)
+	suite.service.keyProductRepository = kpr
+
+	kr := &mocks.KeyRepositoryInterface{}
+	kr.On("CountKeysByProductPlatform", mock2.Anything, key.KeyProductId, key.PlatformId).Return(int64(0), nil)
+	suite.service.keyRepository = kr
+
+	pr := &mocks.ProjectRepositoryInterface{}
+	pr.On("GetById", mock2.Anything, keyProduct.ProjectId).Return(project, nil)
+	suite.service.project = pr
+
+	postmark := &mocks.BrokerInterface{}
+	postmark.On("Publish", postmarkpb.PostmarkSenderTopicName, mock2.MatchedBy(func(input *postmarkpb.Payload) bool {
+		if _, ok := input.TemplateModel["project_name"]; !ok {
+			return false
+		}
+		if _, ok := input.TemplateModel["product_name"]; !ok {
+			return false
+		}
+		if _, ok := input.TemplateModel["platform_name"]; !ok {
+			return false
+		}
+		if _, ok := input.TemplateModel["minimal_limit"]; !ok {
+			return false
+		}
+		if _, ok := input.TemplateModel["key_upload_url"]; !ok {
+			return false
+		}
+		return true
+	}), mock2.Anything).Return(nil)
+	suite.service.postmarkBroker = postmark
+
+	centrifugoMock := &mocks.CentrifugoInterface{}
+	centrifugoMock.On("Publish", mock2.Anything, mock2.Anything, mock2.Anything).Return(nil)
+	suite.service.centrifugoDashboard = centrifugoMock
+
+	err := suite.service.checkAndNotifyProductKeys(key)
+	assert.NoError(suite.T(), err)
 }

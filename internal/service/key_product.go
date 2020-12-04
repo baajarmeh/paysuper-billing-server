@@ -16,7 +16,8 @@ import (
 )
 
 const (
-	oneDayTtl = 86400
+	oneDayTtl                 = 86400
+	defaultMinimalLimitNotify = 100
 )
 
 var (
@@ -318,6 +319,11 @@ func (s *Service) CreateOrUpdateKeyProduct(
 	product.Url = req.Url
 	product.Pricing = req.Pricing
 	product.UpdatedAt = now
+	product.MinimalLimitNotify = req.MinimalLimitNotify
+
+	if product.MinimalLimitNotify < 1 {
+		product.MinimalLimitNotify = defaultMinimalLimitNotify
+	}
 
 	if err = s.keyProductRepository.Upsert(ctx, product); err != nil {
 		res.Status = http.StatusInternalServerError

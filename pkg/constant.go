@@ -244,6 +244,7 @@ const (
 	SystemPayoutUrl            = "%s/system-payouts/%s"
 	MerchantKycListUrl         = "%s/settings/company?expandedItem=documents"
 	AdminKycListUrl            = "%s/merchants/%s/company-documents"
+	UploadProductKeysUrl       = "%s/projects/%s/game-keys/%s"
 
 	OrderType_simple         = "simple"
 	OrderType_key            = "key"
