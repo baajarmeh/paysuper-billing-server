@@ -1,0 +1,317 @@
+[
+  {
+    "update": "order_view",
+    "updates": [
+      {
+        "q": {},
+        "u": {
+          "$set": {
+            "report_summary.status": {
+              "$concat": [
+                "$status",
+                ""
+              ]
+            },
+
+            "report_summary.charge.amount": {
+              "$subtract": [
+                {
+                  "$ifNull": [
+                    "$payment_gross_revenue_origin.amount",
+                    0
+                  ]
+                },
+                {
+                  "$ifNull": [
+                    "$payment_refund_gross_revenue_origin.amount",
+                    0
+                  ]
+                }
+              ]
+            },
+            "report_summary.charge.amount_rounded": {
+              "$round": [
+                {
+                  "$subtract": [
+                    {
+                      "$ifNull": [
+                        "$payment_gross_revenue_origin.amount_rounded",
+                        0
+                      ]
+                    },
+                    {
+                      "$ifNull": [
+                        "$payment_refund_gross_revenue_origin.amount_rounded",
+                        0
+                      ]
+                    }
+                  ]
+                },
+                2
+              ]
+            },
+            "report_summary.charge.currency": {
+              "$concat": [
+                {
+                  "$ifNull": [
+                    "$payment_gross_revenue_origin.currency",
+                    ""
+                  ]
+                },
+                {
+                  "$ifNull": [
+                    "$payment_refund_gross_revenue_origin.currency",
+                    ""
+                  ]
+                }
+              ]
+            },
+
+            "report_summary.gross.amount": {
+              "$subtract": [
+                {
+                  "$ifNull": [
+                    "$gross_revenue.amount",
+                    0
+                  ]
+                },
+                {
+                  "$ifNull": [
+                    "$refund_gross_revenue.amount",
+                    0
+                  ]
+                }
+              ]
+            },
+            "report_summary.gross.amount_rounded": {
+              "$round": [
+                {
+                  "$subtract": [
+                    {
+                      "$ifNull": [
+                        "$gross_revenue.amount_rounded",
+                        0
+                      ]
+                    },
+                    {
+                      "$ifNull": [
+                        "$refund_gross_revenue.amount_rounded",
+                        0
+                      ]
+                    }
+                  ]
+                },
+                2
+              ]
+            },
+            "report_summary.gross.currency": {
+              "$concat": [
+                {
+                  "$ifNull": [
+                    "$gross_revenue.currency",
+                    ""
+                  ]
+                },
+                {
+                  "$ifNull": [
+                    "$refund_gross_revenue.currency",
+                    ""
+                  ]
+                }
+              ]
+            },
+
+            "report_summary.vat.amount": {
+              "$subtract": [
+                {
+                  "$ifNull": [
+                    "$tax_fee_total.amount",
+                    0
+                  ]
+                },
+                {
+                  "$ifNull": [
+                    "$refund_tax_fee_total.amount",
+                    0
+                  ]
+                }
+              ]
+            },
+            "report_summary.vat.amount_rounded": {
+              "$round": [
+                {
+                  "$subtract": [
+                    {
+                      "$ifNull": [
+                        "$tax_fee_total.amount_rounded",
+                        0
+                      ]
+                    },
+                    {
+                      "$ifNull": [
+                        "$refund_tax_fee_total.amount_rounded",
+                        0
+                      ]
+                    }
+                  ]
+                },
+                2
+              ]
+            },
+            "report_summary.vat.currency": {
+              "$concat": [
+                {
+                  "$ifNull": [
+                    "$tax_fee_total.currency",
+                    ""
+                  ]
+                },
+                {
+                  "$ifNull": [
+                    "$refund_tax_fee_total.currency",
+                    ""
+                  ]
+                }
+              ]
+            },
+
+            "report_summary.fees.amount": {
+              "$abs": {
+                "$subtract": [
+                  {
+                    "$ifNull": [
+                      "$fees_total.amount",
+                      0
+                    ]
+                  },
+                  {
+                    "$ifNull": [
+                      "$refund_fees_total.amount",
+                      0
+                    ]
+                  }
+                ]
+              }
+            },
+            "report_summary.fees.amount_rounded": {
+              "$abs": {
+                "$round": [
+                  {
+                    "$subtract": [
+                      {
+                        "$ifNull": [
+                          "$fees_total.amount_rounded",
+                          0
+                        ]
+                      },
+                      {
+                        "$ifNull": [
+                          "$refund_fees_total.amount_rounded",
+                          0
+                        ]
+                      }
+                    ]
+                  },
+                  2
+                ]
+              }
+            },
+            "report_summary.fees.currency": {
+              "$concat": [
+                {
+                  "$ifNull": [
+                    "$fees_total.currency",
+                    ""
+                  ]
+                },
+                {
+                  "$ifNull": [
+                    "$refund_fees_total.currency",
+                    ""
+                  ]
+                }
+              ]
+            },
+
+            "report_summary.revenue.amount": {
+              "$subtract": [
+                {
+                  "$ifNull": [
+                    "$net_revenue.amount",
+                    0
+                  ]
+                },
+                {
+                  "$ifNull": [
+                    "$refund_reverse_revenue.amount",
+                    0
+                  ]
+                }
+              ]
+            },
+            "report_summary.revenue.amount_rounded": {
+              "$round": [
+                {
+                  "$subtract": [
+                    {
+                      "$ifNull": [
+                        "$net_revenue.amount_rounded",
+                        0
+                      ]
+                    },
+                    {
+                      "$ifNull": [
+                        "$refund_reverse_revenue.amount_rounded",
+                        0
+                      ]
+                    }
+                  ]
+                },
+                2
+              ]
+            },
+            "report_summary.revenue.currency": {
+              "$concat": [
+                {
+                  "$ifNull": [
+                    "$net_revenue.currency",
+                    ""
+                  ]
+                },
+                {
+                  "$ifNull": [
+                    "$refund_reverse_revenue.currency",
+                    ""
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        "multi": true
+      }
+    ]
+  },
+  {
+    "update": "order_view",
+    "updates": [
+      {
+        "q": {
+          "type": "order",
+          "status": {
+            "$in": [
+              "refunded",
+              "chargeback"
+            ]
+          }
+        },
+        "u": {
+          "$set": {
+            "report_summary.status": "processed"
+          }
+        },
+        "multi": true
+      }
+    ]
+  }
+]

@@ -101,6 +101,7 @@ type MgoOrderViewPrivate struct {
 	RoyaltyReportId                            string                                   `bson:"royalty_report_id"`
 	Recurring                                  bool                                     `bson:"recurring"`
 	RecurringId                                string                                   `bson:"recurring_id"`
+	ReportSummary                              *MgoOrderViewReportSummary               `bson:"report_summary" json:"report_summary"`
 }
 
 type orderViewPrivateMapper struct{}
@@ -234,6 +235,14 @@ func (o *orderViewPrivateMapper) MapObjectToMgo(obj interface{}) (interface{}, e
 		RoyaltyReportId:                            in.RoyaltyReportId,
 		Recurring:                                  in.Recurring,
 		RecurringId:                                in.RecurringId,
+		ReportSummary: &MgoOrderViewReportSummary{
+			Status:  in.ReportSummary.Status,
+			Charge:  in.ReportSummary.Charge,
+			Gross:   in.ReportSummary.Gross,
+			Vat:     in.ReportSummary.Vat,
+			Fees:    in.ReportSummary.Fees,
+			Revenue: in.ReportSummary.Revenue,
+		},
 	}
 
 	out.MerchantId = merchantOid
@@ -468,6 +477,7 @@ func (o *orderViewPrivateMapper) MapMgoToObject(obj interface{}) (interface{}, e
 	m.PaymentMethodTerminalId = decoded.PaymentMethodTerminalId
 	m.Recurring = decoded.Recurring
 	m.RecurringId = decoded.RecurringId
+	m.ReportSummary = getOrderViewReportSummary(decoded.ReportSummary)
 
 	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
 	if err != nil {
