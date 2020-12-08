@@ -1,0 +1,16 @@
+[
+  {
+    "update": "key_product",
+    "updates": [
+      {
+        "q": {},
+        "u": {
+          "$set": {
+            "minimal_limit_notify": 100
+          }
+        },
+        "multi": true
+      }
+    ]
+  }
+]

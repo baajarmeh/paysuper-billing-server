@@ -7,11 +7,13 @@ import (
 	"github.com/paysuper/paysuper-billing-server/internal/repository/models"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-proto/go/billingpb"
+	"github.com/paysuper/paysuper-proto/go/recurringpb"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.uber.org/zap"
 	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v2"
+	"math"
 	"time"
 )
 
@@ -600,7 +602,7 @@ func (h *orderRepository) UpdateOrderView(ctx context.Context, ids []string) err
 			RecurringId:             order.RecurringId,
 			RoyaltyReportId:         order.RoyaltyReportId,
 			AmountBeforeVat:         order.OrderAmount,
-			MetadataValues: 		 []string{},
+			MetadataValues:          []string{},
 		}
 
 		if len(order.Metadata) > 0 {
@@ -623,6 +625,43 @@ func (h *orderRepository) UpdateOrderView(ctx context.Context, ids []string) err
 
 		if order.PaymentMethod != nil && order.PaymentMethod.Params != nil {
 			view.PaymentMethodTerminalId = order.PaymentMethod.Params.TerminalId
+		}
+
+		// here is some tricky magic:
+		// 1.for incoming payment operations right part of expressions always will be zero/empty string
+		// 2. and for refunds/chargebacks LEFT part of expressions always will be zero/empty string
+		// So, all expressions (both for numbers or strings) always will be safe
+		view.ReportSummary = &billingpb.OrderViewReportSummary{
+			Status: view.Status,
+			Charge: &billingpb.OrderViewMoney{
+				Amount:        view.PaymentGrossRevenueOrigin.GetAmount() - view.PaymentRefundGrossRevenueOrigin.GetAmount(),
+				Currency:      view.PaymentGrossRevenueOrigin.Currency + view.PaymentRefundGrossRevenueOrigin.Currency,
+				AmountRounded: view.PaymentGrossRevenueOrigin.GetAmountRounded() - view.PaymentRefundGrossRevenueOrigin.GetAmountRounded(),
+			},
+			Gross: &billingpb.OrderViewMoney{
+				Amount:        view.GrossRevenue.GetAmount() - view.RefundGrossRevenue.GetAmount(),
+				Currency:      view.GrossRevenue.Currency + view.RefundGrossRevenue.Currency,
+				AmountRounded: view.GrossRevenue.GetAmountRounded() - view.RefundGrossRevenue.GetAmountRounded(),
+			},
+			Vat: &billingpb.OrderViewMoney{
+				Amount:        view.TaxFeeTotal.GetAmount() - view.RefundTaxFeeTotal.GetAmount(),
+				Currency:      view.TaxFeeTotal.Currency + view.RefundTaxFeeTotal.Currency,
+				AmountRounded: view.TaxFeeTotal.GetAmountRounded() - view.RefundTaxFeeTotal.GetAmountRounded(),
+			},
+			Fees: &billingpb.OrderViewMoney{
+				Amount:        math.Abs(view.FeesTotal.GetAmount() - view.RefundFeesTotal.GetAmount()),
+				Currency:      view.FeesTotal.Currency + view.RefundFeesTotal.Currency,
+				AmountRounded: math.Abs(view.FeesTotal.GetAmountRounded() - view.RefundFeesTotal.GetAmountRounded()),
+			},
+			Revenue: &billingpb.OrderViewMoney{
+				Amount:        view.NetRevenue.GetAmount() - view.RefundReverseRevenue.GetAmount(),
+				Currency:      view.NetRevenue.Currency + view.RefundReverseRevenue.Currency,
+				AmountRounded: view.NetRevenue.GetAmountRounded() - view.RefundReverseRevenue.GetAmountRounded(),
+			},
+		}
+
+		if view.Type == billingpb.OrderTypeOrder && (view.Status == recurringpb.OrderPublicStatusRefunded || view.Status == recurringpb.OrderPublicStatusChargeback) {
+			view.ReportSummary.Status = recurringpb.OrderPublicStatusProcessed
 		}
 
 		opts := options.Replace()

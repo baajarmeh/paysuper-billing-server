@@ -4,10 +4,24 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"fmt"
+	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/errors"
 	"github.com/paysuper/paysuper-proto/go/billingpb"
+	"github.com/paysuper/paysuper-proto/go/postmarkpb"
+	"github.com/streadway/amqp"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
+)
+
+const (
+	minimalKeysNotifyKey = "key:minimal:notify:%s:%s"
+	emptyKeysNotifyKey   = "key:empty:notify:%s:%s"
+)
+
+var (
+	minimalKeyNotificationMessage = "Your keys are running out! There are only %d keys left for %s on %s."
+	emptyKeyNotificationMessage   = "You’re all out! There are no more keys available for %s on %s."
 )
 
 func (s *Service) UploadKeysFile(
@@ -51,6 +65,20 @@ func (s *Service) UploadKeysFile(
 		res.Message = errors.KeyErrorFileProcess
 		res.Status = billingpb.ResponseStatusBadData
 		return nil
+	}
+
+	emptyStorageKey := fmt.Sprintf(emptyKeysNotifyKey, req.KeyProductId, req.PlatformId)
+	minimalStorageKey := fmt.Sprintf(minimalKeysNotifyKey, req.KeyProductId, req.PlatformId)
+
+	err = s.redis.Del(emptyStorageKey, minimalStorageKey).Err()
+
+	if err != nil {
+		zap.L().Error(
+			"unable to delete key product notification keys",
+			zap.Error(err),
+			zap.String("empty_storage_key", emptyStorageKey),
+			zap.String("minimal_storage_key", minimalStorageKey),
+		)
 	}
 
 	res.Status = billingpb.ResponseStatusOk
@@ -151,7 +179,132 @@ func (s *Service) FinishRedeemKeyForOrder(
 	res.Key = key
 	res.Status = billingpb.ResponseStatusOk
 
+	go func() {
+		_ = s.checkAndNotifyProductKeys(key)
+	}()
+
 	return nil
+}
+
+func (s *Service) checkAndNotifyProductKeys(key *billingpb.Key) error {
+	ctx := context.Background()
+
+	keyProduct, err := s.keyProductRepository.GetById(ctx, key.KeyProductId)
+
+	if err != nil {
+		return err
+	}
+
+	count, err := s.keyRepository.CountKeysByProductPlatform(ctx, key.KeyProductId, key.PlatformId)
+
+	if err != nil {
+		return err
+	}
+
+	if count > int64(keyProduct.MinimalLimitNotify) {
+		return nil
+	}
+
+	var (
+		storageKey        string
+		templateName      string
+		centrifugoMessage string
+	)
+
+	if count <= 0 {
+		storageKey = fmt.Sprintf(emptyKeysNotifyKey, key.KeyProductId, key.PlatformId)
+		templateName = s.cfg.EmptyKeyProductNotify
+		centrifugoMessage = fmt.Sprintf(
+			emptyKeyNotificationMessage,
+			keyProduct.Name["en"],
+			availablePlatforms[key.PlatformId].Name,
+		)
+	} else {
+		storageKey = fmt.Sprintf(minimalKeysNotifyKey, key.KeyProductId, key.PlatformId)
+		templateName = s.cfg.MinimalKeyProductNotify
+		centrifugoMessage = fmt.Sprintf(
+			minimalKeyNotificationMessage,
+			keyProduct.MinimalLimitNotify,
+			keyProduct.Name["en"],
+			availablePlatforms[key.PlatformId].Name,
+		)
+	}
+
+	redisRes := s.redis.Exists(storageKey)
+
+	if redisRes.Err() != nil {
+		zap.L().Error(
+			"[checkAndNotifyProductKeys] unable to get value from the Redis",
+			zap.Error(redisRes.Err()),
+			zap.String("storage_key", storageKey),
+		)
+
+		return err
+	}
+
+	if redisRes.Val() != 0 {
+		return nil
+	}
+
+	project, err := s.project.GetById(ctx, keyProduct.ProjectId)
+
+	if err != nil {
+		zap.L().Error(
+			"[checkAndNotifyProductKeys] unable to get project",
+			zap.Error(err),
+			zap.String("project_id", keyProduct.ProjectId),
+		)
+
+		return err
+	}
+
+	payload := &postmarkpb.Payload{
+		TemplateAlias: templateName,
+		TemplateModel: map[string]string{
+			"project_name":   project.Name["en"],
+			"product_name":   keyProduct.Name["en"],
+			"platform_name":  availablePlatforms[key.PlatformId].Name,
+			"minimal_limit":  fmt.Sprintf("%d", keyProduct.MinimalLimitNotify),
+			"key_upload_url": fmt.Sprintf(pkg.UploadProductKeysUrl, s.cfg.DashboardUrl, project.Id, keyProduct.Id),
+		},
+		To: s.cfg.EmailOnboardingAdminRecipient,
+	}
+
+	err = s.postmarkBroker.Publish(postmarkpb.PostmarkSenderTopicName, payload, amqp.Table{})
+	if err != nil {
+		zap.L().Error(
+			"Can't send email",
+			zap.Error(err),
+			zap.Any("payload", payload),
+		)
+
+		return err
+	}
+
+	msg := map[string]interface{}{"message": centrifugoMessage}
+	err = s.centrifugoDashboard.Publish(ctx, fmt.Sprintf(s.cfg.CentrifugoMerchantChannel, project.MerchantId), msg)
+
+	if err != nil {
+		zap.L().Error(
+			"Can't send centrifugo message",
+			zap.Error(err),
+			zap.Any("msg", msg),
+		)
+
+		return err
+	}
+
+	if err = s.redis.Set(storageKey, 1, 0).Err(); err != nil {
+		zap.L().Error(
+			"[checkAndNotifyProductKeys] unable to set key product notify to the Redis",
+			zap.Error(err),
+			zap.String("storage_key", storageKey),
+		)
+
+		return err
+	}
+
+	return err
 }
 
 func (s *Service) CancelRedeemKeyForOrder(

@@ -15,25 +15,26 @@ func NewKeyProductMapper() Mapper {
 }
 
 type MgoKeyProduct struct {
-	Id              primitive.ObjectID              `bson:"_id" json:"id" faker:"objectId"`
-	Object          string                          `bson:"object" json:"object"`
-	Sku             string                          `bson:"sku" json:"sku"`
-	Name            []*billingpb.I18NTextSearchable `bson:"name" json:"name"`
-	DefaultCurrency string                          `bson:"default_currency" json:"default_currency"`
-	Enabled         bool                            `bson:"enabled" json:"enabled"`
-	Platforms       []*MgoPlatformPrice             `bson:"platforms" json:"platforms"`
-	Description     map[string]string               `bson:"description" json:"description"`
-	LongDescription map[string]string               `bson:"long_description,omitempty" json:"long_description"`
-	CreatedAt       time.Time                       `bson:"created_at" json:"created_at"`
-	UpdatedAt       time.Time                       `bson:"updated_at" json:"updated_at"`
-	PublishedAt     *time.Time                      `bson:"published_at" json:"published_at"`
-	Cover           *billingpb.ImageCollection      `bson:"cover" json:"cover"`
-	Url             string                          `bson:"url,omitempty" json:"url"`
-	Metadata        map[string]string               `bson:"metadata,omitempty" json:"metadata"`
-	Deleted         bool                            `bson:"deleted" json:"deleted"`
-	MerchantId      primitive.ObjectID              `bson:"merchant_id" json:"-" faker:"objectId"`
-	ProjectId       primitive.ObjectID              `bson:"project_id" json:"project_id" faker:"objectId"`
-	Pricing         string                          `bson:"pricing" json:"pricing"`
+	Id                 primitive.ObjectID              `bson:"_id" json:"id" faker:"objectId"`
+	Object             string                          `bson:"object" json:"object"`
+	Sku                string                          `bson:"sku" json:"sku"`
+	Name               []*billingpb.I18NTextSearchable `bson:"name" json:"name"`
+	DefaultCurrency    string                          `bson:"default_currency" json:"default_currency"`
+	Enabled            bool                            `bson:"enabled" json:"enabled"`
+	Platforms          []*MgoPlatformPrice             `bson:"platforms" json:"platforms"`
+	Description        map[string]string               `bson:"description" json:"description"`
+	LongDescription    map[string]string               `bson:"long_description,omitempty" json:"long_description"`
+	CreatedAt          time.Time                       `bson:"created_at" json:"created_at"`
+	UpdatedAt          time.Time                       `bson:"updated_at" json:"updated_at"`
+	PublishedAt        *time.Time                      `bson:"published_at" json:"published_at"`
+	Cover              *billingpb.ImageCollection      `bson:"cover" json:"cover"`
+	Url                string                          `bson:"url,omitempty" json:"url"`
+	Metadata           map[string]string               `bson:"metadata,omitempty" json:"metadata"`
+	Deleted            bool                            `bson:"deleted" json:"deleted"`
+	MerchantId         primitive.ObjectID              `bson:"merchant_id" json:"-" faker:"objectId"`
+	ProjectId          primitive.ObjectID              `bson:"project_id" json:"project_id" faker:"objectId"`
+	Pricing            string                          `bson:"pricing" json:"pricing"`
+	MinimalLimitNotify int32                           `bson:"minimal_limit_notify" json:"minimal_limit_notify"`
 }
 
 type MgoPlatformPrice struct {
@@ -49,17 +50,18 @@ func (m *keyProductMapper) MapObjectToMgo(obj interface{}) (interface{}, error) 
 	in := obj.(*billingpb.KeyProduct)
 
 	out := &MgoKeyProduct{
-		Object:          in.Object,
-		Sku:             in.Sku,
-		DefaultCurrency: in.DefaultCurrency,
-		Enabled:         in.Enabled,
-		Description:     in.Description,
-		LongDescription: in.LongDescription,
-		Cover:           in.Cover,
-		Url:             in.Url,
-		Metadata:        in.Metadata,
-		Deleted:         in.Deleted,
-		Pricing:         in.Pricing,
+		Object:             in.Object,
+		Sku:                in.Sku,
+		DefaultCurrency:    in.DefaultCurrency,
+		Enabled:            in.Enabled,
+		Description:        in.Description,
+		LongDescription:    in.LongDescription,
+		Cover:              in.Cover,
+		Url:                in.Url,
+		Metadata:           in.Metadata,
+		Deleted:            in.Deleted,
+		Pricing:            in.Pricing,
+		MinimalLimitNotify: in.MinimalLimitNotify,
 	}
 
 	if len(in.Id) <= 0 {
@@ -162,20 +164,21 @@ func (m *keyProductMapper) MapMgoToObject(obj interface{}) (interface{}, error) 
 	in := obj.(*MgoKeyProduct)
 
 	out := &billingpb.KeyProduct{
-		Id:              in.Id.Hex(),
-		Object:          in.Object,
-		Sku:             in.Sku,
-		DefaultCurrency: in.DefaultCurrency,
-		Enabled:         in.Enabled,
-		Description:     in.Description,
-		LongDescription: in.LongDescription,
-		Cover:           in.Cover,
-		Url:             in.Url,
-		Metadata:        in.Metadata,
-		Deleted:         in.Deleted,
-		MerchantId:      in.MerchantId.Hex(),
-		ProjectId:       in.ProjectId.Hex(),
-		Pricing:         in.Pricing,
+		Id:                 in.Id.Hex(),
+		Object:             in.Object,
+		Sku:                in.Sku,
+		DefaultCurrency:    in.DefaultCurrency,
+		Enabled:            in.Enabled,
+		Description:        in.Description,
+		LongDescription:    in.LongDescription,
+		Cover:              in.Cover,
+		Url:                in.Url,
+		Metadata:           in.Metadata,
+		Deleted:            in.Deleted,
+		MerchantId:         in.MerchantId.Hex(),
+		ProjectId:          in.ProjectId.Hex(),
+		Pricing:            in.Pricing,
+		MinimalLimitNotify: in.MinimalLimitNotify,
 	}
 
 	out.CreatedAt, err = ptypes.TimestampProto(in.CreatedAt)

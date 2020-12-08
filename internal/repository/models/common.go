@@ -68,6 +68,15 @@ type MgoOrderItem struct {
 	PlatformId  string             `bson:"platform_id"`
 }
 
+type MgoOrderViewReportSummary struct {
+	Status  string                    `bson:"status" json:"status"`
+	Charge  *billingpb.OrderViewMoney `bson:"charge" json:"charge"`
+	Gross   *billingpb.OrderViewMoney `bson:"gross" json:"gross"`
+	Vat     *billingpb.OrderViewMoney `bson:"vat" json:"vat"`
+	Fees    *billingpb.OrderViewMoney `bson:"fees" json:"fees"`
+	Revenue *billingpb.OrderViewMoney `bson:"revenue" json:"revenue"`
+}
+
 func getPaymentMethodOrder(in *MgoOrderPaymentMethod) *billingpb.PaymentMethodOrder {
 	if in == nil {
 		return nil
@@ -175,4 +184,20 @@ func getOrderViewItems(in []*MgoOrderItem) []*billingpb.OrderItem {
 	}
 
 	return items
+}
+
+func getOrderViewReportSummary(in *MgoOrderViewReportSummary) *billingpb.OrderViewReportSummary {
+	if in == nil {
+		return nil
+	}
+
+	result := &billingpb.OrderViewReportSummary{
+		Status:  in.Status,
+		Charge:  getOrderViewMoney(in.Charge),
+		Gross:   getOrderViewMoney(in.Gross),
+		Vat:     getOrderViewMoney(in.Vat),
+		Fees:    getOrderViewMoney(in.Fees),
+		Revenue: getOrderViewMoney(in.Revenue),
+	}
+	return result
 }

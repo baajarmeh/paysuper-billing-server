@@ -3755,13 +3755,17 @@ func (s *Service) GetOrderKeyProductsItems(products []*billingpb.KeyProduct, lan
 	return result, nil
 }
 
-func (s *Service) filterPlatforms(orderProducts []*billingpb.KeyProduct) []string {
+func (s *Service) filterPlatforms(ctx context.Context, orderProducts []*billingpb.KeyProduct) []string {
 	// filter available platformIds for all products in request
 	var platformIds []string
 	for i, product := range orderProducts {
 		var platformsToCheck []string
 		for _, pl := range product.Platforms {
-			platformsToCheck = append(platformsToCheck, pl.Id)
+			count, _ := s.keyRepository.CountKeysByProductPlatform(ctx, product.Id, pl.Id)
+
+			if count > 0 {
+				platformsToCheck = append(platformsToCheck, pl.Id)
+			}
 		}
 
 		if i > 0 {
@@ -5067,7 +5071,7 @@ func (s *Service) processKeyProducts(
 		return
 	}
 
-	platformIds := s.filterPlatforms(orderProducts)
+	platformIds := s.filterPlatforms(ctx, orderProducts)
 	if len(platformIds) == 0 {
 		zap.L().Error("No available platformIds")
 		err = orderErrorNoPlatforms
