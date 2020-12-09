@@ -775,9 +775,10 @@ func (suite *KeyTestSuite) TestKey_checkAndNotifyProductKeys_ErrorIfProjectNotFo
 	assert.Error(suite.T(), err)
 }
 
-func (suite *KeyTestSuite) TestKey_checkAndNotifyProductKeys_ErrorIfPostmarkError() {
+func (suite *KeyTestSuite) TestKey_checkAndNotifyProductKeys_ErrorIfMerchantNotFound() {
 	project := &billingpb.Project{
-		Id: primitive.NewObjectID().Hex(),
+		Id:         primitive.NewObjectID().Hex(),
+		MerchantId: primitive.NewObjectID().Hex(),
 	}
 	keyProduct := &billingpb.KeyProduct{
 		Id:                 primitive.NewObjectID().Hex(),
@@ -800,6 +801,49 @@ func (suite *KeyTestSuite) TestKey_checkAndNotifyProductKeys_ErrorIfPostmarkErro
 	pr := &mocks.ProjectRepositoryInterface{}
 	pr.On("GetById", mock2.Anything, keyProduct.ProjectId).Return(project, nil)
 	suite.service.project = pr
+
+	mr := &mocks.MerchantRepositoryInterface{}
+	mr.On("GetById", mock2.Anything, project.MerchantId).Return(nil, errors.New("error"))
+	suite.service.merchantRepository = mr
+
+	err := suite.service.checkAndNotifyProductKeys(key)
+	assert.Error(suite.T(), err)
+}
+
+func (suite *KeyTestSuite) TestKey_checkAndNotifyProductKeys_ErrorIfPostmarkError() {
+	merchant := &billingpb.Merchant{
+		Id:   primitive.NewObjectID().Hex(),
+		User: &billingpb.MerchantUser{Email: "email"},
+	}
+	project := &billingpb.Project{
+		Id:         primitive.NewObjectID().Hex(),
+		MerchantId: merchant.Id,
+	}
+	keyProduct := &billingpb.KeyProduct{
+		Id:                 primitive.NewObjectID().Hex(),
+		MinimalLimitNotify: defaultMinimalLimitNotify,
+		ProjectId:          project.Id,
+	}
+	key := &billingpb.Key{
+		KeyProductId: keyProduct.Id,
+		PlatformId:   "steam",
+	}
+
+	kpr := &mocks.KeyProductRepositoryInterface{}
+	kpr.On("GetById", mock2.Anything, key.KeyProductId).Return(keyProduct, nil)
+	suite.service.keyProductRepository = kpr
+
+	kr := &mocks.KeyRepositoryInterface{}
+	kr.On("CountKeysByProductPlatform", mock2.Anything, key.KeyProductId, key.PlatformId).Return(int64(0), nil)
+	suite.service.keyRepository = kr
+
+	pr := &mocks.ProjectRepositoryInterface{}
+	pr.On("GetById", mock2.Anything, keyProduct.ProjectId).Return(project, nil)
+	suite.service.project = pr
+
+	mr := &mocks.MerchantRepositoryInterface{}
+	mr.On("GetById", mock2.Anything, project.MerchantId).Return(merchant, nil)
+	suite.service.merchantRepository = mr
 
 	postmark := &mocks.BrokerInterface{}
 	postmark.On("Publish", postmarkpb.PostmarkSenderTopicName, mock2.MatchedBy(func(input *postmarkpb.Payload) bool {
@@ -827,8 +871,13 @@ func (suite *KeyTestSuite) TestKey_checkAndNotifyProductKeys_ErrorIfPostmarkErro
 }
 
 func (suite *KeyTestSuite) TestKey_checkAndNotifyProductKeys_ErrorIfCentSendCentrifugoMessage() {
+	merchant := &billingpb.Merchant{
+		Id:   primitive.NewObjectID().Hex(),
+		User: &billingpb.MerchantUser{Email: "email"},
+	}
 	project := &billingpb.Project{
-		Id: primitive.NewObjectID().Hex(),
+		Id:         primitive.NewObjectID().Hex(),
+		MerchantId: merchant.Id,
 	}
 	keyProduct := &billingpb.KeyProduct{
 		Id:                 primitive.NewObjectID().Hex(),
@@ -851,6 +900,10 @@ func (suite *KeyTestSuite) TestKey_checkAndNotifyProductKeys_ErrorIfCentSendCent
 	pr := &mocks.ProjectRepositoryInterface{}
 	pr.On("GetById", mock2.Anything, keyProduct.ProjectId).Return(project, nil)
 	suite.service.project = pr
+
+	mr := &mocks.MerchantRepositoryInterface{}
+	mr.On("GetById", mock2.Anything, project.MerchantId).Return(merchant, nil)
+	suite.service.merchantRepository = mr
 
 	postmark := &mocks.BrokerInterface{}
 	postmark.On("Publish", postmarkpb.PostmarkSenderTopicName, mock2.Anything, mock2.Anything).Return(nil)
@@ -865,8 +918,13 @@ func (suite *KeyTestSuite) TestKey_checkAndNotifyProductKeys_ErrorIfCentSendCent
 }
 
 func (suite *KeyTestSuite) TestKey_checkAndNotifyProductKeys_Ok() {
+	merchant := &billingpb.Merchant{
+		Id:   primitive.NewObjectID().Hex(),
+		User: &billingpb.MerchantUser{Email: "email"},
+	}
 	project := &billingpb.Project{
-		Id: primitive.NewObjectID().Hex(),
+		Id:         primitive.NewObjectID().Hex(),
+		MerchantId: merchant.Id,
 	}
 	keyProduct := &billingpb.KeyProduct{
 		Id:                 primitive.NewObjectID().Hex(),
@@ -889,6 +947,10 @@ func (suite *KeyTestSuite) TestKey_checkAndNotifyProductKeys_Ok() {
 	pr := &mocks.ProjectRepositoryInterface{}
 	pr.On("GetById", mock2.Anything, keyProduct.ProjectId).Return(project, nil)
 	suite.service.project = pr
+
+	mr := &mocks.MerchantRepositoryInterface{}
+	mr.On("GetById", mock2.Anything, project.MerchantId).Return(merchant, nil)
+	suite.service.merchantRepository = mr
 
 	postmark := &mocks.BrokerInterface{}
 	postmark.On("Publish", postmarkpb.PostmarkSenderTopicName, mock2.MatchedBy(func(input *postmarkpb.Payload) bool {
