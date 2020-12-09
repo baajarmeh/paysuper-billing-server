@@ -258,6 +258,18 @@ func (s *Service) checkAndNotifyProductKeys(key *billingpb.Key) error {
 		return err
 	}
 
+	merchant, err := s.merchantRepository.GetById(ctx, project.MerchantId)
+
+	if err != nil {
+		zap.L().Error(
+			"[checkAndNotifyProductKeys] unable to get merchant",
+			zap.Error(err),
+			zap.String("merchant_id", project.MerchantId),
+		)
+
+		return err
+	}
+
 	payload := &postmarkpb.Payload{
 		TemplateAlias: templateName,
 		TemplateModel: map[string]string{
@@ -267,7 +279,7 @@ func (s *Service) checkAndNotifyProductKeys(key *billingpb.Key) error {
 			"minimal_limit":  fmt.Sprintf("%d", keyProduct.MinimalLimitNotify),
 			"key_upload_url": fmt.Sprintf(pkg.UploadProductKeysUrl, s.cfg.DashboardUrl, project.Id, keyProduct.Id),
 		},
-		To: s.cfg.EmailOnboardingAdminRecipient,
+		To: merchant.User.Email,
 	}
 
 	err = s.postmarkBroker.Publish(postmarkpb.PostmarkSenderTopicName, payload, amqp.Table{})
