@@ -581,7 +581,7 @@ func (r *royaltyReportRepository) GetBalanceAmount(ctx context.Context, merchant
 				"gross_total_amount":           "$summary.products_total.gross_total_amount",
 				"total_fees":                   "$summary.products_total.total_fees",
 				"total_vat":                    "$summary.products_total.total_vat",
-				"correction_amount":            "$totals.correction_amount",
+				"correction_amount":            "$totals.correction_total_amount",
 				"rolling_reserve_total_amount": "$totals.rolling_reserve_total_amount",
 			},
 		},
