@@ -473,26 +473,42 @@ func (r *orderViewRepository) GetPrivateOrderBy(
 		query["project.merchant_id"], _ = primitive.ObjectIDFromHex(merchantId)
 	}
 
-	mgo := &models.MgoOrderViewPrivate{}
+	aggregateQuery := helper.MakeOrderAggregateQuery(query, CollectionOrderView, []string{}, 0, 1)
 
-	err := r.db.Collection(CollectionOrderView).FindOne(ctx, query).Decode(mgo)
-
+	cursor, err := r.db.Collection(CollectionOrder).Aggregate(ctx, aggregateQuery)
 	if err != nil {
 		zap.L().Error(
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
-			zap.String(pkg.ErrorDatabaseFieldCollection, CollectionOrderView),
-			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+			zap.String(pkg.ErrorDatabaseFieldCollection, CollectionOrder),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, aggregateQuery),
 		)
 		return nil, err
 	}
 
-	obj, err := r.mapper.MapMgoToObject(mgo)
+	var res []*models.MgoOrderViewPrivate
+
+	err = cursor.All(ctx, &res)
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, CollectionOrder),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, aggregateQuery),
+		)
+		return nil, err
+	}
+
+	if len(res) == 0 {
+		return nil, mongo.ErrNoDocuments
+	}
+
+	obj, err := r.mapper.MapMgoToObject(res[0])
 	if err != nil {
 		zap.L().Error(
 			pkg.ErrorMapModelFailed,
 			zap.Error(err),
-			zap.Any(pkg.ErrorDatabaseFieldQuery, mgo),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, aggregateQuery),
 		)
 		return nil, err
 	}
@@ -518,25 +534,42 @@ func (r *orderViewRepository) GetPublicOrderBy(
 		query["project.merchant_id"], _ = primitive.ObjectIDFromHex(merchantId)
 	}
 
-	mgo := &models.MgoOrderViewPublic{}
-	err := r.db.Collection(CollectionOrderView).FindOne(ctx, query).Decode(mgo)
+	aggregateQuery := helper.MakeOrderAggregateQuery(query, CollectionOrderView, []string{}, 0, 1)
 
+	cursor, err := r.db.Collection(CollectionOrder).Aggregate(ctx, aggregateQuery)
 	if err != nil {
 		zap.L().Error(
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
-			zap.String(pkg.ErrorDatabaseFieldCollection, CollectionOrderView),
-			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+			zap.String(pkg.ErrorDatabaseFieldCollection, CollectionOrder),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, aggregateQuery),
 		)
 		return nil, err
 	}
 
-	obj, err := r.publicOrderMapper.MapMgoToObject(mgo)
+	var res []*models.MgoOrderViewPublic
+
+	err = cursor.All(ctx, &res)
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, CollectionOrder),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, aggregateQuery),
+		)
+		return nil, err
+	}
+
+	if len(res) == 0 {
+		return nil, mongo.ErrNoDocuments
+	}
+
+	obj, err := r.publicOrderMapper.MapMgoToObject(res[0])
 	if err != nil {
 		zap.L().Error(
 			pkg.ErrorMapModelFailed,
 			zap.Error(err),
-			zap.Any(pkg.ErrorDatabaseFieldQuery, mgo),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, aggregateQuery),
 		)
 		return nil, err
 	}
