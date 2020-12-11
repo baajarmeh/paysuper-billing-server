@@ -36,6 +36,8 @@ func (suite *RoyaltyReportTestSuite) Test_RoyaltyReport_MapRoyaltyReportToMgo_Ok
 	err := faker.FakeData(original)
 	assert.NoError(suite.T(), err)
 
+	original.MerchantName = ""
+
 	mgo, err := suite.mapper.MapObjectToMgo(original)
 	assert.NoError(suite.T(), err)
 	assert.NotEmpty(suite.T(), mgo)
@@ -251,6 +253,7 @@ func (suite *RoyaltyReportTestSuite) Test_RoyaltyReport_MapRoyaltyReportToMgo_Er
 
 func (suite *RoyaltyReportTestSuite) Test_RoyaltyReport_MapMgoToRoyaltyReport_Ok() {
 	original := &MgoRoyaltyReport{}
+	original.Merchants = nil
 	err := faker.FakeData(original)
 	assert.NoError(suite.T(), err)
 

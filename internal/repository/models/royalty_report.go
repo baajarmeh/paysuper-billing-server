@@ -47,6 +47,7 @@ type MgoRoyaltyReport struct {
 	OperatingCompanyId string                         `bson:"operating_company_id"`
 	StringPeriodFrom   string                         `bson:"string_period_from"`
 	StringPeriodTo     string                         `bson:"string_period_to"`
+	Merchants          []*MgoMerchant                 `bson:"merchants" faker:"-"`
 }
 
 type MgoRoyaltyReportSummary struct {
@@ -299,6 +300,12 @@ func (m *royaltyReportMapper) MapMgoToObject(obj interface{}) (interface{}, erro
 				list = append(list, item.(*billingpb.RoyaltyReportCorrectionItem))
 			}
 			out.Summary.RollingReserves = list
+		}
+	}
+
+	if len(in.Merchants) > 0 {
+		if in.Merchants[0].Company != nil {
+			out.MerchantName = in.Merchants[0].Company.Name
 		}
 	}
 
