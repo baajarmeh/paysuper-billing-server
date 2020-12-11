@@ -192,7 +192,7 @@ func (s *Service) ListRoyaltyReports(
 	}
 
 	reports, err := s.royaltyReportRepository.FindByMerchantStatusDates(
-		ctx, req.MerchantId, req.Status, req.PeriodFrom, req.PeriodTo, req.Offset, req.Limit,
+		ctx, req.MerchantId, req.Status, req.PeriodFrom, req.PeriodTo, req.Offset, req.Limit, req.Sort,
 	)
 
 	if err != nil {

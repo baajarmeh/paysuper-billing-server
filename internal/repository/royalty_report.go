@@ -21,6 +21,7 @@ import (
 	"go.uber.org/zap"
 	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v2"
 	"math"
+	"strings"
 	"time"
 )
 
@@ -373,7 +374,7 @@ func (r *royaltyReportRepository) GetRoyaltyHistoryById(ctx context.Context, id 
 }
 
 func (r *royaltyReportRepository) FindByMerchantStatusDates(
-	ctx context.Context, merchantId string, status []string, dateFrom, dateTo string, offset, limit int64,
+	ctx context.Context, merchantId string, status []string, dateFrom, dateTo string, offset, limit int64, sort []string,
 ) ([]*billingpb.RoyaltyReport, error) {
 	var err error
 	query := bson.M{}
@@ -430,10 +431,46 @@ func (r *royaltyReportRepository) FindByMerchantStatusDates(
 		query["created_at"] = date
 	}
 
-	opts := options.Find().
-		SetLimit(limit).
-		SetSkip(offset)
-	cursor, err := r.db.Collection(CollectionRoyaltyReport).Find(ctx, query, opts)
+	if limit < 1 {
+		limit = math.MaxInt64
+	}
+
+	afQuery := []bson.M{
+		{"$match": query},
+		{
+			"$lookup": bson.M{
+				"from":         CollectionMerchant,
+				"localField":   "merchant_id",
+				"foreignField": "_id",
+				"as":           "merchants",
+			},
+		},
+		{"$skip": offset},
+		{"$limit": limit},
+	}
+
+	if len(sort) > 0 {
+		pipeSort := make(bson.M)
+
+		for _, field := range sort {
+			n := 1
+
+			sField := strings.Split(field, "")
+
+			if sField[0] == "-" {
+				n = -1
+				field = field[1:]
+			}
+
+			pipeSort[field] = n
+		}
+
+		if len(pipeSort) > 0 {
+			afQuery = append(afQuery, bson.M{"$sort": pipeSort})
+		}
+	}
+
+	cursor, err := r.db.Collection(CollectionRoyaltyReport).Aggregate(ctx, afQuery)
 
 	if err != nil {
 		zap.L().Error(
@@ -581,7 +618,7 @@ func (r *royaltyReportRepository) GetBalanceAmount(ctx context.Context, merchant
 				"gross_total_amount":           "$summary.products_total.gross_total_amount",
 				"total_fees":                   "$summary.products_total.total_fees",
 				"total_vat":                    "$summary.products_total.total_vat",
-				"correction_amount":            "$totals.correction_amount",
+				"correction_amount":            "$totals.correction_total_amount",
 				"rolling_reserve_total_amount": "$totals.rolling_reserve_total_amount",
 			},
 		},
