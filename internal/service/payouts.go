@@ -138,37 +138,10 @@ func (s *Service) createPayoutDocument(
 
 	times := make([]time.Time, 0)
 	stringTimes := make([]string, 0)
-	grossTotalAmountMoney := helper.NewMoney()
-	totalFeesMoney := helper.NewMoney()
-	totalVatMoney := helper.NewMoney()
-
-	totalFeesAmount := float64(0)
-	balanceAmount := float64(0)
 
 	for _, r := range reports {
-		grossTotalAmount, err := grossTotalAmountMoney.Round(r.Summary.ProductsTotal.GrossTotalAmount)
-
-		if err != nil {
-			return err
-		}
-
-		totalFees, err := totalFeesMoney.Round(r.Summary.ProductsTotal.TotalFees)
-
-		if err != nil {
-			return err
-		}
-
-		totalVat, err := totalVatMoney.Round(r.Summary.ProductsTotal.TotalVat)
-
-		if err != nil {
-
-			return err
-		}
-
-		payoutAmount := grossTotalAmount - totalFees - totalVat
-		totalFeesAmount += payoutAmount + r.Totals.CorrectionAmount
-		balanceAmount += payoutAmount + r.Totals.CorrectionAmount - r.Totals.RollingReserveAmount
-
+		pd.TotalFees += r.Totals.PayoutAmount + r.Totals.CorrectionAmount
+		pd.Balance += r.Totals.PayoutAmount + r.Totals.CorrectionAmount - r.Totals.RollingReserveAmount
 		pd.TotalTransactions += r.Totals.TransactionsCount
 		pd.SourceId = append(pd.SourceId, r.Id)
 
@@ -211,12 +184,15 @@ func (s *Service) createPayoutDocument(
 		return nil
 	}
 
-	if balanceAmount < float64(minimal) {
+	pd.TotalFees = math.Round(pd.TotalFees*100) / 100
+	pd.Balance = math.Round(pd.Balance*100) / 100
+
+	if pd.Balance < float64(minimal) {
 		if req.IsAutoGeneration {
 			zap.L().Info("balance is less than minimal in tariff for merchant currency. skipping auto-generation payout",
 				zap.String("merchant_id", merchant.Id),
 				zap.Float32("minimal", minimal),
-				zap.Float64("amount", balanceAmount),
+				zap.Float64("amount", pd.Balance),
 				zap.String("currency", currency))
 			res.Status = billingpb.ResponseStatusOk
 			return nil
@@ -225,9 +201,6 @@ func (s *Service) createPayoutDocument(
 		res.Message = errorPayoutTarrifMinimal
 		return nil
 	}
-
-	pd.TotalFees = math.Round(totalFeesAmount*100) / 100
-	pd.Balance = math.Round(balanceAmount*100) / 100
 
 	if pd.Balance <= 0 {
 		res.Status = billingpb.ResponseStatusBadData

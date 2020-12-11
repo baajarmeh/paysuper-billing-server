@@ -111,6 +111,7 @@ type BalanceQueryResult struct {
 	GrossTotalAmount     float64 `bson:"gross_total_amount"`
 	TotalFees            float64 `bson:"total_fees"`
 	TotalVat             float64 `bson:"total_vat"`
+	PayoutAmount         float64 `bson:"payout_amount"`
 	CorrectionAmount     float64 `bson:"correction_amount"`
 	RollingReserveAmount float64 `bson:"rolling_reserve_total_amount"`
 }
