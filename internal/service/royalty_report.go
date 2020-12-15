@@ -646,11 +646,11 @@ func (h *royaltyHandler) createMerchantRoyaltyReport(ctx context.Context, mercha
 		if err != nil {
 			return err
 		}
+	}
 
-		err = h.markOrdersIncludedToRoyaltyReport(ctx, newReport.Id, ordersIds)
-		if err != nil {
-			return err
-		}
+	err = h.markOrdersIncludedToRoyaltyReport(ctx, newReport.Id, ordersIds)
+	if err != nil {
+		return err
 	}
 
 	err = h.Service.renderRoyaltyReport(ctx, newReport, merchant)
