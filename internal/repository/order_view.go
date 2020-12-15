@@ -277,7 +277,6 @@ func (r *orderViewRepository) GetRoyaltySummary(
 	ctx context.Context,
 	merchantId, currency string,
 	from, to time.Time,
-	notExistsReportId bool,
 ) (
 	items []*billingpb.RoyaltyReportProductSummaryItem,
 	total *billingpb.RoyaltyReportProductSummaryItem,
@@ -300,10 +299,6 @@ func (r *orderViewRepository) GetRoyaltySummary(
 		"pm_order_close_date":      bson.M{"$gte": from, "$lte": to},
 		"status":                   bson.M{"$in": statusForRoyaltySummary},
 		"is_production":            true,
-	}
-
-	if notExistsReportId {
-		match["royalty_report_id"] = ""
 	}
 
 	query := []bson.M{
@@ -1121,7 +1116,6 @@ func (r *orderViewRepository) GetRoyaltySummaryRoundedAmounts(
 	ctx context.Context,
 	merchantId, currency string,
 	from, to time.Time,
-	notExistsReportId bool,
 ) (
 	items []*billingpb.RoyaltyReportProductSummaryItem,
 	total *billingpb.RoyaltyReportProductSummaryItem,
@@ -1144,10 +1138,6 @@ func (r *orderViewRepository) GetRoyaltySummaryRoundedAmounts(
 		"pm_order_close_date":      bson.M{"$gte": from, "$lte": to},
 		"status":                   bson.M{"$in": statusForRoyaltySummary},
 		"is_production":            true,
-	}
-
-	if notExistsReportId {
-		match["royalty_report_id"] = ""
 	}
 
 	query := []bson.M{
