@@ -44,7 +44,6 @@ var (
 	royaltyReportErrorCorrectionReasonRequired        = errors.NewBillingServerErrorMsg("rr00003", "correction reason required")
 	royaltyReportEntryErrorUnknown                    = errors.NewBillingServerErrorMsg("rr00004", "unknown error. try request later")
 	royaltyReportUpdateBalanceError                   = errors.NewBillingServerErrorMsg("rr00005", "update balance failed")
-	royaltyReportErrorTimezoneIncorrect               = errors.NewBillingServerErrorMsg("rr00007", "incorrect time zone")
 	royaltyReportErrorAlreadyExistsAndCannotBeUpdated = errors.NewBillingServerErrorMsg("rr00008", "report for this merchant and period already exists and can not be updated")
 	royaltyReportErrorCorrectionAmountRequired        = errors.NewBillingServerErrorMsg("rr00009", "correction amount required and must be not zero")
 	royaltyReportErrorPayoutDocumentIdInvalid         = errors.NewBillingServerErrorMsg("rr00010", "payout document id is invalid")
@@ -192,7 +191,7 @@ func (s *Service) ListRoyaltyReports(
 	}
 
 	reports, err := s.royaltyReportRepository.FindByMerchantStatusDates(
-		ctx, req.MerchantId, req.Status, req.PeriodFrom, req.PeriodTo, req.Offset, req.Limit,
+		ctx, req.MerchantId, req.Status, req.PeriodFrom, req.PeriodTo, req.Offset, req.Limit, req.Sort,
 	)
 
 	if err != nil {
@@ -598,7 +597,7 @@ func (h *royaltyHandler) createMerchantRoyaltyReport(ctx context.Context, mercha
 		return royaltyReportErrorAlreadyExistsAndCannotBeUpdated
 	}
 
-	newReport, ordersIds, err := h.buildMerchantRoyaltyReportRoundedAmounts(ctx, merchant, true)
+	newReport, ordersIds, err := h.buildMerchantRoyaltyReportRoundedAmounts(ctx, merchant)
 	if err != nil {
 		return err
 	}
@@ -647,11 +646,11 @@ func (h *royaltyHandler) createMerchantRoyaltyReport(ctx context.Context, mercha
 		if err != nil {
 			return err
 		}
+	}
 
-		err = h.markOrdersIncludedToRoyaltyReport(ctx, newReport.Id, ordersIds)
-		if err != nil {
-			return err
-		}
+	err = h.markOrdersIncludedToRoyaltyReport(ctx, newReport.Id, ordersIds)
+	if err != nil {
+		return err
 	}
 
 	err = h.Service.renderRoyaltyReport(ctx, newReport, merchant)
@@ -665,7 +664,7 @@ func (h *royaltyHandler) createMerchantRoyaltyReport(ctx context.Context, mercha
 }
 
 func (h *royaltyHandler) buildMerchantRoyaltyReport(
-	ctx context.Context, merchant *billingpb.Merchant, hasExistsReportId bool,
+	ctx context.Context, merchant *billingpb.Merchant,
 ) (*billingpb.RoyaltyReport, []primitive.ObjectID, error) {
 	merchantPayoutCurrency := merchant.GetPayoutCurrency()
 	summaryItems, summaryTotal, ordersIds, err := h.orderViewRepository.GetRoyaltySummary(
@@ -674,7 +673,6 @@ func (h *royaltyHandler) buildMerchantRoyaltyReport(
 		merchantPayoutCurrency,
 		h.from,
 		h.to,
-		hasExistsReportId,
 	)
 
 	if err != nil {
@@ -1214,7 +1212,7 @@ func (s *Service) markOrdersIncludedToRoyaltyReport(
 }
 
 func (h *royaltyHandler) buildMerchantRoyaltyReportRoundedAmounts(
-	ctx context.Context, merchant *billingpb.Merchant, hasExistsReportId bool,
+	ctx context.Context, merchant *billingpb.Merchant,
 ) (*billingpb.RoyaltyReport, []primitive.ObjectID, error) {
 	merchantPayoutCurrency := merchant.GetPayoutCurrency()
 	summaryItems, summaryTotal, ordersIds, err := h.orderViewRepository.GetRoyaltySummaryRoundedAmounts(
@@ -1223,7 +1221,6 @@ func (h *royaltyHandler) buildMerchantRoyaltyReportRoundedAmounts(
 		merchantPayoutCurrency,
 		h.from,
 		h.to,
-		hasExistsReportId,
 	)
 
 	if err != nil {

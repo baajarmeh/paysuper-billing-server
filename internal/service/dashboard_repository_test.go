@@ -147,7 +147,7 @@ func (suite *DashboardRepositoryTestSuite) SetupTest() {
 		mocks.NewRepositoryServiceOk(),
 		mocks.NewTaxServiceOkMock(),
 		mocks.NewBrokerMockOk(),
-		nil,
+		redisdb,
 		suite.cache,
 		mocks.NewCurrencyServiceMockOk(),
 		mocks.NewDocumentSignerMockOk(),

@@ -418,38 +418,12 @@ func (app *Application) TaskFixTaxes() error {
 	return app.svc.FixTaxes(context.TODO())
 }
 
-func (app *Application) TaskRebuildPayouts() error {
-	return app.svc.TaskRebuildPayoutsRoyalties()
-}
-
 func (app *Application) MigrateCustomers() error {
 	return app.svc.MigrateCustomers(context.Background())
 }
 
 func (app *Application) UpdateFirstPayments() error {
 	return app.svc.UpdateFirstPayments(context.Background())
-}
-
-func (app *Application) TaskCreatePayout() error {
-	rsp := &billingpb.CreatePayoutDocumentResponse{}
-	err := app.svc.CreatePayoutDocument(
-		context.Background(),
-		&billingpb.CreatePayoutDocumentRequest{
-			MerchantId: "5dbac7bb120a810001a8fe80",
-			Ip:         "127.0.0.1",
-		},
-		rsp,
-	)
-
-	if err != nil {
-		return err
-	}
-
-	if rsp.Status != billingpb.ResponseStatusOk {
-		return rsp.Message
-	}
-
-	return nil
 }
 
 func (app *Application) KeyDaemonStart() {

@@ -811,6 +811,7 @@ func (suite *OrderTestSuite) SetupTest() {
 			Banking:  true,
 			Tariff:   true,
 		},
+		User: &billingpb.MerchantUser{Email: "test"},
 	}
 
 	merchantAgreement := &billingpb.Merchant{

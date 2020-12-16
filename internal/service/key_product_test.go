@@ -74,9 +74,6 @@ func (suite *KeyProductTestSuite) SetupTest() {
 		Currency: "EUR",
 		IsActive: true,
 	}
-	if err != nil {
-		suite.FailNow("Insert currency test data failed", "%v", err)
-	}
 
 	suite.log, err = zap.NewProduction()
 	assert.NoError(suite.T(), err, "Logger initialization failed")
@@ -93,7 +90,7 @@ func (suite *KeyProductTestSuite) SetupTest() {
 		mocks.NewRepositoryServiceOk(),
 		mocks.NewTaxServiceOkMock(),
 		broker,
-		nil,
+		redisdb,
 		suite.cache,
 		mocks.NewCurrencyServiceMockOk(),
 		mocks.NewDocumentSignerMockOk(),
@@ -405,12 +402,15 @@ func (suite *KeyProductTestSuite) Test_CreateOrUpdateKeyProduct() {
 	shouldBe.Nil(res.PublishedAt)
 	shouldBe.False(res.Enabled)
 	shouldBe.NotEmpty(res.Id)
+	shouldBe.Equal(int32(defaultMinimalLimitNotify), res.MinimalLimitNotify)
 
 	req.Id = res.Id
+	req.MinimalLimitNotify = int32(50)
 	res2 := billingpb.KeyProductResponse{}
 	err = suite.service.CreateOrUpdateKeyProduct(context.TODO(), req, &res2)
 	shouldBe.Nil(err)
 	shouldBe.Nil(res2.Message)
+	shouldBe.Equal(req.MinimalLimitNotify, res2.Product.MinimalLimitNotify)
 
 	res2 = billingpb.KeyProductResponse{}
 	req.Id = primitive.NewObjectID().Hex()

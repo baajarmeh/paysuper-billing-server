@@ -69,6 +69,7 @@ type MgoOrderViewPublic struct {
 	PaymentGrossRevenue                     *billingpb.OrderViewMoney                `bson:"payment_gross_revenue"`
 	PaymentRefundGrossRevenue               *billingpb.OrderViewMoney                `bson:"payment_refund_gross_revenue"`
 	RefundTaxFeeTotal                       *billingpb.OrderViewMoney                `bson:"refund_tax_fee_total"`
+	ReportSummary                           *MgoOrderViewReportSummary               `bson:"report_summary" json:"report_summary"`
 }
 
 func NewOrderViewPublicMapper() Mapper {
@@ -161,6 +162,8 @@ func (o *orderViewPublicMapper) MapMgoToObject(obj interface{}) (interface{}, er
 	if err != nil {
 		return nil, err
 	}
+
+	m.ReportSummary = getOrderViewReportSummary(decoded.ReportSummary)
 
 	return m, nil
 }

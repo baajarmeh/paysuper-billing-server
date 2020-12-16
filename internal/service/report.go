@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/jinzhu/now"
+	"github.com/paysuper/paysuper-billing-server/internal/helper"
 	"github.com/paysuper/paysuper-billing-server/internal/repository"
 	"github.com/paysuper/paysuper-billing-server/internal/repository/models"
 	"github.com/paysuper/paysuper-billing-server/pkg"
@@ -11,9 +12,7 @@ import (
 	"github.com/paysuper/paysuper-proto/go/billingpb"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.uber.org/zap"
-	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v2"
 	"regexp"
 	"time"
 )
@@ -34,7 +33,7 @@ func (s *Service) FindAllOrdersPublic(
 	req *billingpb.ListOrdersRequest,
 	rsp *billingpb.ListOrdersPublicResponse,
 ) error {
-	count, orders, err := s.getOrdersList(ctx, req, repository.CollectionOrderView, make([]*billingpb.OrderViewPublic, 1))
+	count, orders, err := s.getOrdersList(ctx, req, make([]*billingpb.OrderViewPublic, 1))
 
 	if err != nil {
 		rsp.Status = billingpb.ResponseStatusSystemError
@@ -57,7 +56,7 @@ func (s *Service) FindAllOrdersPrivate(
 	req *billingpb.ListOrdersRequest,
 	rsp *billingpb.ListOrdersPrivateResponse,
 ) error {
-	count, orders, err := s.getOrdersList(ctx, req, repository.CollectionOrderView, make([]*billingpb.OrderViewPrivate, 0))
+	count, orders, err := s.getOrdersList(ctx, req, make([]*billingpb.OrderViewPrivate, 0))
 
 	if err != nil {
 		rsp.Status = billingpb.ResponseStatusSystemError
@@ -80,7 +79,7 @@ func (s *Service) FindAllOrders(
 	req *billingpb.ListOrdersRequest,
 	rsp *billingpb.ListOrdersResponse,
 ) error {
-	count, orders, err := s.getOrdersList(ctx, req, repository.CollectionOrder, make([]*billingpb.Order, 0))
+	count, orders, err := s.getOrdersList(ctx, req, make([]*billingpb.Order, 0))
 
 	if err != nil {
 		rsp.Status = billingpb.ResponseStatusSystemError
@@ -141,7 +140,6 @@ func (s *Service) GetOrderPrivate(
 func (s *Service) getOrdersList(
 	ctx context.Context,
 	req *billingpb.ListOrdersRequest,
-	source string,
 	receiver interface{},
 ) (int64, interface{}, error) {
 	query := make(bson.M)
@@ -165,7 +163,9 @@ func (s *Service) getOrdersList(
 			{"user.external_id": bson.M{"$regex": r, "$exists": true}},
 			{"user.email": bson.M{"$regex": r, "$exists": true}},
 			{"user.phone": bson.M{"$regex": r, "$exists": true}},
-			{"metadata_values": bson.M{"$regex": r}},
+			// {"metadata_values": bson.M{"$regex": r}},
+			{"metadata.invoiceId": bson.M{"$regex": r}},
+			{"metadata.order_identifier": bson.M{"$regex": r}},
 			{"project.name": bson.M{"$elemMatch": bson.M{"value": r}}},
 			{"payment_method.name": bson.M{"$regex": r, "$exists": true}},
 			{"merchant_info.company_name": bson.M{"$regex": r, "$exists": true}},
@@ -307,13 +307,18 @@ func (s *Service) getOrdersList(
 		}
 
 		if req.InvoiceId != "" {
-			query["metadata_values"] = req.InvoiceId
+			query["$or"] = []bson.M{
+				{"metadata.invoiceId": req.InvoiceId},
+				{"metadata.order_identifier": req.InvoiceId},
+			}
 		}
 	}
 
 	if req.HideTest == true {
 		query["is_production"] = true
 	}
+
+	source := repository.CollectionOrder
 
 	count, err := s.db.Collection(source).CountDocuments(ctx, query)
 
@@ -328,11 +333,9 @@ func (s *Service) getOrdersList(
 		return 0, nil, err
 	}
 
-	opts := options.Find().
-		SetSort(mongodb.ToSortOption(req.Sort)).
-		SetLimit(req.Limit).
-		SetSkip(req.Offset)
-	cursor, err := s.db.Collection(source).Find(ctx, query, opts)
+	aggregateQuery := helper.MakeOrderAggregateQuery(query, repository.CollectionOrderView, req.Sort, req.Offset, req.Limit)
+
+	cursor, err := s.db.Collection(source).Aggregate(ctx, aggregateQuery)
 
 	if err != nil {
 		zap.L().Error(

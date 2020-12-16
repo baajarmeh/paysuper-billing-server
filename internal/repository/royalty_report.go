@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"github.com/jinzhu/now"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
-	"github.com/paysuper/paysuper-billing-server/internal/helper"
 	pkg2 "github.com/paysuper/paysuper-billing-server/internal/pkg"
 	"github.com/paysuper/paysuper-billing-server/internal/repository/models"
 	"github.com/paysuper/paysuper-billing-server/pkg"
@@ -21,6 +20,7 @@ import (
 	"go.uber.org/zap"
 	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v2"
 	"math"
+	"strings"
 	"time"
 )
 
@@ -373,7 +373,7 @@ func (r *royaltyReportRepository) GetRoyaltyHistoryById(ctx context.Context, id 
 }
 
 func (r *royaltyReportRepository) FindByMerchantStatusDates(
-	ctx context.Context, merchantId string, status []string, dateFrom, dateTo string, offset, limit int64,
+	ctx context.Context, merchantId string, status []string, dateFrom, dateTo string, offset, limit int64, sort []string,
 ) ([]*billingpb.RoyaltyReport, error) {
 	var err error
 	query := bson.M{}
@@ -430,10 +430,46 @@ func (r *royaltyReportRepository) FindByMerchantStatusDates(
 		query["created_at"] = date
 	}
 
-	opts := options.Find().
-		SetLimit(limit).
-		SetSkip(offset)
-	cursor, err := r.db.Collection(CollectionRoyaltyReport).Find(ctx, query, opts)
+	if limit < 1 {
+		limit = math.MaxInt64
+	}
+
+	afQuery := []bson.M{
+		{"$match": query},
+		{
+			"$lookup": bson.M{
+				"from":         CollectionMerchant,
+				"localField":   "merchant_id",
+				"foreignField": "_id",
+				"as":           "merchants",
+			},
+		},
+		{"$skip": offset},
+		{"$limit": limit},
+	}
+
+	if len(sort) > 0 {
+		pipeSort := make(bson.M)
+
+		for _, field := range sort {
+			n := 1
+
+			sField := strings.Split(field, "")
+
+			if sField[0] == "-" {
+				n = -1
+				field = field[1:]
+			}
+
+			pipeSort[field] = n
+		}
+
+		if len(pipeSort) > 0 {
+			afQuery = append(afQuery, bson.M{"$sort": pipeSort})
+		}
+	}
+
+	cursor, err := r.db.Collection(CollectionRoyaltyReport).Aggregate(ctx, afQuery)
 
 	if err != nil {
 		zap.L().Error(
@@ -578,11 +614,9 @@ func (r *royaltyReportRepository) GetBalanceAmount(ctx context.Context, merchant
 		{
 			"$project": bson.M{
 				"currency":                     "$currency",
-				"gross_total_amount":           "$summary.products_total.gross_total_amount",
-				"total_fees":                   "$summary.products_total.total_fees",
-				"total_vat":                    "$summary.products_total.total_vat",
-				"correction_amount":            "$totals.correction_total_amount",
-				"rolling_reserve_total_amount": "$totals.rolling_reserve_total_amount",
+				"payout_amount":                bson.M{"$round": []interface{}{"$totals.payout_amount", 2}},
+				"correction_amount":            bson.M{"$round": []interface{}{"$totals.correction_total_amount", 2}},
+				"rolling_reserve_total_amount": bson.M{"$round": []interface{}{"$totals.rolling_reserve_total_amount", 2}},
 			},
 		},
 	}
@@ -616,47 +650,10 @@ func (r *royaltyReportRepository) GetBalanceAmount(ctx context.Context, merchant
 		return 0, nil
 	}
 
-	grossTotalAmountMoney := helper.NewMoney()
-	totalFeesMoney := helper.NewMoney()
-	totalVatMoney := helper.NewMoney()
-	correctionAmountMoney := helper.NewMoney()
-	rollingReserveAmountMoney := helper.NewMoney()
-
 	balance := make(map[string]float64)
 
 	for _, val := range result {
-		grossTotalAmount, err := grossTotalAmountMoney.Round(val.GrossTotalAmount)
-
-		if err != nil {
-			return 0, err
-		}
-
-		totalFees, err := totalFeesMoney.Round(val.TotalFees)
-
-		if err != nil {
-			return 0, err
-		}
-
-		totalVat, err := totalVatMoney.Round(val.TotalVat)
-
-		if err != nil {
-			return 0, err
-		}
-
-		correctionAmount, err := correctionAmountMoney.Round(val.CorrectionAmount)
-
-		if err != nil {
-			return 0, err
-		}
-
-		rollingReserveAmount, err := rollingReserveAmountMoney.Round(val.RollingReserveAmount)
-
-		if err != nil {
-			return 0, err
-		}
-
-		payoutAmount := grossTotalAmount - totalFees - totalVat
-		balance[val.Currency] += payoutAmount + correctionAmount - rollingReserveAmount
+		balance[val.Currency] += val.PayoutAmount + val.CorrectionAmount - val.RollingReserveAmount
 	}
 
 	if len(balance) > 1 {
