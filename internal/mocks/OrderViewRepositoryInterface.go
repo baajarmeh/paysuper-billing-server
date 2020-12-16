@@ -332,13 +332,13 @@ func (_m *OrderViewRepositoryInterface) GetRoyaltyForMerchants(_a0 context.Conte
 	return r0, r1
 }
 
-// GetRoyaltySummary provides a mock function with given fields: ctx, merchantId, currency, from, to, hasExistsReportId
-func (_m *OrderViewRepositoryInterface) GetRoyaltySummary(ctx context.Context, merchantId string, currency string, from time.Time, to time.Time, hasExistsReportId bool) ([]*billingpb.RoyaltyReportProductSummaryItem, *billingpb.RoyaltyReportProductSummaryItem, []primitive.ObjectID, error) {
-	ret := _m.Called(ctx, merchantId, currency, from, to, hasExistsReportId)
+// GetRoyaltySummary provides a mock function with given fields: ctx, merchantId, currency, from, to
+func (_m *OrderViewRepositoryInterface) GetRoyaltySummary(ctx context.Context, merchantId string, currency string, from time.Time, to time.Time) ([]*billingpb.RoyaltyReportProductSummaryItem, *billingpb.RoyaltyReportProductSummaryItem, []primitive.ObjectID, error) {
+	ret := _m.Called(ctx, merchantId, currency, from, to)
 
 	var r0 []*billingpb.RoyaltyReportProductSummaryItem
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, time.Time, time.Time, bool) []*billingpb.RoyaltyReportProductSummaryItem); ok {
-		r0 = rf(ctx, merchantId, currency, from, to, hasExistsReportId)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, time.Time, time.Time) []*billingpb.RoyaltyReportProductSummaryItem); ok {
+		r0 = rf(ctx, merchantId, currency, from, to)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]*billingpb.RoyaltyReportProductSummaryItem)
@@ -346,8 +346,8 @@ func (_m *OrderViewRepositoryInterface) GetRoyaltySummary(ctx context.Context, m
 	}
 
 	var r1 *billingpb.RoyaltyReportProductSummaryItem
-	if rf, ok := ret.Get(1).(func(context.Context, string, string, time.Time, time.Time, bool) *billingpb.RoyaltyReportProductSummaryItem); ok {
-		r1 = rf(ctx, merchantId, currency, from, to, hasExistsReportId)
+	if rf, ok := ret.Get(1).(func(context.Context, string, string, time.Time, time.Time) *billingpb.RoyaltyReportProductSummaryItem); ok {
+		r1 = rf(ctx, merchantId, currency, from, to)
 	} else {
 		if ret.Get(1) != nil {
 			r1 = ret.Get(1).(*billingpb.RoyaltyReportProductSummaryItem)
@@ -355,8 +355,8 @@ func (_m *OrderViewRepositoryInterface) GetRoyaltySummary(ctx context.Context, m
 	}
 
 	var r2 []primitive.ObjectID
-	if rf, ok := ret.Get(2).(func(context.Context, string, string, time.Time, time.Time, bool) []primitive.ObjectID); ok {
-		r2 = rf(ctx, merchantId, currency, from, to, hasExistsReportId)
+	if rf, ok := ret.Get(2).(func(context.Context, string, string, time.Time, time.Time) []primitive.ObjectID); ok {
+		r2 = rf(ctx, merchantId, currency, from, to)
 	} else {
 		if ret.Get(2) != nil {
 			r2 = ret.Get(2).([]primitive.ObjectID)
@@ -364,8 +364,8 @@ func (_m *OrderViewRepositoryInterface) GetRoyaltySummary(ctx context.Context, m
 	}
 
 	var r3 error
-	if rf, ok := ret.Get(3).(func(context.Context, string, string, time.Time, time.Time, bool) error); ok {
-		r3 = rf(ctx, merchantId, currency, from, to, hasExistsReportId)
+	if rf, ok := ret.Get(3).(func(context.Context, string, string, time.Time, time.Time) error); ok {
+		r3 = rf(ctx, merchantId, currency, from, to)
 	} else {
 		r3 = ret.Error(3)
 	}
@@ -373,13 +373,13 @@ func (_m *OrderViewRepositoryInterface) GetRoyaltySummary(ctx context.Context, m
 	return r0, r1, r2, r3
 }
 
-// GetRoyaltySummaryRoundedAmounts provides a mock function with given fields: ctx, merchantId, currency, from, to, hasExistsReportId
-func (_m *OrderViewRepositoryInterface) GetRoyaltySummaryRoundedAmounts(ctx context.Context, merchantId string, currency string, from time.Time, to time.Time, hasExistsReportId bool) ([]*billingpb.RoyaltyReportProductSummaryItem, *billingpb.RoyaltyReportProductSummaryItem, []primitive.ObjectID, error) {
-	ret := _m.Called(ctx, merchantId, currency, from, to, hasExistsReportId)
+// GetRoyaltySummaryRoundedAmounts provides a mock function with given fields: ctx, merchantId, currency, from, to
+func (_m *OrderViewRepositoryInterface) GetRoyaltySummaryRoundedAmounts(ctx context.Context, merchantId string, currency string, from time.Time, to time.Time) ([]*billingpb.RoyaltyReportProductSummaryItem, *billingpb.RoyaltyReportProductSummaryItem, []primitive.ObjectID, error) {
+	ret := _m.Called(ctx, merchantId, currency, from, to)
 
 	var r0 []*billingpb.RoyaltyReportProductSummaryItem
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, time.Time, time.Time, bool) []*billingpb.RoyaltyReportProductSummaryItem); ok {
-		r0 = rf(ctx, merchantId, currency, from, to, hasExistsReportId)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, time.Time, time.Time) []*billingpb.RoyaltyReportProductSummaryItem); ok {
+		r0 = rf(ctx, merchantId, currency, from, to)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]*billingpb.RoyaltyReportProductSummaryItem)
@@ -387,8 +387,8 @@ func (_m *OrderViewRepositoryInterface) GetRoyaltySummaryRoundedAmounts(ctx cont
 	}
 
 	var r1 *billingpb.RoyaltyReportProductSummaryItem
-	if rf, ok := ret.Get(1).(func(context.Context, string, string, time.Time, time.Time, bool) *billingpb.RoyaltyReportProductSummaryItem); ok {
-		r1 = rf(ctx, merchantId, currency, from, to, hasExistsReportId)
+	if rf, ok := ret.Get(1).(func(context.Context, string, string, time.Time, time.Time) *billingpb.RoyaltyReportProductSummaryItem); ok {
+		r1 = rf(ctx, merchantId, currency, from, to)
 	} else {
 		if ret.Get(1) != nil {
 			r1 = ret.Get(1).(*billingpb.RoyaltyReportProductSummaryItem)
@@ -396,8 +396,8 @@ func (_m *OrderViewRepositoryInterface) GetRoyaltySummaryRoundedAmounts(ctx cont
 	}
 
 	var r2 []primitive.ObjectID
-	if rf, ok := ret.Get(2).(func(context.Context, string, string, time.Time, time.Time, bool) []primitive.ObjectID); ok {
-		r2 = rf(ctx, merchantId, currency, from, to, hasExistsReportId)
+	if rf, ok := ret.Get(2).(func(context.Context, string, string, time.Time, time.Time) []primitive.ObjectID); ok {
+		r2 = rf(ctx, merchantId, currency, from, to)
 	} else {
 		if ret.Get(2) != nil {
 			r2 = ret.Get(2).([]primitive.ObjectID)
@@ -405,8 +405,8 @@ func (_m *OrderViewRepositoryInterface) GetRoyaltySummaryRoundedAmounts(ctx cont
 	}
 
 	var r3 error
-	if rf, ok := ret.Get(3).(func(context.Context, string, string, time.Time, time.Time, bool) error); ok {
-		r3 = rf(ctx, merchantId, currency, from, to, hasExistsReportId)
+	if rf, ok := ret.Get(3).(func(context.Context, string, string, time.Time, time.Time) error); ok {
+		r3 = rf(ctx, merchantId, currency, from, to)
 	} else {
 		r3 = ret.Error(3)
 	}

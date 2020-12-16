@@ -277,7 +277,6 @@ func (r *orderViewRepository) GetRoyaltySummary(
 	ctx context.Context,
 	merchantId, currency string,
 	from, to time.Time,
-	notExistsReportId bool,
 ) (
 	items []*billingpb.RoyaltyReportProductSummaryItem,
 	total *billingpb.RoyaltyReportProductSummaryItem,
@@ -300,10 +299,6 @@ func (r *orderViewRepository) GetRoyaltySummary(
 		"pm_order_close_date":      bson.M{"$gte": from, "$lte": to},
 		"status":                   bson.M{"$in": statusForRoyaltySummary},
 		"is_production":            true,
-	}
-
-	if notExistsReportId {
-		match["royalty_report_id"] = ""
 	}
 
 	query := []bson.M{
@@ -365,32 +360,6 @@ func (r *orderViewRepository) GetRoyaltySummary(
 						"$items.name",
 					},
 				},
-				"correction": bson.M{
-					"$cond": []interface{}{
-						bson.M{"$eq": []string{"$items", ""}},
-						1,
-						bson.M{"$divide": []interface{}{"$items.amount", "$amount_before_vat"}},
-					},
-				},
-			},
-		},
-		{
-			"$project": bson.M{
-				"id":                       1,
-				"product":                  1,
-				"region":                   1,
-				"status":                   1,
-				"type":                     1,
-				"currency":                 1,
-				"purchase_gross_revenue":   bson.M{"$multiply": []interface{}{"$purchase_gross_revenue", "$correction"}},
-				"refund_gross_revenue":     bson.M{"$multiply": []interface{}{"$refund_gross_revenue", "$correction"}},
-				"purchase_tax_fee_total":   bson.M{"$multiply": []interface{}{"$purchase_tax_fee_total", "$correction"}},
-				"refund_tax_fee_total":     bson.M{"$multiply": []interface{}{"$refund_tax_fee_total", "$correction"}},
-				"purchase_fees_total":      bson.M{"$multiply": []interface{}{"$purchase_fees_total", "$correction"}},
-				"refund_fees_total":        bson.M{"$multiply": []interface{}{"$refund_fees_total", "$correction"}},
-				"net_revenue":              bson.M{"$multiply": []interface{}{"$net_revenue", "$correction"}},
-				"refund_reverse_revenue":   bson.M{"$multiply": []interface{}{"$refund_reverse_revenue", "$correction"}},
-				"order_amount_without_vat": bson.M{"$multiply": []interface{}{"$order_amount_without_vat", "$correction"}},
 			},
 		},
 		{
@@ -499,26 +468,42 @@ func (r *orderViewRepository) GetPrivateOrderBy(
 		query["project.merchant_id"], _ = primitive.ObjectIDFromHex(merchantId)
 	}
 
-	mgo := &models.MgoOrderViewPrivate{}
+	aggregateQuery := helper.MakeOrderAggregateQuery(query, CollectionOrderView, []string{}, 0, 1)
 
-	err := r.db.Collection(CollectionOrderView).FindOne(ctx, query).Decode(mgo)
-
+	cursor, err := r.db.Collection(CollectionOrder).Aggregate(ctx, aggregateQuery)
 	if err != nil {
 		zap.L().Error(
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
-			zap.String(pkg.ErrorDatabaseFieldCollection, CollectionOrderView),
-			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+			zap.String(pkg.ErrorDatabaseFieldCollection, CollectionOrder),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, aggregateQuery),
 		)
 		return nil, err
 	}
 
-	obj, err := r.mapper.MapMgoToObject(mgo)
+	var res []*models.MgoOrderViewPrivate
+
+	err = cursor.All(ctx, &res)
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, CollectionOrder),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, aggregateQuery),
+		)
+		return nil, err
+	}
+
+	if len(res) == 0 {
+		return nil, mongo.ErrNoDocuments
+	}
+
+	obj, err := r.mapper.MapMgoToObject(res[0])
 	if err != nil {
 		zap.L().Error(
 			pkg.ErrorMapModelFailed,
 			zap.Error(err),
-			zap.Any(pkg.ErrorDatabaseFieldQuery, mgo),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, aggregateQuery),
 		)
 		return nil, err
 	}
@@ -544,25 +529,42 @@ func (r *orderViewRepository) GetPublicOrderBy(
 		query["project.merchant_id"], _ = primitive.ObjectIDFromHex(merchantId)
 	}
 
-	mgo := &models.MgoOrderViewPublic{}
-	err := r.db.Collection(CollectionOrderView).FindOne(ctx, query).Decode(mgo)
+	aggregateQuery := helper.MakeOrderAggregateQuery(query, CollectionOrderView, []string{}, 0, 1)
 
+	cursor, err := r.db.Collection(CollectionOrder).Aggregate(ctx, aggregateQuery)
 	if err != nil {
 		zap.L().Error(
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
-			zap.String(pkg.ErrorDatabaseFieldCollection, CollectionOrderView),
-			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+			zap.String(pkg.ErrorDatabaseFieldCollection, CollectionOrder),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, aggregateQuery),
 		)
 		return nil, err
 	}
 
-	obj, err := r.publicOrderMapper.MapMgoToObject(mgo)
+	var res []*models.MgoOrderViewPublic
+
+	err = cursor.All(ctx, &res)
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, CollectionOrder),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, aggregateQuery),
+		)
+		return nil, err
+	}
+
+	if len(res) == 0 {
+		return nil, mongo.ErrNoDocuments
+	}
+
+	obj, err := r.publicOrderMapper.MapMgoToObject(res[0])
 	if err != nil {
 		zap.L().Error(
 			pkg.ErrorMapModelFailed,
 			zap.Error(err),
-			zap.Any(pkg.ErrorDatabaseFieldQuery, mgo),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, aggregateQuery),
 		)
 		return nil, err
 	}
@@ -1114,7 +1116,6 @@ func (r *orderViewRepository) GetRoyaltySummaryRoundedAmounts(
 	ctx context.Context,
 	merchantId, currency string,
 	from, to time.Time,
-	notExistsReportId bool,
 ) (
 	items []*billingpb.RoyaltyReportProductSummaryItem,
 	total *billingpb.RoyaltyReportProductSummaryItem,
@@ -1137,10 +1138,6 @@ func (r *orderViewRepository) GetRoyaltySummaryRoundedAmounts(
 		"pm_order_close_date":      bson.M{"$gte": from, "$lte": to},
 		"status":                   bson.M{"$in": statusForRoyaltySummary},
 		"is_production":            true,
-	}
-
-	if notExistsReportId {
-		match["royalty_report_id"] = ""
 	}
 
 	query := []bson.M{
@@ -1202,32 +1199,6 @@ func (r *orderViewRepository) GetRoyaltySummaryRoundedAmounts(
 						"$items.name",
 					},
 				},
-				"correction": bson.M{
-					"$cond": []interface{}{
-						bson.M{"$eq": []string{"$items", ""}},
-						1,
-						bson.M{"$divide": []interface{}{"$items.amount", "$amount_before_vat"}},
-					},
-				},
-			},
-		},
-		{
-			"$project": bson.M{
-				"id":                       1,
-				"product":                  1,
-				"region":                   1,
-				"status":                   1,
-				"type":                     1,
-				"currency":                 1,
-				"purchase_gross_revenue":   bson.M{"$multiply": []interface{}{"$purchase_gross_revenue", "$correction"}},
-				"refund_gross_revenue":     bson.M{"$multiply": []interface{}{"$refund_gross_revenue", "$correction"}},
-				"purchase_tax_fee_total":   bson.M{"$multiply": []interface{}{"$purchase_tax_fee_total", "$correction"}},
-				"refund_tax_fee_total":     bson.M{"$multiply": []interface{}{"$refund_tax_fee_total", "$correction"}},
-				"purchase_fees_total":      bson.M{"$multiply": []interface{}{"$purchase_fees_total", "$correction"}},
-				"refund_fees_total":        bson.M{"$multiply": []interface{}{"$refund_fees_total", "$correction"}},
-				"net_revenue":              bson.M{"$multiply": []interface{}{"$net_revenue", "$correction"}},
-				"refund_reverse_revenue":   bson.M{"$multiply": []interface{}{"$refund_reverse_revenue", "$correction"}},
-				"order_amount_without_vat": bson.M{"$multiply": []interface{}{"$order_amount_without_vat", "$correction"}},
 			},
 		},
 		{

@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/jinzhu/now"
-	"github.com/paysuper/paysuper-billing-server/internal/helper"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/errors"
 	"github.com/paysuper/paysuper-proto/go/billingpb"
@@ -138,37 +137,10 @@ func (s *Service) createPayoutDocument(
 
 	times := make([]time.Time, 0)
 	stringTimes := make([]string, 0)
-	grossTotalAmountMoney := helper.NewMoney()
-	totalFeesMoney := helper.NewMoney()
-	totalVatMoney := helper.NewMoney()
-
-	totalFeesAmount := float64(0)
-	balanceAmount := float64(0)
 
 	for _, r := range reports {
-		grossTotalAmount, err := grossTotalAmountMoney.Round(r.Summary.ProductsTotal.GrossTotalAmount)
-
-		if err != nil {
-			return err
-		}
-
-		totalFees, err := totalFeesMoney.Round(r.Summary.ProductsTotal.TotalFees)
-
-		if err != nil {
-			return err
-		}
-
-		totalVat, err := totalVatMoney.Round(r.Summary.ProductsTotal.TotalVat)
-
-		if err != nil {
-
-			return err
-		}
-
-		payoutAmount := grossTotalAmount - totalFees - totalVat
-		totalFeesAmount += payoutAmount + r.Totals.CorrectionAmount
-		balanceAmount += payoutAmount + r.Totals.CorrectionAmount - r.Totals.RollingReserveAmount
-
+		pd.TotalFees += r.Totals.PayoutAmount + r.Totals.CorrectionAmount
+		pd.Balance += r.Totals.PayoutAmount + r.Totals.CorrectionAmount - r.Totals.RollingReserveAmount
 		pd.TotalTransactions += r.Totals.TransactionsCount
 		pd.SourceId = append(pd.SourceId, r.Id)
 
@@ -211,12 +183,15 @@ func (s *Service) createPayoutDocument(
 		return nil
 	}
 
-	if balanceAmount < float64(minimal) {
+	pd.TotalFees = math.Round(pd.TotalFees*100) / 100
+	pd.Balance = math.Round(pd.Balance*100) / 100
+
+	if pd.Balance < float64(minimal) {
 		if req.IsAutoGeneration {
 			zap.L().Info("balance is less than minimal in tariff for merchant currency. skipping auto-generation payout",
 				zap.String("merchant_id", merchant.Id),
 				zap.Float32("minimal", minimal),
-				zap.Float64("amount", balanceAmount),
+				zap.Float64("amount", pd.Balance),
 				zap.String("currency", currency))
 			res.Status = billingpb.ResponseStatusOk
 			return nil
@@ -225,9 +200,6 @@ func (s *Service) createPayoutDocument(
 		res.Message = errorPayoutTarrifMinimal
 		return nil
 	}
-
-	pd.TotalFees = math.Round(totalFeesAmount*100) / 100
-	pd.Balance = math.Round(balanceAmount*100) / 100
 
 	if pd.Balance <= 0 {
 		res.Status = billingpb.ResponseStatusBadData
@@ -833,172 +805,5 @@ func (s *Service) PayoutFinanceDone(
 	}
 
 	res.Status = billingpb.ResponseStatusOk
-	return nil
-}
-
-func (s *Service) TaskRebuildPayoutsRoyalties() error {
-	ctx := context.Background()
-	payouts, err := s.payoutRepository.FindAll(ctx)
-
-	if err != nil {
-		return err
-	}
-
-	for _, payout := range payouts {
-		royaltyReports, err := s.royaltyReportRepository.GetByPayoutId(ctx, payout.Id)
-
-		if err != nil {
-			return err
-		}
-
-		grossTotalAmountMoney := helper.NewMoney()
-		totalFeesMoney := helper.NewMoney()
-		totalVatMoney := helper.NewMoney()
-
-		totalFeesAmount := float64(0)
-		balanceAmount := float64(0)
-
-		for _, royaltyReport := range royaltyReports {
-			grossTotalAmount, err := grossTotalAmountMoney.Round(royaltyReport.Summary.ProductsTotal.GrossTotalAmount)
-
-			if err != nil {
-				return err
-			}
-
-			totalFees, err := totalFeesMoney.Round(royaltyReport.Summary.ProductsTotal.TotalFees)
-
-			if err != nil {
-				return err
-			}
-
-			totalVat, err := totalVatMoney.Round(royaltyReport.Summary.ProductsTotal.TotalVat)
-
-			if err != nil {
-				return err
-			}
-
-			payoutAmount := grossTotalAmount - totalFees - totalVat
-			totalFeesAmount += payoutAmount + royaltyReport.Totals.CorrectionAmount
-			balanceAmount += payoutAmount + royaltyReport.Totals.CorrectionAmount - royaltyReport.Totals.RollingReserveAmount
-		}
-
-		payout.TotalFees = math.Round(totalFeesAmount*100) / 100
-		payout.Balance = math.Round(balanceAmount*100) / 100
-
-		err = s.payoutRepository.Update(ctx, payout, "0.0.0.0", "auto")
-
-		if err != nil {
-			return err
-		}
-	}
-
-	royalties, err := s.royaltyReportRepository.GetAll(ctx)
-
-	for _, royalty := range royalties {
-		merchant, err := s.merchantRepository.GetById(ctx, royalty.MerchantId)
-
-		totalEndUserFeesMoney := helper.NewMoney()
-		returnsAmountMoney := helper.NewMoney()
-		endUserFeesMoney := helper.NewMoney()
-		vatOnEndUserSalesMoney := helper.NewMoney()
-		licenseRevenueShareMoney := helper.NewMoney()
-
-		totalGrossSalesAmount := float64(0)
-		totalGrossReturnsAmount := float64(0)
-		totalGrossTotalAmount := float64(0)
-		totalVat := float64(0)
-		totalFees := float64(0)
-		totalPayoutAmount := float64(0)
-
-		periodFrom, err := ptypes.Timestamp(royalty.PeriodFrom)
-
-		if err != nil {
-			return err
-		}
-
-		periodTo, err := ptypes.Timestamp(royalty.PeriodTo)
-
-		if err != nil {
-			return err
-		}
-
-		summaryItems, total, _, err := s.orderViewRepository.GetRoyaltySummary(
-			ctx,
-			royalty.MerchantId,
-			merchant.GetPayoutCurrency(),
-			periodFrom,
-			periodTo,
-			true,
-		)
-
-		if err != nil {
-			return err
-		}
-
-		royalty.Summary.ProductsItems = summaryItems
-
-		for _, item := range royalty.Summary.ProductsItems {
-			grossSalesAmount, err := totalEndUserFeesMoney.Round(item.GrossSalesAmount)
-
-			if err != nil {
-				return err
-			}
-
-			grossReturnsAmount, err := returnsAmountMoney.Round(item.GrossReturnsAmount)
-
-			if err != nil {
-				return err
-			}
-
-			grossTotalAmount, err := endUserFeesMoney.Round(item.GrossTotalAmount)
-
-			if err != nil {
-				return err
-			}
-
-			vat, err := vatOnEndUserSalesMoney.Round(item.TotalVat)
-
-			if err != nil {
-				return err
-			}
-
-			fees, err := licenseRevenueShareMoney.Round(item.TotalFees)
-
-			if err != nil {
-				return err
-			}
-
-			payoutAmount := grossTotalAmount - vat - fees
-
-			totalGrossSalesAmount += grossSalesAmount
-			totalGrossReturnsAmount += grossReturnsAmount
-			totalGrossTotalAmount += grossTotalAmount
-			totalVat += vat
-			totalFees += fees
-			totalPayoutAmount += payoutAmount
-		}
-
-		royalty.Totals.FeeAmount = math.Round(totalFees*100) / 100
-		royalty.Totals.VatAmount = math.Round(totalVat*100) / 100
-		royalty.Totals.TransactionsCount = total.TotalTransactions
-		royalty.Totals.PayoutAmount = math.Round(totalPayoutAmount*100) / 100
-		royalty.Summary.ProductsTotal.GrossSalesAmount = math.Round(totalGrossSalesAmount*100) / 100
-		royalty.Summary.ProductsTotal.GrossReturnsAmount = math.Round(totalGrossReturnsAmount*100) / 100
-		royalty.Summary.ProductsTotal.GrossTotalAmount = math.Round(totalGrossTotalAmount*100) / 100
-		royalty.Summary.ProductsTotal.TotalVat = math.Round(totalVat*100) / 100
-		royalty.Summary.ProductsTotal.TotalFees = math.Round(totalFees*100) / 100
-		royalty.Summary.ProductsTotal.PayoutAmount = math.Round(totalPayoutAmount*100) / 100
-		royalty.Summary.ProductsTotal.SalesCount = total.SalesCount
-		royalty.Summary.ProductsTotal.TotalTransactions = total.TotalTransactions
-
-		err = s.royaltyReportRepository.Update(ctx, royalty, "0.0.0.0", "auto")
-	}
-
-	merchants, err := s.merchantRepository.GetAll(ctx)
-
-	for _, item := range merchants {
-		_, _ = s.updateMerchantBalance(ctx, item.Id)
-	}
-
 	return nil
 }

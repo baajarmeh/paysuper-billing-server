@@ -126,7 +126,7 @@ func (s *Service) GetActOfCompletion(
 		from:    dateFrom,
 		to:      dateTo,
 	}
-	report, _, err := royaltyHandler.buildMerchantRoyaltyReportRoundedAmounts(ctx, merchant, false)
+	report, _, err := royaltyHandler.buildMerchantRoyaltyReportRoundedAmounts(ctx, merchant)
 	if err != nil {
 		return err
 	}

@@ -234,10 +234,10 @@ func (suite *ReportTestSuite) TestReport_FindById() {
 	rsp2 := &billingpb.ListOrdersResponse{}
 	err = suite.service.FindAllOrders(context.TODO(), req, rsp2)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp1.Status)
-	assert.NotNil(suite.T(), rsp1.Item)
-	assert.EqualValues(suite.T(), int32(1), rsp1.Item.Count)
-	assert.Equal(suite.T(), order.Id, rsp1.Item.Items[0].Id)
+	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp2.Status)
+	assert.NotNil(suite.T(), rsp2.Item)
+	assert.EqualValues(suite.T(), int32(1), rsp2.Item.Count)
+	assert.Equal(suite.T(), order.Id, rsp2.Item.Items[0].Id)
 }
 
 func (suite *ReportTestSuite) TestReport_FindByMerchantId() {
@@ -820,7 +820,7 @@ func (suite *ReportTestSuite) TestReport_FindByInvoiceId_Ok() {
 	assert.Equal(suite.T(), metadata, rsp.Item.Items[0].Metadata)
 
 	invoiceId = uuid.New().String()
-	metadata = map[string]string{"xxxxx": invoiceId}
+	metadata = map[string]string{"invoiceId": invoiceId}
 	order := HelperCreateAndPayOrder2(
 		suite.Suite,
 		suite.service,

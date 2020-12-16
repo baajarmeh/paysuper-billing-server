@@ -9,7 +9,6 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/jinzhu/now"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
-	"github.com/paysuper/paysuper-billing-server/internal/helper"
 	pkg2 "github.com/paysuper/paysuper-billing-server/internal/pkg"
 	"github.com/paysuper/paysuper-billing-server/internal/repository/models"
 	"github.com/paysuper/paysuper-billing-server/pkg"
@@ -273,7 +272,7 @@ func (r *payoutRepository) GetBalanceAmount(ctx context.Context, merchantId, cur
 		{
 			"$project": bson.M{
 				"currency":   "$currency",
-				"total_fees": "$total_fees",
+				"total_fees": bson.M{"$round": []interface{}{"$total_fees", 2}},
 			},
 		},
 	}
@@ -309,17 +308,10 @@ func (r *payoutRepository) GetBalanceAmount(ctx context.Context, merchantId, cur
 		return 0, nil
 	}
 
-	totalFeesMoney := helper.NewMoney()
 	balance := make(map[string]float64)
 
 	for _, val := range result {
-		totalFees, err := totalFeesMoney.Round(val.TotalFees)
-
-		if err != nil {
-			return 0, err
-		}
-
-		balance[val.Currency] += totalFees
+		balance[val.Currency] += val.TotalFees
 	}
 
 	if len(balance) > 1 {

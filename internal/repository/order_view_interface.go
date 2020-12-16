@@ -25,7 +25,7 @@ type OrderViewRepositoryInterface interface {
 	GetTransactionsPrivate(ctx context.Context, match bson.M, limit, offset int64) (result []*billingpb.OrderViewPrivate, err error)
 
 	// GetRoyaltySummary returns orders for summary royal report by merchant id, currency and dates with checking exists royalty report.
-	GetRoyaltySummary(ctx context.Context, merchantId, currency string, from, to time.Time, hasExistsReportId bool) (items []*billingpb.RoyaltyReportProductSummaryItem, total *billingpb.RoyaltyReportProductSummaryItem, ordersIds []primitive.ObjectID, err error)
+	GetRoyaltySummary(ctx context.Context, merchantId, currency string, from, to time.Time) (items []*billingpb.RoyaltyReportProductSummaryItem, total *billingpb.RoyaltyReportProductSummaryItem, ordersIds []primitive.ObjectID, err error)
 
 	// GetPublicOrderBy returns orders for order identity, order public identity, merchant id.
 	GetPublicOrderBy(ctx context.Context, id, uuid, merchantId string) (*billingpb.OrderViewPublic, error)
@@ -67,5 +67,5 @@ type OrderViewRepositoryInterface interface {
 	GetCountBy(ctx context.Context, filter bson.M, opts ...*options.CountOptions) (int64, error)
 
 	// GetRoyaltySummary returns orders for summary royal report by merchant id, currency and dates with checking exists royalty report.
-	GetRoyaltySummaryRoundedAmounts(ctx context.Context, merchantId, currency string, from, to time.Time, hasExistsReportId bool) (items []*billingpb.RoyaltyReportProductSummaryItem, total *billingpb.RoyaltyReportProductSummaryItem, ordersIds []primitive.ObjectID, err error)
+	GetRoyaltySummaryRoundedAmounts(ctx context.Context, merchantId, currency string, from, to time.Time) (items []*billingpb.RoyaltyReportProductSummaryItem, total *billingpb.RoyaltyReportProductSummaryItem, ordersIds []primitive.ObjectID, err error)
 }

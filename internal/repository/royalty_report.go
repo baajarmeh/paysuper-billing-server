@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"github.com/jinzhu/now"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
-	"github.com/paysuper/paysuper-billing-server/internal/helper"
 	pkg2 "github.com/paysuper/paysuper-billing-server/internal/pkg"
 	"github.com/paysuper/paysuper-billing-server/internal/repository/models"
 	"github.com/paysuper/paysuper-billing-server/pkg"
@@ -615,11 +614,9 @@ func (r *royaltyReportRepository) GetBalanceAmount(ctx context.Context, merchant
 		{
 			"$project": bson.M{
 				"currency":                     "$currency",
-				"gross_total_amount":           "$summary.products_total.gross_total_amount",
-				"total_fees":                   "$summary.products_total.total_fees",
-				"total_vat":                    "$summary.products_total.total_vat",
-				"correction_amount":            "$totals.correction_total_amount",
-				"rolling_reserve_total_amount": "$totals.rolling_reserve_total_amount",
+				"payout_amount":                bson.M{"$round": []interface{}{"$totals.payout_amount", 2}},
+				"correction_amount":            bson.M{"$round": []interface{}{"$totals.correction_total_amount", 2}},
+				"rolling_reserve_total_amount": bson.M{"$round": []interface{}{"$totals.rolling_reserve_total_amount", 2}},
 			},
 		},
 	}
@@ -653,47 +650,10 @@ func (r *royaltyReportRepository) GetBalanceAmount(ctx context.Context, merchant
 		return 0, nil
 	}
 
-	grossTotalAmountMoney := helper.NewMoney()
-	totalFeesMoney := helper.NewMoney()
-	totalVatMoney := helper.NewMoney()
-	correctionAmountMoney := helper.NewMoney()
-	rollingReserveAmountMoney := helper.NewMoney()
-
 	balance := make(map[string]float64)
 
 	for _, val := range result {
-		grossTotalAmount, err := grossTotalAmountMoney.Round(val.GrossTotalAmount)
-
-		if err != nil {
-			return 0, err
-		}
-
-		totalFees, err := totalFeesMoney.Round(val.TotalFees)
-
-		if err != nil {
-			return 0, err
-		}
-
-		totalVat, err := totalVatMoney.Round(val.TotalVat)
-
-		if err != nil {
-			return 0, err
-		}
-
-		correctionAmount, err := correctionAmountMoney.Round(val.CorrectionAmount)
-
-		if err != nil {
-			return 0, err
-		}
-
-		rollingReserveAmount, err := rollingReserveAmountMoney.Round(val.RollingReserveAmount)
-
-		if err != nil {
-			return 0, err
-		}
-
-		payoutAmount := grossTotalAmount - totalFees - totalVat
-		balance[val.Currency] += payoutAmount + correctionAmount - rollingReserveAmount
+		balance[val.Currency] += val.PayoutAmount + val.CorrectionAmount - val.RollingReserveAmount
 	}
 
 	if len(balance) > 1 {
