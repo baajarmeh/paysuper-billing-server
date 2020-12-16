@@ -1,10 +1,18 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [1.10.0] - 2020-12-16
+
+### Added
+- Key end notifications in projects
+- Displaying non-success and non-finished transactions in Transaction search section of admin panel
+
+***  
+
 ## [1.9.0] - 2020-12-03
 
 ### Added
-- KYC procedure for merchant onbording
+- KYC procedure for merchant onboarding
 
 ### Changed
 - Royalty reports calculation moved from Europe/Moscow timezone to UTC 
