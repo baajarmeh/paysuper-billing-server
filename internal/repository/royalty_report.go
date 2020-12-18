@@ -444,8 +444,6 @@ func (r *royaltyReportRepository) FindByMerchantStatusDates(
 				"as":           "merchants",
 			},
 		},
-		{"$skip": offset},
-		{"$limit": limit},
 	}
 
 	if len(sort) > 0 {
@@ -468,6 +466,9 @@ func (r *royaltyReportRepository) FindByMerchantStatusDates(
 			afQuery = append(afQuery, bson.M{"$sort": pipeSort})
 		}
 	}
+
+	afQuery = append(afQuery, bson.M{"$skip": offset})
+	afQuery = append(afQuery, bson.M{"$limit": limit})
 
 	cursor, err := r.db.Collection(CollectionRoyaltyReport).Aggregate(ctx, afQuery)
 
