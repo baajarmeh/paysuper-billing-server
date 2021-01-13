@@ -273,7 +273,7 @@ func (s *Service) getOrdersList(
 		}
 
 		if len(pmDates) > 0 {
-			query["pm_order_close_date"] = pmDates
+			query["created_at"] = pmDates
 		}
 
 		prjDates := make(bson.M)
