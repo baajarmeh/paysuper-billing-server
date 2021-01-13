@@ -79,7 +79,7 @@ type OrderTestSuite struct {
 	paylink2                               *billingpb.Paylink // deleted paylink
 	paylink3                               *billingpb.Paylink // expired paylink
 	operatingCompany                       *billingpb.OperatingCompany
-	productWithProcessingDefaultCurrency   *billingpb.Product
+	productWithDefaultCurrency             *billingpb.Product
 	customer                               *billingpb.Customer
 	cookie                                 string
 
@@ -688,14 +688,13 @@ func (suite *OrderTestSuite) SetupTest() {
 			},
 		},
 		Banking: &billingpb.MerchantBanking{
-			Currency:                  "USD",
-			Name:                      "Bank name",
-			Address:                   "address",
-			AccountNumber:             "0000001",
-			Swift:                     "swift",
-			CorrespondentAccount:      "correspondent_account",
-			Details:                   "details",
-			ProcessingDefaultCurrency: "RUB",
+			Currency:             "USD",
+			Name:                 "Bank name",
+			Address:              "address",
+			AccountNumber:        "0000001",
+			Swift:                "swift",
+			CorrespondentAccount: "correspondent_account",
+			Details:              "details",
 		},
 		IsVatEnabled:              true,
 		IsCommissionToUserEnabled: true,
@@ -841,14 +840,13 @@ func (suite *OrderTestSuite) SetupTest() {
 			},
 		},
 		Banking: &billingpb.MerchantBanking{
-			Currency:                  "RUB",
-			Name:                      "Bank name",
-			Address:                   "address",
-			AccountNumber:             "0000001",
-			Swift:                     "swift",
-			CorrespondentAccount:      "correspondent_account",
-			Details:                   "details",
-			ProcessingDefaultCurrency: "RUB",
+			Currency:             "RUB",
+			Name:                 "Bank name",
+			Address:              "address",
+			AccountNumber:        "0000001",
+			Swift:                "swift",
+			CorrespondentAccount: "correspondent_account",
+			Details:              "details",
 		},
 		IsVatEnabled:              true,
 		IsCommissionToUserEnabled: true,
@@ -932,14 +930,13 @@ func (suite *OrderTestSuite) SetupTest() {
 			},
 		},
 		Banking: &billingpb.MerchantBanking{
-			Currency:                  "RUB",
-			Name:                      "Bank name",
-			Address:                   "address",
-			AccountNumber:             "0000001",
-			Swift:                     "swift",
-			CorrespondentAccount:      "correspondent_account",
-			Details:                   "details",
-			ProcessingDefaultCurrency: "RUB",
+			Currency:             "RUB",
+			Name:                 "Bank name",
+			Address:              "address",
+			AccountNumber:        "0000001",
+			Swift:                "swift",
+			CorrespondentAccount: "correspondent_account",
+			Details:              "details",
 		},
 		IsVatEnabled:              true,
 		IsCommissionToUserEnabled: true,
@@ -1607,12 +1604,12 @@ func (suite *OrderTestSuite) SetupTest() {
 		productIds = append(productIds, prod.Id)
 	}
 
-	productWithProcessingDefaultCurrencyReq := &billingpb.Product{
+	productWithDefaultCurrencyReq := &billingpb.Product{
 		Object:          "product",
 		Type:            "simple_product",
 		Sku:             "product_with_processing_default_currency",
 		Name:            map[string]string{"en": "product_with_processing_default_currency"},
-		DefaultCurrency: merchant.Banking.ProcessingDefaultCurrency,
+		DefaultCurrency: merchant.Banking.Currency,
 		Enabled:         true,
 		Description:     map[string]string{"en": "product_with_processing_default_currency"},
 		MerchantId:      projectWithProducts.MerchantId,
@@ -1625,8 +1622,8 @@ func (suite *OrderTestSuite) SetupTest() {
 			},
 		},
 	}
-	suite.productWithProcessingDefaultCurrency = &billingpb.Product{}
-	err = suite.service.CreateOrUpdateProduct(context.TODO(), productWithProcessingDefaultCurrencyReq, suite.productWithProcessingDefaultCurrency)
+	suite.productWithDefaultCurrency = &billingpb.Product{}
+	err = suite.service.CreateOrUpdateProduct(context.TODO(), productWithDefaultCurrencyReq, suite.productWithDefaultCurrency)
 
 	if err != nil {
 		suite.FailNow("Product with processing default currency create failed", "%v", err)
@@ -11296,7 +11293,7 @@ func (suite *OrderTestSuite) TestOrder_OrderWithProducts_BankingCurrencyNotMatch
 		ProjectId:   suite.projectWithProducts.Id,
 		Account:     "unit test",
 		Description: "unit test",
-		Products:    []string{suite.productWithProcessingDefaultCurrency.Id},
+		Products:    []string{suite.productWithDefaultCurrency.Id},
 		User: &billingpb.OrderUser{
 			Email: "test@unit.unit",
 			Ip:    "127.0.0.2",
@@ -11308,8 +11305,8 @@ func (suite *OrderTestSuite) TestOrder_OrderWithProducts_BankingCurrencyNotMatch
 	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), rsp.Status, billingpb.ResponseStatusOk)
-	assert.Equal(suite.T(), rsp.Item.Currency, suite.productWithProcessingDefaultCurrency.DefaultCurrency)
-	assert.Equal(suite.T(), rsp.Item.OrderAmount, suite.productWithProcessingDefaultCurrency.Prices[0].Amount)
+	assert.Equal(suite.T(), rsp.Item.Currency, suite.productWithDefaultCurrency.DefaultCurrency)
+	assert.Equal(suite.T(), rsp.Item.OrderAmount, suite.productWithDefaultCurrency.Prices[0].Amount)
 	assert.Equal(suite.T(), rsp.Item.Currency, rsp.Item.ChargeCurrency)
 	assert.Equal(suite.T(), rsp.Item.TotalPaymentAmount, rsp.Item.ChargeAmount)
 

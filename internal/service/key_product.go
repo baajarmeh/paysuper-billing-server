@@ -232,7 +232,7 @@ func (s *Service) CreateOrUpdateKeyProduct(
 		return nil
 	}
 
-	payoutCurrency := merchant.GetProcessingDefaultCurrency()
+	payoutCurrency := merchant.GetPayoutCurrency()
 	if len(payoutCurrency) == 0 {
 		zap.S().Errorw(merchantPayoutCurrencyMissed.Message, "data", req)
 		res.Status = http.StatusBadRequest

@@ -316,8 +316,7 @@ func (s *Service) ChangeMerchant(
 			Id:   primitive.NewObjectID().Hex(),
 			User: req.User,
 			Banking: &billingpb.MerchantBanking{
-				Currency:                  pkg.DefaultMerchantBankingCurrency,
-				ProcessingDefaultCurrency: pkg.DefaultMerchantBankingCurrency,
+				Currency: pkg.DefaultMerchantBankingCurrency,
 			},
 			MinimalPayoutLimit: pkg.MerchantMinimalPayoutLimit,
 			Status:             billingpb.MerchantStatusDraft,
@@ -353,10 +352,6 @@ func (s *Service) ChangeMerchant(
 				rsp.Status = billingpb.ResponseStatusBadData
 				rsp.Message = merchantErrorCurrencyNotFound
 				return nil
-			}
-
-			if req.Banking.ProcessingDefaultCurrency == "" {
-				req.Banking.ProcessingDefaultCurrency = req.Banking.Currency
 			}
 		}
 

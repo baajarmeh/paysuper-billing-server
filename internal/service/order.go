@@ -2564,7 +2564,7 @@ func (v *OrderCreateRequestProcessor) processCurrency(orderType string) error {
 
 	countryCode := v.getCountry()
 	if countryCode == "" {
-		v.checked.currency = v.checked.merchant.GetProcessingDefaultCurrency()
+		v.checked.currency = v.checked.merchant.GetPayoutCurrency()
 		pricegroup, err := v.priceGroupRepository.GetByRegion(v.ctx, v.checked.currency)
 		if err == nil {
 			v.checked.priceGroup = pricegroup
@@ -2574,7 +2574,7 @@ func (v *OrderCreateRequestProcessor) processCurrency(orderType string) error {
 
 	country, err := v.country.GetByIsoCodeA2(v.ctx, countryCode)
 	if err != nil {
-		v.checked.currency = v.checked.merchant.GetProcessingDefaultCurrency()
+		v.checked.currency = v.checked.merchant.GetPayoutCurrency()
 		pricegroup, err := v.priceGroupRepository.GetByRegion(v.ctx, v.checked.currency)
 		if err == nil {
 			v.checked.priceGroup = pricegroup
@@ -2584,7 +2584,7 @@ func (v *OrderCreateRequestProcessor) processCurrency(orderType string) error {
 
 	pricegroup, err := v.priceGroupRepository.GetById(v.ctx, country.PriceGroupId)
 	if err != nil {
-		v.checked.currency = v.checked.merchant.GetProcessingDefaultCurrency()
+		v.checked.currency = v.checked.merchant.GetPayoutCurrency()
 		pricegroup, err := v.priceGroupRepository.GetByRegion(v.ctx, v.checked.currency)
 		if err == nil {
 			v.checked.priceGroup = pricegroup
@@ -3786,7 +3786,7 @@ func (s *Service) ProcessOrderVirtualCurrency(ctx context.Context, order *billin
 	)
 
 	merchant, _ := s.merchantRepository.GetById(ctx, order.Project.MerchantId)
-	defaultCurrency := merchant.GetProcessingDefaultCurrency()
+	defaultCurrency := merchant.GetPayoutCurrency()
 
 	if defaultCurrency == "" {
 		zap.S().Infow("merchant payout currency not found", "order.Uuid", order.Uuid)
@@ -4868,7 +4868,7 @@ func (s *Service) getOrderPriceGroup(ctx context.Context, order *billingpb.Order
 		return
 	}
 
-	defaultPriceGroup, err := s.priceGroupRepository.GetByRegion(ctx, merchant.GetProcessingDefaultCurrency())
+	defaultPriceGroup, err := s.priceGroupRepository.GetByRegion(ctx, merchant.GetPayoutCurrency())
 
 	countryCode := order.GetCountry()
 	if countryCode == "" {
@@ -5016,7 +5016,7 @@ func (s *Service) processProducts(
 		return
 	}
 
-	defaultPriceGroup, err := s.priceGroupRepository.GetByRegion(ctx, merchant.GetProcessingDefaultCurrency())
+	defaultPriceGroup, err := s.priceGroupRepository.GetByRegion(ctx, merchant.GetPayoutCurrency())
 	if err != nil {
 		return
 	}
@@ -5095,7 +5095,7 @@ func (s *Service) processKeyProducts(
 		return
 	}
 
-	defaultPriceGroup, err := s.priceGroupRepository.GetByRegion(ctx, merchant.GetProcessingDefaultCurrency())
+	defaultPriceGroup, err := s.priceGroupRepository.GetByRegion(ctx, merchant.GetPayoutCurrency())
 	if err != nil {
 		return
 	}
