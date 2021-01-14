@@ -111,8 +111,7 @@ func (suite *KeyProductTestSuite) SetupTest() {
 		&billingpb.Merchant{
 			Id: merchantId,
 			Banking: &billingpb.MerchantBanking{
-				Currency:                  "USD",
-				ProcessingDefaultCurrency: "USD",
+				Currency: "USD",
 			},
 		},
 	))

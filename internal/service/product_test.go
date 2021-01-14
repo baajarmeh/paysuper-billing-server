@@ -107,8 +107,7 @@ func (suite *ProductTestSuite) SetupTest() {
 	suite.merchant = &billingpb.Merchant{
 		Id: primitive.NewObjectID().Hex(),
 		Banking: &billingpb.MerchantBanking{
-			Currency:                  "RUB",
-			ProcessingDefaultCurrency: "RUB",
+			Currency: "RUB",
 		},
 	}
 	if err := suite.service.merchantRepository.Insert(context.TODO(), suite.merchant); err != nil {

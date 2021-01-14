@@ -330,7 +330,7 @@ func (s *Service) UpdateProductPrices(ctx context.Context, req *billingpb.Update
 		return nil
 	}
 
-	payoutCurrency := merchant.GetProcessingDefaultCurrency()
+	payoutCurrency := merchant.GetPayoutCurrency()
 
 	if len(payoutCurrency) == 0 {
 		zap.S().Errorw(merchantPayoutCurrencyMissed.Message, "data", req)
