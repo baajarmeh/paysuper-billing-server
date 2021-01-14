@@ -688,7 +688,7 @@ func (suite *OrderTestSuite) SetupTest() {
 			},
 		},
 		Banking: &billingpb.MerchantBanking{
-			Currency:             "USD",
+			Currency:             "RUB",
 			Name:                 "Bank name",
 			Address:              "address",
 			AccountNumber:        "0000001",
@@ -2073,7 +2073,7 @@ func (suite *OrderTestSuite) SetupTest() {
 	merCost10 := &billingpb.PaymentChannelCostMerchant{
 		MerchantId:              project.GetMerchantId(),
 		Name:                    "VISA",
-		PayoutCurrency:          "USD",
+		PayoutCurrency:          "RUB",
 		MinAmount:               0,
 		Region:                  billingpb.TariffRegionWorldwide,
 		Country:                 "US",
@@ -2238,7 +2238,7 @@ func (suite *OrderTestSuite) SetupTest() {
 	}
 	mbSysCost3 := &billingpb.MoneyBackCostSystem{
 		Name:               "MasterCard",
-		PayoutCurrency:     "USD",
+		PayoutCurrency:     "RUB",
 		UndoReason:         "reversal",
 		Region:             billingpb.TariffRegionRussiaAndCis,
 		Country:            "RU",
@@ -2296,7 +2296,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		Id:                primitive.NewObjectID().Hex(),
 		MerchantId:        project.GetMerchantId(),
 		Name:              "MasterCard",
-		PayoutCurrency:    "USD",
+		PayoutCurrency:    "RUB",
 		UndoReason:        "reversal",
 		Region:            billingpb.TariffRegionRussiaAndCis,
 		Country:           "RU",
@@ -7482,7 +7482,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormPaymentAccountChanged_Qiwi_Ok(
 		Id:                      primitive.NewObjectID().Hex(),
 		MerchantId:              suite.project.MerchantId,
 		Name:                    "QIWI",
-		PayoutCurrency:          "USD",
+		PayoutCurrency:          "RUB",
 		MinAmount:               0.75,
 		Region:                  billingpb.TariffRegionRussiaAndCis,
 		Country:                 "RU",
@@ -11417,21 +11417,21 @@ func (suite *OrderTestSuite) TestOrder_OrderWithProducts_BankingCurrencyNotMatch
 		Amount   float64
 		Currency string
 	}{
-		"real_gross_revenue":                        {Amount: 1.83, Currency: "USD"},
-		"real_tax_fee":                              {Amount: 0.292185, Currency: "USD"},
-		"central_bank_tax_fee":                      {Amount: 0, Currency: "USD"},
-		"ps_gross_revenue_fx":                       {Amount: 0, Currency: "USD"},
-		"ps_gross_revenue_fx_tax_fee":               {Amount: 0, Currency: "USD"},
-		"merchant_tax_fee_cost_value":               {Amount: 0.292185, Currency: "USD"},
-		"merchant_tax_fee_central_bank_fx":          {Amount: 0, Currency: "USD"},
-		"ps_method_fee":                             {Amount: 9.15, Currency: "USD"},
-		"merchant_method_fee":                       {Amount: 4.575, Currency: "USD"},
-		"merchant_method_fee_cost_value":            {Amount: 4.026, Currency: "USD"},
-		"merchant_method_fixed_fee":                 {Amount: 2.0, Currency: "USD"},
-		"real_merchant_method_fixed_fee":            {Amount: 2.0, Currency: "USD"},
-		"real_merchant_method_fixed_fee_cost_value": {Amount: 0, Currency: "USD"},
-		"merchant_ps_fixed_fee":                     {Amount: 0.056515, Currency: "USD"},
-		"real_merchant_ps_fixed_fee":                {Amount: 0.055385, Currency: "USD"},
+		"real_gross_revenue":                        {Amount: 118.95, Currency: "RUB"},
+		"real_tax_fee":                              {Amount: 18.992017, Currency: "RUB"},
+		"central_bank_tax_fee":                      {Amount: 0, Currency: "RUB"},
+		"ps_gross_revenue_fx":                       {Amount: 2.427552, Currency: "RUB"},
+		"ps_gross_revenue_fx_tax_fee":               {Amount: 0.387592, Currency: "RUB"},
+		"merchant_tax_fee_cost_value":               {Amount: 18.604424, Currency: "RUB"},
+		"merchant_tax_fee_central_bank_fx":          {Amount: 0, Currency: "RUB"},
+		"ps_method_fee":                             {Amount: 582.61224, Currency: "RUB"},
+		"merchant_method_fee":                       {Amount: 291.30612, Currency: "RUB"},
+		"merchant_method_fee_cost_value":            {Amount: 261.69, Currency: "RUB"},
+		"merchant_method_fixed_fee":                 {Amount: 132.653062, Currency: "RUB"},
+		"real_merchant_method_fixed_fee":            {Amount: 130, Currency: "RUB"},
+		"real_merchant_method_fixed_fee_cost_value": {Amount: 0, Currency: "RUB"},
+		"merchant_ps_fixed_fee":                     {Amount: 3.673469, Currency: "RUB"},
+		"real_merchant_ps_fixed_fee":                {Amount: 3.6, Currency: "RUB"},
 	}
 
 	for _, v := range accountingEntries {

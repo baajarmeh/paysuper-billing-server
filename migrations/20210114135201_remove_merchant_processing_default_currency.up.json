@@ -1,0 +1,20 @@
+[
+  {
+    "update": "merchant",
+    "updates": [
+      {
+        "q": {
+          "banking.processing_default_currency": {
+            "$exists": true
+          }
+        },
+        "u": {
+          "$unset": {
+            "banking.processing_default_currency": ""
+          }
+        },
+        "multi": true
+      }
+    ]
+  }
+]

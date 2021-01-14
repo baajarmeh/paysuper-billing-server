@@ -215,7 +215,7 @@ func (s *Service) Init() (err error) {
 
 		return err
 	}
-	fmt.Println(sCurr.Currencies)
+
 	s.supportedCurrencies = sCurr.Currencies
 
 	cp, err := s.curService.GetCurrenciesPrecision(context.TODO(), &currenciespb.EmptyRequest{})
