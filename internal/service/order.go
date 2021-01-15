@@ -1173,6 +1173,7 @@ func (s *Service) PaymentCreateProcess(
 	}
 
 	order.Status = recurringpb.OrderPublicStatusPending
+	order.PrivateStatus = recurringpb.OrderStatusProjectInProgress
 
 	err = s.updateOrder(ctx, order)
 	if err != nil {
