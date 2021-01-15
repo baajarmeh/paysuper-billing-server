@@ -1172,6 +1172,8 @@ func (s *Service) PaymentCreateProcess(
 		}
 	}
 
+	order.Status = recurringpb.OrderPublicStatusPending
+
 	err = s.updateOrder(ctx, order)
 	if err != nil {
 		zap.S().Errorf("Order create in payment system failed", "err", err.Error(), "order", order)
