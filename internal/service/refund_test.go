@@ -1112,26 +1112,6 @@ func (suite *RefundTestSuite) TestRefund_CreateRefund_RefundNotAllowed_Error() {
 	assert.Equal(suite.T(), rsp0.Status, billingpb.ResponseStatusOk)
 	rsp := rsp0.Item
 
-	expireYear := time.Now().AddDate(1, 0, 0)
-
-	createPaymentRequest := &billingpb.PaymentCreateRequest{
-		Data: map[string]string{
-			billingpb.PaymentCreateFieldOrderId:         rsp.Uuid,
-			billingpb.PaymentCreateFieldPaymentMethodId: suite.pmBankCard.Id,
-			billingpb.PaymentCreateFieldEmail:           "test@unit.unit",
-			billingpb.PaymentCreateFieldPan:             "4000000000000002",
-			billingpb.PaymentCreateFieldCvv:             "123",
-			billingpb.PaymentCreateFieldMonth:           "02",
-			billingpb.PaymentCreateFieldYear:            expireYear.Format("2006"),
-			billingpb.PaymentCreateFieldHolder:          "Mr. Card Holder",
-		},
-		Cookie: suite.cookie,
-	}
-
-	rsp1 := &billingpb.PaymentCreateResponse{}
-	err = suite.service.PaymentCreateProcess(context.TODO(), createPaymentRequest, rsp1)
-	assert.NoError(suite.T(), err)
-
 	order, err := suite.service.orderRepository.GetById(context.TODO(), rsp.Id)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), order)

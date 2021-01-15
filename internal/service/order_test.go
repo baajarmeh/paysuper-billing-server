@@ -6658,7 +6658,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_Subscription_Recre
 	assert.NoError(suite.T(), err)
 	suite.NotNil(suite.T(), order2)
 
-	assert.Equal(suite.T(), int32(0), order2.PrivateStatus)
+	assert.Equal(suite.T(), int32(5), order2.PrivateStatus)
 	assert.Empty(suite.T(), order2.Transaction)
 	assert.Equal(suite.T(), callbackRequest.GetAmount(), order2.TotalPaymentAmount)
 	assert.Equal(suite.T(), callbackRequest.GetCurrency(), order2.Currency)
@@ -7295,7 +7295,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_Subscription_Get_E
 	assert.NoError(suite.T(), err)
 	suite.NotNil(suite.T(), order2)
 
-	assert.Equal(suite.T(), int32(0), order2.PrivateStatus)
+	assert.Equal(suite.T(), int32(5), order2.PrivateStatus)
 	assert.Empty(suite.T(), order2.Transaction)
 	assert.Equal(suite.T(), callbackRequest.GetAmount(), order2.TotalPaymentAmount)
 	assert.Equal(suite.T(), callbackRequest.GetCurrency(), order2.Currency)
@@ -8595,7 +8595,7 @@ func (suite *OrderTestSuite) TestOrder_CreatePayment_ChangeCustomerData_Ok() {
 	order, err = suite.service.getOrderById(context.TODO(), rsp.Id)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), order)
-	assert.Equal(suite.T(), int32(recurringpb.OrderStatusPaymentSystemCreate), order.PrivateStatus)
+	assert.Equal(suite.T(), int32(recurringpb.OrderStatusProjectInProgress), order.PrivateStatus)
 
 	customer3, err := suite.service.getCustomerById(context.TODO(), order.User.Id)
 	assert.NoError(suite.T(), err)
