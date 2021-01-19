@@ -10909,7 +10909,6 @@ func (suite *OrderTestSuite) TestOrder_ReCreateOrder_Ok() {
 		recurringpb.OrderStatusPaymentSystemDeclined,
 		recurringpb.OrderStatusNew,
 		recurringpb.OrderStatusPaymentSystemCreate,
-		recurringpb.OrderStatusPaymentSystemCreate,
 		recurringpb.OrderStatusPaymentSystemCanceled,
 	}
 
@@ -10922,7 +10921,7 @@ func (suite *OrderTestSuite) TestOrder_ReCreateOrder_Ok() {
 		shouldBe.EqualValues(200, rsp1.Status)
 		shouldBe.NotEqual(order.Id, rsp1.Item.Id)
 		shouldBe.NotEqual(order.Uuid, rsp1.Item.Uuid)
-		shouldBe.NotEqual(order.Status, rsp1.Item.Status)
+		shouldBe.Equal(recurringpb.OrderPublicStatusCreated, rsp1.Item.Status)
 		shouldBe.EqualValues(recurringpb.OrderStatusNew, rsp1.Item.PrivateStatus)
 		shouldBe.Empty(rsp1.Item.ReceiptUrl)
 		shouldBe.NotEqual(order.ReceiptId, rsp1.Item.ReceiptId)

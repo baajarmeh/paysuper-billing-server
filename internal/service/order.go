@@ -1920,9 +1920,9 @@ func (s *Service) saveRecurringCard(ctx context.Context, order *billingpb.Order,
 }
 
 func (s *Service) updateOrder(ctx context.Context, order *billingpb.Order) error {
-	ps := order.GetPublicStatus()
+	order.Status = order.GetPublicStatus()
 
-	zap.S().Debug("[updateOrder] updating order", "order_id", order.Id, "status", ps)
+	zap.S().Debug("[updateOrder] updating order", "order_id", order.Id, "status", order.Status)
 
 	originalOrder, _ := s.getOrderById(ctx, order.Id)
 
@@ -1930,12 +1930,12 @@ func (s *Service) updateOrder(ctx context.Context, order *billingpb.Order) error
 	if originalOrder != nil {
 		ops := originalOrder.GetPublicStatus()
 		zap.S().Debug("[updateOrder] no original order status", "order_id", order.Id, "status", ops)
-		statusChanged = ops != ps
+		statusChanged = ops != order.Status
 	} else {
 		zap.S().Debug("[updateOrder] no original order found", "order_id", order.Id)
 	}
 
-	needReceipt := statusChanged && (ps == recurringpb.OrderPublicStatusChargeback || ps == recurringpb.OrderPublicStatusRefunded || ps == recurringpb.OrderPublicStatusProcessed)
+	needReceipt := statusChanged && (order.Status == recurringpb.OrderPublicStatusChargeback || order.Status == recurringpb.OrderPublicStatusRefunded || order.Status == recurringpb.OrderPublicStatusProcessed)
 
 	if needReceipt {
 		switch order.Type {
