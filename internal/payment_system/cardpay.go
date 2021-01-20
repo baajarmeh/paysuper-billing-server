@@ -1033,6 +1033,14 @@ func (h *cardPay) CreateRefund(order *billingpb.Order, refund *billingpb.Refund)
 	}
 
 	if rsp.IsSuccessStatus() == false {
+		zap.L().Error(
+			"refund response status failed",
+			zap.Error(err),
+			zap.String(pkg.LogFieldHandler, billingpb.PaymentSystemHandlerCardPay),
+			zap.Any(pkg.LogFieldRequest, data),
+			zap.ByteString(pkg.LogFieldResponse, b),
+			zap.Any("refund", refund),
+		)
 		return errors.New(pkg.PaymentSystemErrorCreateRefundRejected)
 	}
 
