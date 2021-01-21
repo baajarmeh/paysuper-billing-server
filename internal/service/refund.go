@@ -76,18 +76,18 @@ func (s *Service) CreateRefund(
 		return err
 	}
 
-	err = h.CreateRefund(processor.checked.order, refund)
-
-	if err != nil {
-		rsp.Status = billingpb.ResponseStatusBadData
-		rsp.Message = refundErrorUnknown
-
-		return nil
-	}
+	handlerErr := h.CreateRefund(processor.checked.order, refund)
 
 	if err = s.refundRepository.Update(ctx, refund); err != nil {
 		rsp.Status = billingpb.ResponseStatusBadData
 		rsp.Message = orderErrorUnknown
+
+		return nil
+	}
+
+	if handlerErr != nil {
+		rsp.Status = billingpb.ResponseStatusBadData
+		rsp.Message = refundErrorUnknown
 
 		return nil
 	}
