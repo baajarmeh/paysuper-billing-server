@@ -72,6 +72,7 @@ jobs:
   deploy-tst:
     name: deploy-tst
     needs: tests
+    runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
     steps:
       - name: Deploy to tst
@@ -80,6 +81,7 @@ jobs:
 
   deploy-stg-releasebranch:
     needs: tests
+    runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/release**' && github.event_name == 'push'
     steps:
       - name: Deploy release branch to stg
