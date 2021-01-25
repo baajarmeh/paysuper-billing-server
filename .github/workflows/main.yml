@@ -68,6 +68,8 @@ jobs:
           CENTRIFUGO_PAYMENT_FORM_URL: "http://localhost/payment_form"
           CENTRIFUGO_DASHBOARD_URL: "http://localhost/dashboard"
         run: go test ./... -coverprofile=coverage.out -covermode=atomic -p=1 -timeout=30m
+      - name: publish codecov
+        run: bash <(curl -s https://codecov.io/bash)
   
   deploy-tst:
     name: deploy-tst
@@ -77,7 +79,6 @@ jobs:
     steps:
       - name: Deploy to tst
         run: docker run -e JENKINS_AUTH_TOKEN=$JENKINS_AUTH_TOKEN -e JENKINS_BUILD_TOKEN=$JENKINS_BUILD_TOKEN -e JENKINS_BUILD_PROJECT=$GITHUB_REPOSITORY -e JENKINS_BUILD_BRANCH=${GITHUB_REF##*/} p1hub/p1jenkinstrigger
-        #run: echo "deploy to tst"
 
   deploy-stg-releasebranch:
     needs: tests
@@ -86,4 +87,14 @@ jobs:
     steps:
       - name: Deploy release branch to stg
         run: docker run -e JENKINS_AUTH_TOKEN=$JENKINS_AUTH_TOKEN -e JENKINS_BUILD_TOKEN=$JENKINS_BUILD_TOKEN -e JENKINS_BUILD_PROJECT=$GITHUB_REPOSITORY -e JENKINS_BUILD_BRANCH=${GITHUB_REF##*/} p1hub/p1jenkinstrigger
-        #run: echo "deploy to stg"
+
+  deploy-stg-tag:
+    needs: tests
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v') && github.event_name == 'push'
+    steps:
+      - name: Deploy release tag to stg
+        run: |
+          docker run -e JENKINS_AUTH_TOKEN=$JENKINS_AUTH_TOKEN -e JENKINS_BUILD_TOKEN=$JENKINS_BUILD_TOKEN \
+            -e JENKINS_BUILD_PROJECT=$GITHUB_REPOSITORY -e JENKINS_BUILD_BRANCH=${GITHUB_REF##*/} p1hub/p1jenkinstrigger
+
