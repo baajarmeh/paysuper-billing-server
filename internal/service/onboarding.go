@@ -1424,6 +1424,16 @@ func (s *Service) generateMerchantAgreement(ctx context.Context, merchant *billi
 		return err
 	}
 
+	var paymentTariffs []*billingpb.MerchantTariffRatesPayment
+
+	for _, tariff := range merchant.Tariff.Payment {
+		if !tariff.IsActive {
+			continue
+		}
+
+		paymentTariffs = append(paymentTariffs, tariff)
+	}
+
 	params := map[string]interface{}{
 		reporterpb.RequestParameterAgreementNumber:                             merchant.AgreementNumber,
 		reporterpb.RequestParameterAgreementLegalName:                          merchant.Company.Name,
@@ -1432,7 +1442,7 @@ func (s *Service) generateMerchantAgreement(ctx context.Context, merchant *billi
 		reporterpb.RequestParameterAgreementPayoutCost:                         payoutCost,
 		reporterpb.RequestParameterAgreementMinimalPayoutLimit:                 minPayoutLimit,
 		reporterpb.RequestParameterAgreementPayoutCurrency:                     merchant.GetPayoutCurrency(),
-		reporterpb.RequestParameterAgreementPSRate:                             merchant.Tariff.Payment,
+		reporterpb.RequestParameterAgreementPSRate:                             paymentTariffs,
 		reporterpb.RequestParameterAgreementHomeRegion:                         billingpb.HomeRegions[merchant.Tariff.HomeRegion],
 		reporterpb.RequestParameterAgreementMerchantAuthorizedName:             merchant.Contacts.Authorized.Name,
 		reporterpb.RequestParameterAgreementMerchantAuthorizedPosition:         merchant.Contacts.Authorized.Position,
