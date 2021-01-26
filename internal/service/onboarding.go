@@ -55,6 +55,7 @@ var (
 	merchantErrorCurrencyNotSet               = errors.NewBillingServerErrorMsg("mr000027", "merchant payout currency not set")
 	merchantErrorNoTariffsInPayoutCurrency    = errors.NewBillingServerErrorMsg("mr000028", "no tariffs found for merchant payout currency")
 	merchantUnableToAddMerchantUserRole       = errors.NewBillingServerErrorMsg("mr000029", "unable to add user role to merchant")
+	merchantOperatingCompanyNotFound          = errors.NewBillingServerErrorMsg("mr000030", "merchant operating company not found")
 
 	merchantSignAgreementMessage        = map[string]string{"code": "mr000017", "message": "license agreement was signed by merchant"}
 	merchantAgreementReadyToSignMessage = map[string]interface{}{"code": "mr000025", "generated": true, "message": "merchant license agreement ready to sign"}

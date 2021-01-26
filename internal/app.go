@@ -410,6 +410,10 @@ func (app *Application) TaskFixReportDates() error {
 	return app.svc.TaskFixReportDates(context.TODO())
 }
 
+func (app *Application) TaskExtendPayoutsWithVat() error {
+	return app.svc.TaskExtendPayoutsWithVat(context.TODO())
+}
+
 func (app *Application) TaskMerchantsMigrate() error {
 	return app.svc.MerchantsMigrate(context.TODO())
 }
