@@ -616,6 +616,10 @@ func (r *payoutRepository) getFindFilter(in *billingpb.GetPayoutDocumentsRequest
 		filter["status"] = bson.M{"$in": in.Status}
 	}
 
+	if len(in.OperatingCompanyId) > 0 {
+		filter["operating_company_id"] = in.OperatingCompanyId
+	}
+
 	if in.DateFrom != "" || in.DateTo != "" {
 		date := bson.M{}
 

@@ -59,6 +59,10 @@ func main() {
 		case "fix_reports_dates":
 			err = app.TaskFixReportDates()
 			break
+
+		case "extend_payouts_with_vat":
+			err = app.TaskExtendPayoutsWithVat()
+			break
 		}
 
 		if err != nil {
