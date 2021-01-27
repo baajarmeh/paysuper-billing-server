@@ -9,7 +9,7 @@
             "b2b_vat_base": 0,
             "b2b_vat_rate": 0,
             "b2b_vat_amount": 0,
-            "fees_excluding_vat": "$total_fees"
+            "fees_excluding_vat": {"$round": ["$total_fees", 2]}
           }
         },
         "multi": true
