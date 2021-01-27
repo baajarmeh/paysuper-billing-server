@@ -1425,9 +1425,15 @@ func (s *Service) generateMerchantAgreement(ctx context.Context, merchant *billi
 		return err
 	}
 
-	var paymentTariffs []*billingpb.MerchantTariffRatesPayment
+	availableTariff, err := s.paymentChannelCostMerchantRepository.GetAllForMerchant(ctx, merchant.Id)
+	if err != nil {
+		zap.L().Error("Payment costs tariff not found", zap.Error(err), zap.String("merchant_id", merchant.Id))
+		return err
+	}
 
-	for _, tariff := range merchant.Tariff.Payment {
+	var paymentTariffs []*billingpb.PaymentChannelCostMerchant
+
+	for _, tariff := range availableTariff {
 		if !tariff.IsActive {
 			continue
 		}

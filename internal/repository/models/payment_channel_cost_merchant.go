@@ -19,6 +19,7 @@ type MgoPaymentChannelCostMerchant struct {
 	Name                    string             `bson:"name"`
 	PayoutCurrency          string             `bson:"payout_currency"`
 	MinAmount               float64            `bson:"min_amount"`
+	MaxAmount               float64            `bson:"max_amount"`
 	Region                  string             `bson:"region"`
 	Country                 string             `bson:"country"`
 	MethodPercent           float64            `bson:"method_percent"`
@@ -40,6 +41,7 @@ func (m *paymentChannelCostMerchantMapper) MapObjectToMgo(obj interface{}) (inte
 		Name:                    in.Name,
 		PayoutCurrency:          in.PayoutCurrency,
 		MinAmount:               in.MinAmount,
+		MaxAmount:               in.MaxAmount,
 		Region:                  in.Region,
 		Country:                 in.Country,
 		MethodPercent:           in.MethodPercent,
@@ -109,6 +111,7 @@ func (m *paymentChannelCostMerchantMapper) MapMgoToObject(obj interface{}) (inte
 		Name:                    in.Name,
 		PayoutCurrency:          in.PayoutCurrency,
 		MinAmount:               in.MinAmount,
+		MaxAmount:               in.MaxAmount,
 		Region:                  in.Region,
 		Country:                 in.Country,
 		MethodPercent:           in.MethodPercent,
