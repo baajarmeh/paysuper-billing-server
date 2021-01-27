@@ -469,8 +469,6 @@ func (s *Service) TaskExtendPayoutsWithVat(ctx context.Context) (err error) {
 		return err
 	}
 
-	var merchantIdToCountry = map[string]string{}
-
 	for _, oc := range ocs {
 
 		if oc.Country != "CY" {
@@ -491,20 +489,7 @@ func (s *Service) TaskExtendPayoutsWithVat(ctx context.Context) (err error) {
 
 		for _, payout := range payouts {
 
-			merchantId := payout.MerchantId
-
-			country, ok := merchantIdToCountry[merchantId]
-			if !ok {
-				merchant, err := s.merchantRepository.GetById(ctx, merchantId)
-				if err != nil {
-					return err
-				}
-
-				country = merchant.Company.Country
-				merchantIdToCountry[merchantId] = country
-			}
-
-			if country != "CY" {
+			if payout.Company.Country != "CY" {
 				continue
 			}
 
