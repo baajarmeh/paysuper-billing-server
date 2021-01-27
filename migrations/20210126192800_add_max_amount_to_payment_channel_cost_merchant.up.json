@@ -6,82 +6,42 @@
         "q": {"min_amount": 0},
         "u": {"$set":  {"max_amount": 4.99}},
         "multi": true
-      }
-    ]
-  },
-  {
-    "update": "payment_channel_cost_merchant",
-    "updates": [
+      },
       {
         "q": {"min_amount": 5},
         "u": {"$set": {"max_amount": 9.99}},
         "multi": true
-      }
-    ]
-  },
-  {
-    "update": "payment_channel_cost_merchant",
-    "updates": [
+      },
       {
         "q": {"min_amount": 10},
         "u": {"$set": {"max_amount": 29.99}},
         "multi": true
-      }
-    ]
-  },
-  {
-    "update": "payment_channel_cost_merchant",
-    "updates": [
+      },
       {
         "q": {"min_amount": 30},
         "u": {"$set": {"max_amount": 49.99}},
         "multi": true
-      }
-    ]
-  },
-  {
-    "update": "payment_channel_cost_merchant",
-    "updates": [
+      },
       {
         "q": {"min_amount": 50},
         "u": {"$set": {"max_amount": 99.99}},
         "multi": true
-      }
-    ]
-  },
-  {
-    "update": "payment_channel_cost_merchant",
-    "updates": [
+      },
       {
         "q": {"min_amount": 100},
         "u": {"$set": {"max_amount": 10000}},
         "multi": true
-      }
-    ]
-  },
-  {
-    "update": "payment_channel_cost_merchant",
-    "updates": [
+      },
       {
         "q": {"min_amount": 11},
         "u": {"$set": {"max_amount": 29.99}},
         "multi": true
-      }
-    ]
-  },
-  {
-    "update": "payment_channel_cost_merchant",
-    "updates": [
+      },
       {
         "q": {"min_amount": 31},
         "u": {"$set": {"max_amount": 49.99}},
         "multi": true
-      }
-    ]
-  },
-  {
-    "update": "payment_channel_cost_merchant",
-    "updates": [
+      },
       {
         "q": {"min_amount": 51},
         "u": {"$set": {"max_amount": 99.99}},
