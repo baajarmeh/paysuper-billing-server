@@ -136,6 +136,7 @@ func (s *Service) transformMerchantTariffRates(
 			Name:                    strings.ToUpper(v.MethodName),
 			PayoutCurrency:          merchant.GetPayoutCurrency(),
 			MinAmount:               v.MinAmount,
+			MaxAmount:               v.MaxAmount,
 			Region:                  v.PayerRegion,
 			MethodPercent:           v.MethodPercentFee,
 			MethodFixAmount:         v.MethodFixedFee,

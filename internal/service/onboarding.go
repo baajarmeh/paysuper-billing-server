@@ -55,6 +55,7 @@ var (
 	merchantErrorCurrencyNotSet               = errors.NewBillingServerErrorMsg("mr000027", "merchant payout currency not set")
 	merchantErrorNoTariffsInPayoutCurrency    = errors.NewBillingServerErrorMsg("mr000028", "no tariffs found for merchant payout currency")
 	merchantUnableToAddMerchantUserRole       = errors.NewBillingServerErrorMsg("mr000029", "unable to add user role to merchant")
+	merchantOperatingCompanyNotFound          = errors.NewBillingServerErrorMsg("mr000030", "merchant operating company not found")
 
 	merchantSignAgreementMessage        = map[string]string{"code": "mr000017", "message": "license agreement was signed by merchant"}
 	merchantAgreementReadyToSignMessage = map[string]interface{}{"code": "mr000025", "generated": true, "message": "merchant license agreement ready to sign"}
@@ -1424,6 +1425,22 @@ func (s *Service) generateMerchantAgreement(ctx context.Context, merchant *billi
 		return err
 	}
 
+	availableTariff, err := s.paymentChannelCostMerchantRepository.GetAllForMerchant(ctx, merchant.Id)
+	if err != nil {
+		zap.L().Error("Payment costs tariff not found", zap.Error(err), zap.String("merchant_id", merchant.Id))
+		return err
+	}
+
+	var paymentTariffs []*billingpb.PaymentChannelCostMerchant
+
+	for _, tariff := range availableTariff {
+		if !tariff.IsActive {
+			continue
+		}
+
+		paymentTariffs = append(paymentTariffs, tariff)
+	}
+
 	params := map[string]interface{}{
 		reporterpb.RequestParameterAgreementNumber:                             merchant.AgreementNumber,
 		reporterpb.RequestParameterAgreementLegalName:                          merchant.Company.Name,
@@ -1432,7 +1449,7 @@ func (s *Service) generateMerchantAgreement(ctx context.Context, merchant *billi
 		reporterpb.RequestParameterAgreementPayoutCost:                         payoutCost,
 		reporterpb.RequestParameterAgreementMinimalPayoutLimit:                 minPayoutLimit,
 		reporterpb.RequestParameterAgreementPayoutCurrency:                     merchant.GetPayoutCurrency(),
-		reporterpb.RequestParameterAgreementPSRate:                             merchant.Tariff.Payment,
+		reporterpb.RequestParameterAgreementPSRate:                             paymentTariffs,
 		reporterpb.RequestParameterAgreementHomeRegion:                         billingpb.HomeRegions[merchant.Tariff.HomeRegion],
 		reporterpb.RequestParameterAgreementMerchantAuthorizedName:             merchant.Contacts.Authorized.Name,
 		reporterpb.RequestParameterAgreementMerchantAuthorizedPosition:         merchant.Contacts.Authorized.Position,

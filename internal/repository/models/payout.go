@@ -46,6 +46,10 @@ type MgoPayoutDocument struct {
 	AutoincrementId         int64                          `bson:"autoincrement_id"`
 	StringPeriodFrom        string                         `bson:"string_period_from"`
 	StringPeriodTo          string                         `bson:"string_period_to"`
+	B2BVatBase              float64                        `bson:"b2b_vat_base"`
+	B2BVatRate              float64                        `bson:"b2b_vat_rate"`
+	B2BVatAmount            float64                        `bson:"b2b_vat_amount"`
+	FeesExcludingVat        float64                        `bson:"fees_excluding_vat"`
 }
 
 type MgoPayoutDocumentChanges struct {
@@ -79,6 +83,10 @@ func (m *payoutMapper) MapObjectToMgo(obj interface{}) (interface{}, error) {
 		AutoincrementId:         in.AutoincrementId,
 		StringPeriodFrom:        in.StringPeriodFrom,
 		StringPeriodTo:          in.StringPeriodTo,
+		B2BVatBase:              in.B2BVatBase,
+		B2BVatRate:              in.B2BVatRate,
+		B2BVatAmount:            in.B2BVatAmount,
+		FeesExcludingVat:        in.FeesExcludingVat,
 	}
 
 	merchantOid, err := primitive.ObjectIDFromHex(in.MerchantId)
@@ -193,6 +201,10 @@ func (m *payoutMapper) MapMgoToObject(obj interface{}) (interface{}, error) {
 		AutoincrementId:         in.AutoincrementId,
 		StringPeriodFrom:        in.StringPeriodFrom,
 		StringPeriodTo:          in.StringPeriodTo,
+		B2BVatBase:              in.B2BVatBase,
+		B2BVatRate:              in.B2BVatRate,
+		B2BVatAmount:            in.B2BVatAmount,
+		FeesExcludingVat:        in.FeesExcludingVat,
 	}
 
 	out.CreatedAt, err = ptypes.TimestampProto(in.CreatedAt)
