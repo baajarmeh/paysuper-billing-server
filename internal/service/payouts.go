@@ -183,7 +183,7 @@ func (s *Service) createPayoutDocument(
 	}
 
 	pd.B2BVatAmount = math.Round(pd.B2BVatAmount*100) / 100
-	pd.TotalFees = math.Round((pd.TotalFees-pd.B2BVatAmount)*100) / 100
+	pd.FeesExcludingVat = math.Round((pd.TotalFees-pd.B2BVatAmount)*100) / 100
 	pd.Balance = math.Round((pd.Balance-pd.B2BVatAmount)*100) / 100
 
 	currency := merchant.GetPayoutCurrency()

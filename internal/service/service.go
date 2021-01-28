@@ -506,7 +506,7 @@ func (s *Service) TaskExtendPayoutsWithVat(ctx context.Context) (err error) {
 
 			payout.B2BVatBase = math.Round(payout.B2BVatBase*100) / 100
 			payout.B2BVatAmount = math.Round((payout.B2BVatBase*payout.B2BVatRate)*100) / 100
-			payout.TotalFees = math.Round((payout.TotalFees-payout.B2BVatAmount)*100) / 100
+			payout.FeesExcludingVat = math.Round((payout.TotalFees-payout.B2BVatAmount)*100) / 100
 			payout.Balance = math.Round((payout.Balance-payout.B2BVatAmount)*100) / 100
 
 			err = s.payoutRepository.Update(ctx, payout, "127.0.0.1", payoutChangeSourceAdmin)
