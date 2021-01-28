@@ -86,7 +86,9 @@ jobs:
     if: startsWith(github.ref, 'refs/heads/release') && github.event_name == 'push'
     steps:
       - name: Deploy release branch to stg
-        run: docker run -e JENKINS_AUTH_TOKEN=$JENKINS_AUTH_TOKEN -e JENKINS_BUILD_TOKEN=$JENKINS_BUILD_TOKEN -e JENKINS_BUILD_PROJECT=$GITHUB_REPOSITORY -e JENKINS_BUILD_BRANCH=${GITHUB_REF##*/} p1hub/p1jenkinstrigger
+        run: |
+          docker run -e JENKINS_AUTH_TOKEN=$JENKINS_AUTH_TOKEN -e JENKINS_BUILD_TOKEN=$JENKINS_BUILD_TOKEN \
+            -e JENKINS_BUILD_PROJECT=$GITHUB_REPOSITORY -e JENKINS_BUILD_BRANCH=${GITHUB_REF#refs/heads/} -e DEPLOY_TO_ENV="stg" -e IS_RB="true" p1hub/p1jenkinstrigger
 
   deploy-stg-tag:
     needs: tests
@@ -96,5 +98,5 @@ jobs:
       - name: Deploy release tag to stg
         run: |
           docker run -e JENKINS_AUTH_TOKEN=$JENKINS_AUTH_TOKEN -e JENKINS_BUILD_TOKEN=$JENKINS_BUILD_TOKEN \
-            -e JENKINS_BUILD_PROJECT=$GITHUB_REPOSITORY -e JENKINS_BUILD_BRANCH=${GITHUB_REF##*/} p1hub/p1jenkinstrigger
+            -e JENKINS_BUILD_PROJECT=$GITHUB_REPOSITORY -e JENKINS_BUILD_BRANCH=${GITHUB_REF##*/} -e DEPLOY_TO_ENV="stg" p1hub/p1jenkinstrigger
 
