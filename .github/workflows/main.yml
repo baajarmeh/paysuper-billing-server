@@ -71,6 +71,14 @@ jobs:
       - name: publish codecov
         run: bash <(curl -s https://codecov.io/bash)
   
+      - name: Notify Slack 
+        if: always()
+        uses: kpritam/slack-job-status-action@54eea0dd141dd572d7fbbe96416e9c5d8ba57976
+        with:
+          job-status: ${{ job.status }}
+          slack-bot-token: ${{ secrets.SLACK_BOT_TOKEN }}
+          channel: ${{ secrets.SLACK_CHANNEL_ID }}
+
   deploy-tst:
     name: deploy-tst
     needs: tests
@@ -79,6 +87,13 @@ jobs:
     steps:
       - name: Deploy to tst
         run: docker run -e JENKINS_AUTH_TOKEN=$JENKINS_AUTH_TOKEN -e JENKINS_BUILD_TOKEN=$JENKINS_BUILD_TOKEN -e JENKINS_BUILD_PROJECT=$GITHUB_REPOSITORY -e JENKINS_BUILD_BRANCH=${GITHUB_REF##*/} p1hub/p1jenkinstrigger
+      - name: Notify Slack 
+        if: always()
+        uses: kpritam/slack-job-status-action@54eea0dd141dd572d7fbbe96416e9c5d8ba57976
+        with:
+          job-status: ${{ job.status }}
+          slack-bot-token: ${{ secrets.SLACK_BOT_TOKEN }}
+          channel: ${{ secrets.SLACK_CHANNEL_ID }}
 
   deploy-stg-releasebranch:
     needs: tests
@@ -89,6 +104,13 @@ jobs:
         run: |
           docker run -e JENKINS_AUTH_TOKEN=$JENKINS_AUTH_TOKEN -e JENKINS_BUILD_TOKEN=$JENKINS_BUILD_TOKEN \
             -e JENKINS_BUILD_PROJECT=$GITHUB_REPOSITORY -e JENKINS_BUILD_BRANCH=${GITHUB_REF#refs/heads/} -e DEPLOY_TO_ENV="stg" -e IS_RB="true" p1hub/p1jenkinstrigger
+      - name: Notify Slack 
+        if: always()
+        uses: kpritam/slack-job-status-action@54eea0dd141dd572d7fbbe96416e9c5d8ba57976
+        with:
+          job-status: ${{ job.status }}
+          slack-bot-token: ${{ secrets.SLACK_BOT_TOKEN }}
+          channel: ${{ secrets.SLACK_CHANNEL_ID }}
 
   deploy-stg-tag:
     needs: tests
@@ -99,4 +121,11 @@ jobs:
         run: |
           docker run -e JENKINS_AUTH_TOKEN=$JENKINS_AUTH_TOKEN -e JENKINS_BUILD_TOKEN=$JENKINS_BUILD_TOKEN \
             -e JENKINS_BUILD_PROJECT=$GITHUB_REPOSITORY -e JENKINS_BUILD_BRANCH=${GITHUB_REF##*/} -e DEPLOY_TO_ENV="stg" p1hub/p1jenkinstrigger
+      - name: Notify Slack 
+        if: always()
+        uses: kpritam/slack-job-status-action@54eea0dd141dd572d7fbbe96416e9c5d8ba57976
+        with:
+          job-status: ${{ job.status }}
+          slack-bot-token: ${{ secrets.SLACK_BOT_TOKEN }}
+          channel: ${{ secrets.SLACK_CHANNEL_ID }}
 
