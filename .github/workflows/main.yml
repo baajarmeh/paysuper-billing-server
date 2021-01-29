@@ -100,13 +100,23 @@ jobs:
           docker run -e JENKINS_AUTH_TOKEN=$JENKINS_AUTH_TOKEN -e JENKINS_BUILD_TOKEN=$JENKINS_BUILD_TOKEN \
             -e JENKINS_BUILD_PROJECT=$GITHUB_REPOSITORY -e JENKINS_BUILD_BRANCH=${GITHUB_REF##*/} -e DEPLOY_TO_ENV="stg" p1hub/p1jenkinstrigger
 
+  # slack-notification:
+  #   needs: [tests, deploy-tst, deploy-stg-releasebranch, deploy-stg-tag]
+  #   runs-on: ubuntu-latest
+  #   if: always()
+  #   steps:
+  #     - name: Slack Workflow Notification
+  #       uses: Gamesight/slack-workflow-status@88ee95b73b4669825883ddf22747966204663e58
+  #       with:
+  #         repo_token: ${{secrets.GITHUB_TOKEN}}
+  #         slack_webhook_url: ${{secrets.SLACK_WEBHOOK_URL}}
   slack-notification:
     needs: [tests, deploy-tst, deploy-stg-releasebranch, deploy-stg-tag]
     runs-on: ubuntu-latest
     if: always()
     steps:
       - name: Slack Workflow Notification
-        uses: Gamesight/slack-workflow-status@88ee95b73b4669825883ddf22747966204663e58
+        uses: paysuper/slack-workflow-status@bf843cb0d4232727f23be661dd571cce0024957e
         with:
           repo_token: ${{secrets.GITHUB_TOKEN}}
           slack_webhook_url: ${{secrets.SLACK_WEBHOOK_URL}}
