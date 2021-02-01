@@ -2813,6 +2813,7 @@ func (v *OrderCreateRequestProcessor) processRecurringSettings() (err error) {
 
 	totalDays := math.Floor(delta / 24)
 
+	// Condition "interval < 0.95" covers case for short month (february)
 	if interval < 0.95 || totalDays > 365 ||
 		(v.request.RecurringPeriod == recurringpb.RecurringPeriodDay && interval > 365) ||
 		(v.request.RecurringPeriod == recurringpb.RecurringPeriodDay && interval < 7) ||
