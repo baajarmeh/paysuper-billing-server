@@ -2811,10 +2811,10 @@ func (v *OrderCreateRequestProcessor) processRecurringSettings() (err error) {
 		return orderErrorRecurringInvalidPeriod
 	}
 
-	interval = math.Floor(interval)
 	totalDays := math.Floor(delta / 24)
 
-	if interval < 1 || totalDays > 365 ||
+	// Condition "interval < 0.95" covers case for short month (february)
+	if interval < 0.95 || totalDays > 365 ||
 		(v.request.RecurringPeriod == recurringpb.RecurringPeriodDay && interval > 365) ||
 		(v.request.RecurringPeriod == recurringpb.RecurringPeriodDay && interval < 7) ||
 		(v.request.RecurringPeriod == recurringpb.RecurringPeriodWeek && interval > 52) ||
