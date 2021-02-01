@@ -142,6 +142,7 @@ func (s *Service) createPayoutDocument(
 		pd.TotalFees += r.Totals.PayoutAmount + r.Totals.CorrectionAmount
 		pd.Balance += r.Totals.PayoutAmount + r.Totals.CorrectionAmount - r.Totals.RollingReserveAmount
 		pd.TotalTransactions += r.Totals.TransactionsCount
+		pd.B2BVatBase += r.Totals.FeeAmount
 		pd.SourceId = append(pd.SourceId, r.Id)
 
 		from, err := ptypes.Timestamp(r.PeriodFrom)
@@ -166,6 +167,25 @@ func (s *Service) createPayoutDocument(
 		stringTimes = append(stringTimes, r.StringPeriodFrom, r.StringPeriodTo)
 	}
 
+	pd.TotalFees = math.Round(pd.TotalFees*100) / 100
+	pd.Balance = math.Round((pd.Balance)*100) / 100
+	pd.B2BVatBase = math.Round(pd.B2BVatBase*100) / 100
+
+	oc, err := s.operatingCompanyRepository.GetById(ctx, merchant.OperatingCompanyId)
+	if err != nil {
+		return merchantOperatingCompanyNotFound
+	}
+
+	// tmp hardcode here, unless full logic will be implemented
+	if oc.Country == "CY" && merchant.Company.Country == "CY" {
+		pd.B2BVatRate = 0.19
+		pd.B2BVatAmount = pd.B2BVatBase * pd.B2BVatRate
+	}
+
+	pd.B2BVatAmount = math.Round(pd.B2BVatAmount*100) / 100
+	pd.FeesExcludingVat = math.Round((pd.TotalFees-pd.B2BVatAmount)*100) / 100
+	pd.Balance = math.Round((pd.Balance-pd.B2BVatAmount)*100) / 100
+
 	currency := merchant.GetPayoutCurrency()
 	var minimal float32
 	var ok bool
@@ -182,9 +202,6 @@ func (s *Service) createPayoutDocument(
 		res.Message = errorPayoutTarrifNotFound
 		return nil
 	}
-
-	pd.TotalFees = math.Round(pd.TotalFees*100) / 100
-	pd.Balance = math.Round(pd.Balance*100) / 100
 
 	if pd.Balance < float64(minimal) {
 		if req.IsAutoGeneration {

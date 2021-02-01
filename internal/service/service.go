@@ -29,6 +29,7 @@ import (
 	"gopkg.in/ProtocolONE/rabbitmq.v1/pkg"
 	"gopkg.in/gomail.v2"
 	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v2"
+	"math"
 	"sort"
 	"strings"
 	"sync"
@@ -455,6 +456,63 @@ func (s *Service) TaskFixReportDates(ctx context.Context) (err error) {
 		err = s.payoutRepository.Update(ctx, payout, ip, source)
 		if err != nil {
 			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *Service) TaskExtendPayoutsWithVat(ctx context.Context) (err error) {
+
+	ocs, err := s.operatingCompanyRepository.GetAll(ctx)
+	if err != nil {
+		return err
+	}
+
+	for _, oc := range ocs {
+
+		if oc.Country != "CY" {
+			continue
+		}
+
+		req := &billingpb.GetPayoutDocumentsRequest{
+			Status:             []string{pkg.PayoutDocumentStatusPending},
+			DateFrom:           "2021-01-01T00:00:00",
+			Limit:              9999,
+			OperatingCompanyId: oc.Id,
+		}
+
+		payouts, err := s.payoutRepository.Find(ctx, req)
+		if err != nil {
+			return err
+		}
+
+		for _, payout := range payouts {
+
+			if payout.Company.Country != "CY" {
+				continue
+			}
+
+			payout.B2BVatRate = 0.19
+
+			for _, royaltyReportId := range payout.SourceId {
+				report, err := s.royaltyReportRepository.GetById(ctx, royaltyReportId)
+				if err != nil {
+					return err
+				}
+
+				payout.B2BVatBase += report.Totals.FeeAmount
+			}
+
+			payout.B2BVatBase = math.Round(payout.B2BVatBase*100) / 100
+			payout.B2BVatAmount = math.Round((payout.B2BVatBase*payout.B2BVatRate)*100) / 100
+			payout.FeesExcludingVat = math.Round((payout.TotalFees-payout.B2BVatAmount)*100) / 100
+			payout.Balance = math.Round((payout.Balance-payout.B2BVatAmount)*100) / 100
+
+			err = s.payoutRepository.Update(ctx, payout, "127.0.0.1", payoutChangeSourceAdmin)
+			if err != nil {
+				return err
+			}
 		}
 	}
 

@@ -24,6 +24,7 @@ var (
 	errorPaymentChannelMccCode                  = errors.NewBillingServerErrorMsg("pcm000008", "mcc code not supported")
 	errorCostMatchedNotFound                    = errors.NewBillingServerErrorMsg("pcm000009", "cost matched not found")
 	errorMerchantTariffUpdate                   = errors.NewBillingServerErrorMsg("pcm000010", "can't update merchant tariffs")
+	errorPaymentChannelCostIdNotFound           = errors.NewBillingServerErrorMsg("pcm000011", "payment cost identifier not found")
 )
 
 func (s *Service) GetAllPaymentChannelCostMerchant(
@@ -67,10 +68,114 @@ func (s *Service) SetPaymentChannelCostMerchant(
 	req *billingpb.PaymentChannelCostMerchant,
 	res *billingpb.PaymentChannelCostMerchantResponse,
 ) error {
+	err := s.validatePaymentChannelCostMerchant(ctx, req, res)
+
+	req.IsActive = true
+
+	if req.Id != "" {
+		val, err := s.paymentChannelCostMerchantRepository.GetById(ctx, req.Id)
+		if err != nil {
+			res.Status = billingpb.ResponseStatusSystemError
+			res.Message = errorPaymentChannelMerchantSetFailed
+			return nil
+		}
+		req.Id = val.Id
+		req.MerchantId = val.MerchantId
+		req.CreatedAt = val.CreatedAt
+		err = s.paymentChannelCostMerchantRepository.Update(ctx, req)
+	} else {
+		req.Id = primitive.NewObjectID().Hex()
+		err = s.paymentChannelCostMerchantRepository.Insert(ctx, req)
+	}
+	if err != nil {
+		res.Status = billingpb.ResponseStatusSystemError
+		res.Message = errorPaymentChannelMerchantSetFailed
+
+		if mongodb.IsDuplicate(err) {
+			res.Status = billingpb.ResponseStatusBadData
+			res.Message = errorPaymentChannelMerchantCostAlreadyExist
+		}
+
+		return nil
+	}
+
+	if err := s.merchantRepository.UpdateTariffs(ctx, req.MerchantId, req); err != nil {
+		zap.L().Error(pkg.MethodFinishedWithError, zap.Error(err))
+		res.Status = billingpb.ResponseStatusSystemError
+		res.Message = errorMerchantTariffUpdate
+		return nil
+	}
+
+	res.Status = billingpb.ResponseStatusOk
+	res.Item = req
+
+	return nil
+}
+
+func (s *Service) SetAllPaymentChannelCostMerchant(
+	ctx context.Context,
+	req *billingpb.SetAllPaymentChannelCostMerchantRequest,
+	res *billingpb.SetAllPaymentChannelCostMerchantResponse,
+) error {
+	for _, cost := range req.Costs {
+		if cost.Id == "" {
+			res.Status = billingpb.ResponseStatusBadData
+			res.Message = errorPaymentChannelCostIdNotFound
+
+			return nil
+		}
+
+		cost.MerchantId = req.MerchantId
+		validateRes := &billingpb.PaymentChannelCostMerchantResponse{}
+		_ = s.validatePaymentChannelCostMerchant(ctx, cost, validateRes)
+
+		if validateRes.Status != billingpb.ResponseStatusOk {
+			res.Status = validateRes.Status
+			res.Message = validateRes.Message
+
+			return nil
+		}
+	}
+
+	for _, cost := range req.Costs {
+		cost.MerchantId = req.MerchantId
+		err := s.paymentChannelCostMerchantRepository.Update(ctx, cost)
+
+		if err != nil {
+			res.Status = billingpb.ResponseStatusSystemError
+			res.Message = errorPaymentChannelMerchantSetFailed
+
+			if mongodb.IsDuplicate(err) {
+				res.Status = billingpb.ResponseStatusBadData
+				res.Message = errorPaymentChannelMerchantCostAlreadyExist
+			}
+
+			return nil
+		}
+
+		if err := s.merchantRepository.UpdateTariffs(ctx, req.MerchantId, cost); err != nil {
+			zap.L().Error(pkg.MethodFinishedWithError, zap.Error(err))
+			res.Status = billingpb.ResponseStatusSystemError
+			res.Message = errorMerchantTariffUpdate
+			return nil
+		}
+
+		res.Items = append(res.Items, cost)
+	}
+
+	res.Status = billingpb.ResponseStatusOk
+
+	return nil
+}
+
+func (s *Service) validatePaymentChannelCostMerchant(
+	ctx context.Context,
+	req *billingpb.PaymentChannelCostMerchant,
+	res *billingpb.PaymentChannelCostMerchantResponse,
+) error {
 	var err error
 
-	merchant := &billingpb.Merchant{}
-	if merchant, err = s.merchantRepository.GetById(ctx, req.MerchantId); err != nil {
+	if _, err = s.merchantRepository.GetById(ctx, req.MerchantId); err != nil {
 		res.Status = billingpb.ResponseStatusNotFound
 		res.Message = merchantErrorNotFound
 		return nil
@@ -120,44 +225,7 @@ func (s *Service) SetPaymentChannelCostMerchant(
 		return nil
 	}
 
-	req.IsActive = true
-
-	if req.Id != "" {
-		val, err := s.paymentChannelCostMerchantRepository.GetById(ctx, req.Id)
-		if err != nil {
-			res.Status = billingpb.ResponseStatusSystemError
-			res.Message = errorPaymentChannelMerchantSetFailed
-			return nil
-		}
-		req.Id = val.Id
-		req.MerchantId = val.MerchantId
-		req.CreatedAt = val.CreatedAt
-		err = s.paymentChannelCostMerchantRepository.Update(ctx, req)
-	} else {
-		req.Id = primitive.NewObjectID().Hex()
-		err = s.paymentChannelCostMerchantRepository.Insert(ctx, req)
-	}
-	if err != nil {
-		res.Status = billingpb.ResponseStatusSystemError
-		res.Message = errorPaymentChannelMerchantSetFailed
-
-		if mongodb.IsDuplicate(err) {
-			res.Status = billingpb.ResponseStatusBadData
-			res.Message = errorPaymentChannelMerchantCostAlreadyExist
-		}
-
-		return nil
-	}
-
-	if err := s.merchantRepository.UpdateTariffs(ctx, merchant.Id, req); err != nil {
-		zap.L().Error(pkg.MethodFinishedWithError, zap.Error(err))
-		res.Status = billingpb.ResponseStatusSystemError
-		res.Message = errorMerchantTariffUpdate
-		return nil
-	}
-
 	res.Status = billingpb.ResponseStatusOk
-	res.Item = req
 
 	return nil
 }

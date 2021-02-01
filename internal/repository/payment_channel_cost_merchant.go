@@ -125,7 +125,6 @@ func (r *paymentChannelCostMerchantRepository) Update(ctx context.Context, obj *
 	obj.PsPercent = tools.ToPrecise(obj.PsPercent)
 	obj.PsFixedFee = tools.FormatAmount(obj.PsFixedFee)
 	obj.UpdatedAt = ptypes.TimestampNow()
-	obj.IsActive = true
 
 	oid, err := primitive.ObjectIDFromHex(obj.Id)
 
@@ -400,7 +399,7 @@ func (r *paymentChannelCostMerchantRepository) GetAllForMerchant(
 		)
 	}
 
-	query := bson.M{"merchant_id": merchantOid, "is_active": true}
+	query := bson.M{"merchant_id": merchantOid}
 	opts := options.Find().
 		SetSort(bson.M{"name": 1, "payout_currency": 1, "region": 1, "country": 1, "mcc_code": 1})
 	cursor, err := r.db.Collection(collectionPaymentChannelCostMerchant).Find(ctx, query, opts)
