@@ -494,6 +494,7 @@ func (s *Service) TaskExtendPayoutsWithVat(ctx context.Context) (err error) {
 			}
 
 			payout.B2BVatRate = 0.19
+			payout.B2BVatBase = 0
 
 			for _, royaltyReportId := range payout.SourceId {
 				report, err := s.royaltyReportRepository.GetById(ctx, royaltyReportId)
