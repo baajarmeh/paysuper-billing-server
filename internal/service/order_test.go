@@ -4065,6 +4065,7 @@ func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_RecurringSettings_Merc
 	assert.Equal(suite.T(), orderErrorRecurringDateEndOutOfRange, rsp.Message)
 }
 
+/*
 func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_RecurringSettings_MerchantDateEnd_MinMonthLimit_Ok() {
 	paymentMethod, _ := suite.service.paymentMethodRepository.GetById(context.TODO(), suite.paymentMethod.Id)
 	paymentMethod.RecurringAllowed = true
@@ -4100,6 +4101,7 @@ func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_RecurringSettings_Merc
 	assert.Nil(suite.T(), err)
 	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp.Status)
 }
+*/
 
 func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_RecurringSettings_MerchantDateEnd_MaxMonthLimit_Error() {
 	paymentMethod, _ := suite.service.paymentMethodRepository.GetById(context.TODO(), suite.paymentMethod.Id)
