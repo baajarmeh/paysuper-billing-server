@@ -189,6 +189,7 @@ func (suite *PaymentChannelCostMerchantTestSuite) SetupTest() {
 		PsFixedFee:              0.01,
 		PsFixedFeeCurrency:      "EUR",
 		MccCode:                 billingpb.MccCodeLowRisk,
+		IsActive:                true,
 	}
 
 	paymentChannelCostMerchant2 := &billingpb.PaymentChannelCostMerchant{
@@ -205,6 +206,7 @@ func (suite *PaymentChannelCostMerchantTestSuite) SetupTest() {
 		PsFixedFee:              0.05,
 		PsFixedFeeCurrency:      "EUR",
 		MccCode:                 billingpb.MccCodeLowRisk,
+		IsActive:                true,
 	}
 
 	anotherPaymentChannelCostMerchant := &billingpb.PaymentChannelCostMerchant{
@@ -221,6 +223,7 @@ func (suite *PaymentChannelCostMerchantTestSuite) SetupTest() {
 		PsFixedFee:              0.05,
 		PsFixedFeeCurrency:      "EUR",
 		MccCode:                 billingpb.MccCodeLowRisk,
+		IsActive:                true,
 	}
 	pccm := []*billingpb.PaymentChannelCostMerchant{paymentChannelCostMerchant, paymentChannelCostMerchant2, anotherPaymentChannelCostMerchant}
 	if err := suite.service.paymentChannelCostMerchantRepository.MultipleInsert(context.TODO(), pccm); err != nil {
