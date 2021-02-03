@@ -4096,6 +4096,74 @@ func (suite *OnboardingTestSuite) TestOnboarding_SetMerchantOperatingCompany_IsD
 	assert.Equal(suite.T(), merchantErrorOnboardingNotComplete, rsp.Message)
 }
 
+func (suite *OnboardingTestSuite) TestOnboarding_SetMerchantAcceptedWithoutPaymentCosts() {
+	suite.merchant.Steps = &billingpb.MerchantCompletedSteps{
+		Contacts: true,
+		Company:  true,
+		Banking:  true,
+		Tariff:   true,
+	}
+	suite.merchant.Company = &billingpb.MerchantCompanyInfo{
+		Name:               "merchant1",
+		AlternativeName:    "AlternativeName",
+		Website:            "Website",
+		Address:            "Address",
+		RegistrationNumber: "RegistrationNumber",
+		Country:            "RU",
+		Zip:                "190000",
+		City:               "St.Petersburg",
+	}
+	suite.merchant.Banking = &billingpb.MerchantBanking{
+		Currency:      "RUB",
+		Name:          "Bank name",
+		Address:       "Unknown",
+		AccountNumber: "0987654321",
+		Swift:         "TEST",
+		Details:       "",
+	}
+	suite.merchant.Contacts = &billingpb.MerchantContact{
+		Authorized: &billingpb.MerchantContactAuthorized{
+			Name:     "Unit Test",
+			Email:    "test@unit.test",
+			Phone:    "0987654321",
+			Position: "Unit Test",
+		},
+		Technical: &billingpb.MerchantContactTechnical{
+			Name:  "Unit Test",
+			Email: "test@unit.test",
+			Phone: "0987654321",
+		},
+	}
+	suite.merchant.Tariff = &billingpb.MerchantTariff{
+		HomeRegion: "RU",
+		Payment:    []*billingpb.MerchantTariffRatesPayment{{}},
+		Payout: &billingpb.MerchantTariffRatesSettingsItem{
+			MethodFixedFee:         1,
+			MethodFixedFeeCurrency: "USD",
+		},
+	}
+	err := suite.service.merchantRepository.Update(ctx, suite.merchant)
+	assert.NoError(suite.T(), err)
+
+	req := &billingpb.SetMerchantOperatingCompanyRequest{
+		MerchantId:         suite.merchant.Id,
+		OperatingCompanyId: suite.operatingCompany.Id,
+	}
+	rsp := &billingpb.SetMerchantOperatingCompanyResponse{}
+	err = suite.service.SetMerchantOperatingCompany(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp.Status)
+	assert.Equal(suite.T(), billingpb.MerchantStatusOpCompanySelected, rsp.Item.Status)
+
+	req2 := &billingpb.SetMerchantAcceptedStatusRequest{
+		MerchantId: suite.merchant.Id,
+	}
+	rsp2 := &billingpb.SetMerchantAcceptedStatusResponse{}
+	err = suite.service.SetMerchantAcceptedStatus(context.TODO(), req2, rsp2)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), billingpb.ResponseStatusBadData, rsp2.Status)
+}
+
 func (suite *OnboardingTestSuite) TestOnboarding_SetMerchantAcceptedStatus_Ok() {
 	suite.merchant.Steps = &billingpb.MerchantCompletedSteps{
 		Contacts: true,
@@ -4154,6 +4222,26 @@ func (suite *OnboardingTestSuite) TestOnboarding_SetMerchantAcceptedStatus_Ok() 
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp.Status)
 	assert.Equal(suite.T(), billingpb.MerchantStatusOpCompanySelected, rsp.Item.Status)
+
+	paymentMerCost := &billingpb.PaymentChannelCostMerchant{
+		MerchantId:              suite.merchant.Id,
+		Name:                    "MASTERCARD",
+		PayoutCurrency:          "USD",
+		MinAmount:               0,
+		Region:                  billingpb.TariffRegionEurope,
+		Country:                 "FI",
+		MethodPercent:           0.025,
+		MethodFixAmount:         0.02,
+		MethodFixAmountCurrency: "EUR",
+		PsPercent:               0.05,
+		PsFixedFee:              0.05,
+		PsFixedFeeCurrency:      "EUR",
+		MccCode:                 billingpb.MccCodeLowRisk,
+		IsActive:                true,
+	}
+
+	err = suite.service.paymentChannelCostMerchantRepository.MultipleInsert(context.TODO(), []*billingpb.PaymentChannelCostMerchant{paymentMerCost})
+	assert.NoError(suite.T(), err)
 
 	req2 := &billingpb.SetMerchantAcceptedStatusRequest{
 		MerchantId: suite.merchant.Id,

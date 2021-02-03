@@ -81,7 +81,6 @@ func (r *paymentChannelCostMerchantRepository) MultipleInsert(ctx context.Contex
 		v.PsFixedFee = tools.FormatAmount(v.PsFixedFee)
 		v.CreatedAt = ptypes.TimestampNow()
 		v.UpdatedAt = ptypes.TimestampNow()
-		v.IsActive = true
 
 		mgo, err := r.mapper.MapObjectToMgo(v)
 
@@ -455,6 +454,25 @@ func (r *paymentChannelCostMerchantRepository) GetAllForMerchant(
 	}
 
 	return objs, nil
+}
+
+func (r *paymentChannelCostMerchantRepository) GetActiveForMerchant(ctx context.Context, merchantId string) ([]*billingpb.PaymentChannelCostMerchant, error) {
+	availableTariff, err := r.GetAllForMerchant(ctx, merchantId)
+	if err != nil {
+		return nil, err
+	}
+
+	var paymentTariffs []*billingpb.PaymentChannelCostMerchant
+
+	for _, tariff := range availableTariff {
+		if !tariff.IsActive {
+			continue
+		}
+
+		paymentTariffs = append(paymentTariffs, tariff)
+	}
+
+	return paymentTariffs, nil
 }
 
 func (r *paymentChannelCostMerchantRepository) updateCaches(obj *billingpb.PaymentChannelCostMerchant) (err error) {

@@ -68,6 +68,29 @@ func (_m *PaymentChannelCostMerchantRepositoryInterface) Find(_a0 context.Contex
 	return r0, r1
 }
 
+// GetActiveForMerchant provides a mock function with given fields: _a0, _a1
+func (_m *PaymentChannelCostMerchantRepositoryInterface) GetActiveForMerchant(_a0 context.Context, _a1 string) ([]*billingpb.PaymentChannelCostMerchant, error) {
+	ret := _m.Called(_a0, _a1)
+
+	var r0 []*billingpb.PaymentChannelCostMerchant
+	if rf, ok := ret.Get(0).(func(context.Context, string) []*billingpb.PaymentChannelCostMerchant); ok {
+		r0 = rf(_a0, _a1)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*billingpb.PaymentChannelCostMerchant)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(_a0, _a1)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetAllForMerchant provides a mock function with given fields: _a0, _a1
 func (_m *PaymentChannelCostMerchantRepositoryInterface) GetAllForMerchant(_a0 context.Context, _a1 string) ([]*billingpb.PaymentChannelCostMerchant, error) {
 	ret := _m.Called(_a0, _a1)

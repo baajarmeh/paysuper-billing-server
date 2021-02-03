@@ -27,6 +27,9 @@ type PaymentChannelCostMerchantRepositoryInterface interface {
 	// GetAllForMerchant returns all payment channel costs for merchant.
 	GetAllForMerchant(context.Context, string) ([]*billingpb.PaymentChannelCostMerchant, error)
 
+	// GetActiveForMerchant returns active payment channel costs for merchant.
+	GetActiveForMerchant(context.Context, string) ([]*billingpb.PaymentChannelCostMerchant, error)
+
 	// Find returns the payment channel costs by merchant id, name, payout currency, region, country and mcc code.
 	Find(context.Context, string, string, string, string, string, string) ([]*internalPkg.PaymentChannelCostMerchantSet, error)
 
