@@ -284,7 +284,7 @@ func (suite *RecurringTestSuite) TestRecurring_DeleteSavedCard_RecurringServiceR
 	assert.Equal(suite.T(), recurringErrorUnknown, rsp.Message)
 }
 
-func (suite *RecurringTestSuite) TestOrder_DeleteRecurringSubscription_WithoutCookie_Ok() {
+func (suite *RecurringTestSuite) TestDeleteRecurringSubscription_WithoutCookie_Ok() {
 	var (
 		merchantId = "customer_id"
 		orderId    = "order_id"
@@ -338,7 +338,7 @@ func (suite *RecurringTestSuite) TestOrder_DeleteRecurringSubscription_WithoutCo
 	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp.Status)
 }
 
-func (suite *RecurringTestSuite) TestOrder_DeleteRecurringSubscription_WithCookie_Ok() {
+func (suite *RecurringTestSuite) TestDeleteRecurringSubscription_WithCookie_Ok() {
 	var (
 		customerId = "customer_id"
 		orderId    = "order_id"
@@ -403,7 +403,7 @@ func (suite *RecurringTestSuite) TestOrder_DeleteRecurringSubscription_WithCooki
 	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp.Status)
 }
 
-func (suite *RecurringTestSuite) TestOrder_DeleteRecurringSubscription_BadCookie_Error() {
+func (suite *RecurringTestSuite) TestDeleteRecurringSubscription_BadCookie_Error() {
 	rsp := &billingpb.EmptyResponseWithStatus{}
 	err := suite.service.DeleteRecurringSubscription(context.Background(), &billingpb.DeleteRecurringSubscriptionRequest{
 		Id:     "recurring_id",
@@ -414,7 +414,7 @@ func (suite *RecurringTestSuite) TestOrder_DeleteRecurringSubscription_BadCookie
 	assert.Equal(suite.T(), recurringCustomerNotFound, rsp.Message)
 }
 
-func (suite *RecurringTestSuite) TestOrder_DeleteRecurringSubscription_NoCustomerOnCookie_Error() {
+func (suite *RecurringTestSuite) TestDeleteRecurringSubscription_NoCustomerOnCookie_Error() {
 	browserCustomer := &BrowserCookieCustomer{
 		VirtualCustomerId: "customerId",
 		Ip:                "127.0.0.1",
@@ -443,7 +443,7 @@ func (suite *RecurringTestSuite) TestOrder_DeleteRecurringSubscription_NoCustome
 	assert.Equal(suite.T(), recurringErrorAccessDeny, rsp.Message)
 }
 
-func (suite *RecurringTestSuite) TestOrder_DeleteRecurringSubscription_SubscriptionNotFound_Error() {
+func (suite *RecurringTestSuite) TestDeleteRecurringSubscription_SubscriptionNotFound_Error() {
 	recurring := &recurringMocks.RepositoryService{}
 	recurring.On("GetSubscription", mock.Anything, mock.Anything).Return(&recurringpb.GetSubscriptionResponse{
 		Status: billingpb.ResponseStatusNotFound,
@@ -459,7 +459,7 @@ func (suite *RecurringTestSuite) TestOrder_DeleteRecurringSubscription_Subscript
 	assert.Equal(suite.T(), orderErrorRecurringSubscriptionNotFound, rsp.Message)
 }
 
-func (suite *RecurringTestSuite) TestOrder_DeleteRecurringSubscription_AccessDenyByEmptyIdentifiers_Error() {
+func (suite *RecurringTestSuite) TestDeleteRecurringSubscription_AccessDenyByEmptyIdentifiers_Error() {
 	recurring := &recurringMocks.RepositoryService{}
 	recurring.On("GetSubscription", mock.Anything, mock.Anything).Return(&recurringpb.GetSubscriptionResponse{
 		Status:       billingpb.ResponseStatusOk,
@@ -476,7 +476,7 @@ func (suite *RecurringTestSuite) TestOrder_DeleteRecurringSubscription_AccessDen
 	assert.Equal(suite.T(), recurringErrorAccessDeny, rsp.Message)
 }
 
-func (suite *RecurringTestSuite) TestOrder_DeleteRecurringSubscription_AccessDenyByMerchant_Error() {
+func (suite *RecurringTestSuite) TestDeleteRecurringSubscription_AccessDenyByMerchant_Error() {
 	recurring := &recurringMocks.RepositoryService{}
 	recurring.On("GetSubscription", mock.Anything, mock.Anything).Return(&recurringpb.GetSubscriptionResponse{
 		Status:       billingpb.ResponseStatusOk,
@@ -494,7 +494,7 @@ func (suite *RecurringTestSuite) TestOrder_DeleteRecurringSubscription_AccessDen
 	assert.Equal(suite.T(), recurringErrorAccessDeny, rsp.Message)
 }
 
-func (suite *RecurringTestSuite) TestOrder_DeleteRecurringSubscription_AccessDenyByCustomer_Error() {
+func (suite *RecurringTestSuite) TestDeleteRecurringSubscription_AccessDenyByCustomer_Error() {
 	browserCustomer := &BrowserCookieCustomer{
 		CustomerId:     "customer_id",
 		Ip:             "127.0.0.1",
@@ -523,7 +523,7 @@ func (suite *RecurringTestSuite) TestOrder_DeleteRecurringSubscription_AccessDen
 	assert.Equal(suite.T(), recurringErrorAccessDeny, rsp.Message)
 }
 
-func (suite *RecurringTestSuite) TestOrder_DeleteRecurringSubscription_OrderNotFound_Error() {
+func (suite *RecurringTestSuite) TestDeleteRecurringSubscription_OrderNotFound_Error() {
 	var (
 		merchantId = "merchant_id"
 		orderId    = "order_id"
@@ -555,7 +555,7 @@ func (suite *RecurringTestSuite) TestOrder_DeleteRecurringSubscription_OrderNotF
 	assert.Equal(suite.T(), orderErrorNotFound, rsp.Message)
 }
 
-func (suite *RecurringTestSuite) TestOrder_DeleteRecurringSubscription_PaymentSystemNotFound_Error() {
+func (suite *RecurringTestSuite) TestDeleteRecurringSubscription_PaymentSystemNotFound_Error() {
 	var (
 		merchantId = "merchant_id"
 		orderId    = "order_id"
@@ -597,7 +597,7 @@ func (suite *RecurringTestSuite) TestOrder_DeleteRecurringSubscription_PaymentSy
 	assert.Equal(suite.T(), orderErrorPaymentSystemInactive, rsp.Message)
 }
 
-func (suite *RecurringTestSuite) TestOrder_DeleteRecurringSubscription_PaymentSystemGatewayNotFound_Error() {
+func (suite *RecurringTestSuite) TestDeleteRecurringSubscription_PaymentSystemGatewayNotFound_Error() {
 	var (
 		merchantId = "merchant_id"
 		orderId    = "order_id"
@@ -649,7 +649,7 @@ func (suite *RecurringTestSuite) TestOrder_DeleteRecurringSubscription_PaymentSy
 	assert.Equal(suite.T(), orderErrorPaymentSystemInactive, rsp.Message)
 }
 
-func (suite *RecurringTestSuite) TestOrder_DeleteRecurringSubscription_DeleteSubscriptionOnPaymentSystem_Error() {
+func (suite *RecurringTestSuite) TestDeleteRecurringSubscription_DeleteSubscriptionOnPaymentSystem_Error() {
 	var (
 		merchantId = "merchant_id"
 		orderId    = "order_id"
@@ -701,7 +701,7 @@ func (suite *RecurringTestSuite) TestOrder_DeleteRecurringSubscription_DeleteSub
 	assert.Equal(suite.T(), recurringErrorDeleteSubscription, rsp.Message)
 }
 
-func (suite *RecurringTestSuite) TestOrder_DeleteRecurringSubscription_DeleteFromRepository_Error() {
+func (suite *RecurringTestSuite) TestDeleteRecurringSubscription_DeleteFromRepository_Error() {
 	var (
 		merchantId = "merchant_id"
 		orderId    = "order_id"
@@ -756,7 +756,7 @@ func (suite *RecurringTestSuite) TestOrder_DeleteRecurringSubscription_DeleteFro
 	assert.Equal(suite.T(), recurringErrorDeleteSubscription, rsp.Message)
 }
 
-func (suite *RecurringTestSuite) TestOrder_GetSubscriptionOrders_WithoutCookie_Ok() {
+func (suite *RecurringTestSuite) TestGetSubscriptionOrders_WithoutCookie_Ok() {
 	var (
 		merchantId = "merchant_id"
 	)
@@ -783,7 +783,7 @@ func (suite *RecurringTestSuite) TestOrder_GetSubscriptionOrders_WithoutCookie_O
 	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp.Status)
 }
 
-func (suite *RecurringTestSuite) TestOrder_GetSubscriptionOrders_WithCookie_Ok() {
+func (suite *RecurringTestSuite) TestGetSubscriptionOrders_WithCookie_Ok() {
 	var (
 		customerId = "customer_id"
 	)
@@ -821,7 +821,7 @@ func (suite *RecurringTestSuite) TestOrder_GetSubscriptionOrders_WithCookie_Ok()
 	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp.Status)
 }
 
-func (suite *RecurringTestSuite) TestOrder_GetSubscriptionOrders_BadCookie_Error() {
+func (suite *RecurringTestSuite) TestGetSubscriptionOrders_BadCookie_Error() {
 	rsp := &billingpb.GetSubscriptionOrdersResponse{}
 	err := suite.service.GetSubscriptionOrders(context.Background(), &billingpb.GetSubscriptionOrdersRequest{
 		Id:     "recurring_id",
@@ -832,7 +832,7 @@ func (suite *RecurringTestSuite) TestOrder_GetSubscriptionOrders_BadCookie_Error
 	assert.Equal(suite.T(), recurringCustomerNotFound, rsp.Message)
 }
 
-func (suite *RecurringTestSuite) TestOrder_GetSubscriptionOrders_NoCustomerOnCookie_Error() {
+func (suite *RecurringTestSuite) TestGetSubscriptionOrders_NoCustomerOnCookie_Error() {
 	browserCustomer := &BrowserCookieCustomer{
 		VirtualCustomerId: "customerId",
 		Ip:                "127.0.0.1",
@@ -861,7 +861,7 @@ func (suite *RecurringTestSuite) TestOrder_GetSubscriptionOrders_NoCustomerOnCoo
 	assert.Equal(suite.T(), recurringErrorAccessDeny, rsp.Message)
 }
 
-func (suite *RecurringTestSuite) TestOrder_GetSubscriptionOrders_SubscriptionNotFound_Error() {
+func (suite *RecurringTestSuite) TestGetSubscriptionOrders_SubscriptionNotFound_Error() {
 	recurring := &recurringMocks.RepositoryService{}
 	recurring.On("GetSubscription", mock.Anything, mock.Anything).Return(&recurringpb.GetSubscriptionResponse{
 		Status: billingpb.ResponseStatusNotFound,
@@ -878,7 +878,7 @@ func (suite *RecurringTestSuite) TestOrder_GetSubscriptionOrders_SubscriptionNot
 	assert.Equal(suite.T(), recurringErrorSubscriptionNotFound, rsp.Message)
 }
 
-func (suite *RecurringTestSuite) TestOrder_GetSubscriptionOrders_GetSubscription_Error() {
+func (suite *RecurringTestSuite) TestGetSubscriptionOrders_GetSubscription_Error() {
 	recurring := &recurringMocks.RepositoryService{}
 	recurring.On("GetSubscription", mock.Anything, mock.Anything).Return(nil, errors.New("err"))
 	suite.service.rep = recurring
@@ -893,7 +893,7 @@ func (suite *RecurringTestSuite) TestOrder_GetSubscriptionOrders_GetSubscription
 	assert.Equal(suite.T(), recurringErrorUnknown, rsp.Message)
 }
 
-func (suite *RecurringTestSuite) TestOrder_GetSubscriptionOrders_AccessDenyByMerchant_Error() {
+func (suite *RecurringTestSuite) TestGetSubscriptionOrders_AccessDenyByMerchant_Error() {
 	recurring := &recurringMocks.RepositoryService{}
 	recurring.On("GetSubscription", mock.Anything, mock.Anything).Return(&recurringpb.GetSubscriptionResponse{
 		Status:       billingpb.ResponseStatusOk,
@@ -911,7 +911,7 @@ func (suite *RecurringTestSuite) TestOrder_GetSubscriptionOrders_AccessDenyByMer
 	assert.Equal(suite.T(), recurringErrorAccessDeny, rsp.Message)
 }
 
-func (suite *RecurringTestSuite) TestOrder_GetSubscriptionOrders_AccessDenyByEmptyIdentifiers_Error() {
+func (suite *RecurringTestSuite) TestGetSubscriptionOrders_AccessDenyByEmptyIdentifiers_Error() {
 	recurring := &recurringMocks.RepositoryService{}
 	recurring.On("GetSubscription", mock.Anything, mock.Anything).Return(&recurringpb.GetSubscriptionResponse{
 		Status:       billingpb.ResponseStatusOk,
@@ -928,7 +928,7 @@ func (suite *RecurringTestSuite) TestOrder_GetSubscriptionOrders_AccessDenyByEmp
 	assert.Equal(suite.T(), recurringErrorAccessDeny, rsp.Message)
 }
 
-func (suite *RecurringTestSuite) TestOrder_GetSubscriptionOrders_AccessDenyByCustomer_Error() {
+func (suite *RecurringTestSuite) TestGetSubscriptionOrders_AccessDenyByCustomer_Error() {
 	browserCustomer := &BrowserCookieCustomer{
 		CustomerId:     "customer_id",
 		Ip:             "127.0.0.1",
@@ -957,7 +957,7 @@ func (suite *RecurringTestSuite) TestOrder_GetSubscriptionOrders_AccessDenyByCus
 	assert.Equal(suite.T(), recurringErrorAccessDeny, rsp.Message)
 }
 
-func (suite *RecurringTestSuite) TestOrder_GetSubscriptionOrders_GetOrders_Error() {
+func (suite *RecurringTestSuite) TestGetSubscriptionOrders_GetOrders_Error() {
 	var (
 		merchantId = "merchant_id"
 	)
@@ -990,7 +990,7 @@ func (suite *RecurringTestSuite) TestOrder_GetSubscriptionOrders_GetOrders_Error
 	assert.Equal(suite.T(), recurringErrorUnknown, rsp.Message)
 }
 
-func (suite *RecurringTestSuite) TestOrder_GetSubscriptionOrders_HasOrders_Ok() {
+func (suite *RecurringTestSuite) TestGetSubscriptionOrders_HasOrders_Ok() {
 	var (
 		merchantId = "merchant_id"
 	)
@@ -1034,7 +1034,7 @@ func (suite *RecurringTestSuite) TestOrder_GetSubscriptionOrders_HasOrders_Ok() 
 	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp.Status)
 }
 
-func (suite *RecurringTestSuite) TestOrder_FindSubscriptions_WithoutCookie_Ok() {
+func (suite *RecurringTestSuite) TestFindSubscriptions_WithoutCookie_Ok() {
 	var (
 		merchantId = "merchant_id"
 	)
@@ -1055,7 +1055,7 @@ func (suite *RecurringTestSuite) TestOrder_FindSubscriptions_WithoutCookie_Ok() 
 	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp.Status)
 }
 
-func (suite *RecurringTestSuite) TestOrder_FindSubscriptions_WithCookie_Ok() {
+func (suite *RecurringTestSuite) TestFindSubscriptions_WithCookie_Ok() {
 	browserCustomer := &BrowserCookieCustomer{
 		CustomerId:     "customer_id",
 		Ip:             "127.0.0.1",
@@ -1083,7 +1083,7 @@ func (suite *RecurringTestSuite) TestOrder_FindSubscriptions_WithCookie_Ok() {
 	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp.Status)
 }
 
-func (suite *RecurringTestSuite) TestOrder_FindSubscriptions_BadCookie_Error() {
+func (suite *RecurringTestSuite) TestFindSubscriptions_BadCookie_Error() {
 	rsp := &billingpb.FindSubscriptionsResponse{}
 	err := suite.service.FindSubscriptions(context.Background(), &billingpb.FindSubscriptionsRequest{
 		Cookie: "cookie",
@@ -1093,7 +1093,7 @@ func (suite *RecurringTestSuite) TestOrder_FindSubscriptions_BadCookie_Error() {
 	assert.Equal(suite.T(), recurringCustomerNotFound, rsp.Message)
 }
 
-func (suite *RecurringTestSuite) TestOrder_FindSubscriptions_NoCustomerOnCookie_Error() {
+func (suite *RecurringTestSuite) TestFindSubscriptions_NoCustomerOnCookie_Error() {
 	browserCustomer := &BrowserCookieCustomer{
 		VirtualCustomerId: "customerId",
 		Ip:                "127.0.0.1",
@@ -1114,7 +1114,7 @@ func (suite *RecurringTestSuite) TestOrder_FindSubscriptions_NoCustomerOnCookie_
 	assert.Equal(suite.T(), recurringErrorAccessDeny, rsp.Message)
 }
 
-func (suite *RecurringTestSuite) TestOrder_FindSubscriptions_AccessDenyByEmptyIdentifiers_Error() {
+func (suite *RecurringTestSuite) TestFindSubscriptions_AccessDenyByEmptyIdentifiers_Error() {
 	rsp := &billingpb.FindSubscriptionsResponse{}
 	err := suite.service.FindSubscriptions(context.Background(), &billingpb.FindSubscriptionsRequest{}, rsp)
 	assert.NoError(suite.T(), err)
@@ -1122,7 +1122,7 @@ func (suite *RecurringTestSuite) TestOrder_FindSubscriptions_AccessDenyByEmptyId
 	assert.Equal(suite.T(), recurringErrorAccessDeny, rsp.Message)
 }
 
-func (suite *RecurringTestSuite) TestOrder_FindSubscriptions_RemapRequestForFindSubscription_Ok() {
+func (suite *RecurringTestSuite) TestFindSubscriptions_RemapRequestForFindSubscription_Ok() {
 	var (
 		customerId = "customer_id"
 	)
@@ -1166,7 +1166,7 @@ func (suite *RecurringTestSuite) TestOrder_FindSubscriptions_RemapRequestForFind
 	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp.Status)
 }
 
-func (suite *RecurringTestSuite) TestOrder_mapRecurringToBilling_Ok() {
+func (suite *RecurringTestSuite) TestMapRecurringToBilling_Ok() {
 	subscription := &recurringpb.Subscription{
 		Id:            "Id",
 		CustomerId:    "CustomerId",
@@ -1201,4 +1201,935 @@ func (suite *RecurringTestSuite) TestOrder_mapRecurringToBilling_Ok() {
 	assert.Equal(suite.T(), subscription.CreatedAt, billingSubscription.CreatedAt)
 	assert.Equal(suite.T(), subscription.LastPaymentAt, billingSubscription.LastPaymentAt)
 	assert.Equal(suite.T(), subscription.ProjectName, billingSubscription.ProjectName)
+}
+
+func (suite *RecurringTestSuite) TestPlanPermissionWithInvalidMerchant() {
+	req := &billingpb.RecurringPlan{
+		MerchantId: primitive.NewObjectID().Hex(),
+	}
+
+	merchantRep := &mocks.MerchantRepositoryInterface{}
+	merchantRep.On("GetById", mock.Anything, req.MerchantId).Return(nil, errors.New("error"))
+	suite.service.merchantRepository = merchantRep
+
+	res := &billingpb.AddRecurringPlanResponse{}
+	err := suite.service.AddRecurringPlan(context.TODO(), req, res)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), billingpb.ResponseStatusForbidden, res.Status)
+	assert.Equal(suite.T(), errorMerchantNotFound, res.Message)
+}
+
+func (suite *RecurringTestSuite) TestPlanPermissionWithInvalidProject() {
+	req := &billingpb.RecurringPlan{
+		MerchantId: primitive.NewObjectID().Hex(),
+		ProjectId:  primitive.NewObjectID().Hex(),
+	}
+
+	merchantRep := &mocks.MerchantRepositoryInterface{}
+	merchantRep.On("GetById", mock.Anything, req.MerchantId).Return(&billingpb.Merchant{}, nil)
+	suite.service.merchantRepository = merchantRep
+
+	projectRep := &mocks.ProjectRepositoryInterface{}
+	projectRep.On("GetById", mock.Anything, req.ProjectId).Return(nil, errors.New("error"))
+	suite.service.project = projectRep
+
+	res := &billingpb.AddRecurringPlanResponse{}
+	err := suite.service.AddRecurringPlan(context.TODO(), req, res)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), billingpb.ResponseStatusForbidden, res.Status)
+	assert.Equal(suite.T(), recurringErrorProjectNotFound, res.Message)
+}
+
+func (suite *RecurringTestSuite) TestPlanPermissionWithProjectDontOwnMerchant() {
+	req := &billingpb.RecurringPlan{
+		MerchantId: primitive.NewObjectID().Hex(),
+		ProjectId:  primitive.NewObjectID().Hex(),
+	}
+
+	merchantRep := &mocks.MerchantRepositoryInterface{}
+	merchantRep.On("GetById", mock.Anything, req.MerchantId).Return(&billingpb.Merchant{}, nil)
+	suite.service.merchantRepository = merchantRep
+
+	projectRep := &mocks.ProjectRepositoryInterface{}
+	projectRep.On("GetById", mock.Anything, req.ProjectId).Return(&billingpb.Project{MerchantId: primitive.NewObjectID().Hex()}, nil)
+	suite.service.project = projectRep
+
+	res := &billingpb.AddRecurringPlanResponse{}
+	err := suite.service.AddRecurringPlan(context.TODO(), req, res)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), billingpb.ResponseStatusForbidden, res.Status)
+	assert.Equal(suite.T(), recurringErrorAccessDeny, res.Message)
+}
+
+func (suite *RecurringTestSuite) TestValidateRecurringPlanInvalidChargePeriodMinute() {
+	req := &billingpb.RecurringPlan{
+		MerchantId: primitive.NewObjectID().Hex(),
+		ProjectId:  primitive.NewObjectID().Hex(),
+		Charge: &billingpb.RecurringPlanCharge{
+			Period: &billingpb.RecurringPlanPeriod{
+				Type:  recurringpb.RecurringPeriodMinute,
+				Value: 61,
+			},
+		},
+	}
+
+	merchantRep := &mocks.MerchantRepositoryInterface{}
+	merchantRep.On("GetById", mock.Anything, req.MerchantId).Return(&billingpb.Merchant{Id: req.MerchantId}, nil)
+	suite.service.merchantRepository = merchantRep
+
+	projectRep := &mocks.ProjectRepositoryInterface{}
+	projectRep.On("GetById", mock.Anything, req.ProjectId).Return(&billingpb.Project{MerchantId: req.MerchantId}, nil)
+	suite.service.project = projectRep
+
+	err := suite.service.validateRecurringPlanRequest(req)
+	assert.Error(suite.T(), err)
+	assert.Equal(suite.T(), recurringErrorInvalidPeriod, err)
+}
+
+func (suite *RecurringTestSuite) TestValidateRecurringPlanInvalidChargePeriodDay() {
+	req := &billingpb.RecurringPlan{
+		MerchantId: primitive.NewObjectID().Hex(),
+		ProjectId:  primitive.NewObjectID().Hex(),
+		Charge: &billingpb.RecurringPlanCharge{
+			Period: &billingpb.RecurringPlanPeriod{
+				Type:  recurringpb.RecurringPeriodDay,
+				Value: 366,
+			},
+		},
+	}
+
+	merchantRep := &mocks.MerchantRepositoryInterface{}
+	merchantRep.On("GetById", mock.Anything, req.MerchantId).Return(&billingpb.Merchant{Id: req.MerchantId}, nil)
+	suite.service.merchantRepository = merchantRep
+
+	projectRep := &mocks.ProjectRepositoryInterface{}
+	projectRep.On("GetById", mock.Anything, req.ProjectId).Return(&billingpb.Project{MerchantId: req.MerchantId}, nil)
+	suite.service.project = projectRep
+
+	err := suite.service.validateRecurringPlanRequest(req)
+	assert.Error(suite.T(), err)
+	assert.Equal(suite.T(), recurringErrorInvalidPeriod, err)
+}
+
+func (suite *RecurringTestSuite) TestValidateRecurringPlanInvalidChargePeriodWeek() {
+	req := &billingpb.RecurringPlan{
+		MerchantId: primitive.NewObjectID().Hex(),
+		ProjectId:  primitive.NewObjectID().Hex(),
+		Charge: &billingpb.RecurringPlanCharge{
+			Period: &billingpb.RecurringPlanPeriod{
+				Type:  recurringpb.RecurringPeriodWeek,
+				Value: 53,
+			},
+		},
+	}
+
+	merchantRep := &mocks.MerchantRepositoryInterface{}
+	merchantRep.On("GetById", mock.Anything, req.MerchantId).Return(&billingpb.Merchant{Id: req.MerchantId}, nil)
+	suite.service.merchantRepository = merchantRep
+
+	projectRep := &mocks.ProjectRepositoryInterface{}
+	projectRep.On("GetById", mock.Anything, req.ProjectId).Return(&billingpb.Project{MerchantId: req.MerchantId}, nil)
+	suite.service.project = projectRep
+
+	err := suite.service.validateRecurringPlanRequest(req)
+	assert.Error(suite.T(), err)
+	assert.Equal(suite.T(), recurringErrorInvalidPeriod, err)
+}
+
+func (suite *RecurringTestSuite) TestValidateRecurringPlanInvalidChargePeriodMonth() {
+	req := &billingpb.RecurringPlan{
+		MerchantId: primitive.NewObjectID().Hex(),
+		ProjectId:  primitive.NewObjectID().Hex(),
+		Charge: &billingpb.RecurringPlanCharge{
+			Period: &billingpb.RecurringPlanPeriod{
+				Type:  recurringpb.RecurringPeriodMonth,
+				Value: 13,
+			},
+		},
+	}
+
+	merchantRep := &mocks.MerchantRepositoryInterface{}
+	merchantRep.On("GetById", mock.Anything, req.MerchantId).Return(&billingpb.Merchant{Id: req.MerchantId}, nil)
+	suite.service.merchantRepository = merchantRep
+
+	projectRep := &mocks.ProjectRepositoryInterface{}
+	projectRep.On("GetById", mock.Anything, req.ProjectId).Return(&billingpb.Project{MerchantId: req.MerchantId}, nil)
+	suite.service.project = projectRep
+
+	err := suite.service.validateRecurringPlanRequest(req)
+	assert.Error(suite.T(), err)
+	assert.Equal(suite.T(), recurringErrorInvalidPeriod, err)
+}
+
+func (suite *RecurringTestSuite) TestValidateRecurringPlanInvalidChargePeriodYear() {
+	req := &billingpb.RecurringPlan{
+		MerchantId: primitive.NewObjectID().Hex(),
+		ProjectId:  primitive.NewObjectID().Hex(),
+		Charge: &billingpb.RecurringPlanCharge{
+			Period: &billingpb.RecurringPlanPeriod{
+				Type:  recurringpb.RecurringPeriodYear,
+				Value: 2,
+			},
+		},
+	}
+
+	merchantRep := &mocks.MerchantRepositoryInterface{}
+	merchantRep.On("GetById", mock.Anything, req.MerchantId).Return(&billingpb.Merchant{Id: req.MerchantId}, nil)
+	suite.service.merchantRepository = merchantRep
+
+	projectRep := &mocks.ProjectRepositoryInterface{}
+	projectRep.On("GetById", mock.Anything, req.ProjectId).Return(&billingpb.Project{MerchantId: req.MerchantId}, nil)
+	suite.service.project = projectRep
+
+	err := suite.service.validateRecurringPlanRequest(req)
+	assert.Error(suite.T(), err)
+	assert.Equal(suite.T(), recurringErrorInvalidPeriod, err)
+}
+
+func (suite *RecurringTestSuite) TestValidateRecurringPlanInvalidChargePeriodEmpty() {
+	req := &billingpb.RecurringPlan{
+		MerchantId: primitive.NewObjectID().Hex(),
+		ProjectId:  primitive.NewObjectID().Hex(),
+		Charge: &billingpb.RecurringPlanCharge{
+			Period: &billingpb.RecurringPlanPeriod{
+				Value: 0,
+			},
+		},
+	}
+
+	merchantRep := &mocks.MerchantRepositoryInterface{}
+	merchantRep.On("GetById", mock.Anything, req.MerchantId).Return(&billingpb.Merchant{Id: req.MerchantId}, nil)
+	suite.service.merchantRepository = merchantRep
+
+	projectRep := &mocks.ProjectRepositoryInterface{}
+	projectRep.On("GetById", mock.Anything, req.ProjectId).Return(&billingpb.Project{MerchantId: req.MerchantId}, nil)
+	suite.service.project = projectRep
+
+	err := suite.service.validateRecurringPlanRequest(req)
+	assert.Error(suite.T(), err)
+	assert.Equal(suite.T(), recurringErrorInvalidPeriod, err)
+}
+
+func (suite *RecurringTestSuite) TestAddRecurringPlanError() {
+	req := &billingpb.RecurringPlan{
+		MerchantId: primitive.NewObjectID().Hex(),
+		ProjectId:  primitive.NewObjectID().Hex(),
+		Charge: &billingpb.RecurringPlanCharge{
+			Period: &billingpb.RecurringPlanPeriod{
+				Value: 1,
+				Type:  recurringpb.RecurringPeriodDay,
+			},
+		},
+	}
+
+	merchantRep := &mocks.MerchantRepositoryInterface{}
+	merchantRep.On("GetById", mock.Anything, req.MerchantId).Return(&billingpb.Merchant{Id: req.MerchantId}, nil)
+	suite.service.merchantRepository = merchantRep
+
+	projectRep := &mocks.ProjectRepositoryInterface{}
+	projectRep.On("GetById", mock.Anything, req.ProjectId).Return(&billingpb.Project{MerchantId: req.MerchantId}, nil)
+	suite.service.project = projectRep
+
+	planRep := &mocks.RecurringPlanRepositoryInterface{}
+	planRep.On("Insert", mock.Anything, req).Return(errors.New("error"))
+	suite.service.recurringPlanRepository = planRep
+
+	res := &billingpb.AddRecurringPlanResponse{}
+	err := suite.service.AddRecurringPlan(context.TODO(), req, res)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), billingpb.ResponseStatusSystemError, res.Status)
+	assert.Equal(suite.T(), recurringErrorPlanCreate, res.Message)
+}
+
+func (suite *RecurringTestSuite) TestAddRecurringPlanWithEmptyStatusOk() {
+	req := &billingpb.RecurringPlan{
+		MerchantId: primitive.NewObjectID().Hex(),
+		ProjectId:  primitive.NewObjectID().Hex(),
+		Charge: &billingpb.RecurringPlanCharge{
+			Period: &billingpb.RecurringPlanPeriod{
+				Value: 1,
+				Type:  recurringpb.RecurringPeriodDay,
+			},
+		},
+	}
+
+	merchantRep := &mocks.MerchantRepositoryInterface{}
+	merchantRep.On("GetById", mock.Anything, req.MerchantId).Return(&billingpb.Merchant{Id: req.MerchantId}, nil)
+	suite.service.merchantRepository = merchantRep
+
+	projectRep := &mocks.ProjectRepositoryInterface{}
+	projectRep.On("GetById", mock.Anything, req.ProjectId).Return(&billingpb.Project{MerchantId: req.MerchantId}, nil)
+	suite.service.project = projectRep
+
+	planRep := &mocks.RecurringPlanRepositoryInterface{}
+	planRep.On("Insert", mock.Anything, req).Return(nil)
+	suite.service.recurringPlanRepository = planRep
+
+	res := &billingpb.AddRecurringPlanResponse{}
+	err := suite.service.AddRecurringPlan(context.TODO(), req, res)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), billingpb.ResponseStatusOk, res.Status)
+	assert.Equal(suite.T(), req, res.Item)
+	assert.NotEmpty(suite.T(), res.Item.Id)
+	assert.Equal(suite.T(), pkg.RecurringPlanStatusDisabled, res.Item.Status)
+}
+
+func (suite *RecurringTestSuite) TestAddRecurringPlanOk() {
+	req := &billingpb.RecurringPlan{
+		MerchantId: primitive.NewObjectID().Hex(),
+		ProjectId:  primitive.NewObjectID().Hex(),
+		Charge: &billingpb.RecurringPlanCharge{
+			Period: &billingpb.RecurringPlanPeriod{
+				Value: 1,
+				Type:  recurringpb.RecurringPeriodDay,
+			},
+		},
+		Status: pkg.RecurringPlanStatusActive,
+	}
+
+	merchantRep := &mocks.MerchantRepositoryInterface{}
+	merchantRep.On("GetById", mock.Anything, req.MerchantId).Return(&billingpb.Merchant{Id: req.MerchantId}, nil)
+	suite.service.merchantRepository = merchantRep
+
+	projectRep := &mocks.ProjectRepositoryInterface{}
+	projectRep.On("GetById", mock.Anything, req.ProjectId).Return(&billingpb.Project{MerchantId: req.MerchantId}, nil)
+	suite.service.project = projectRep
+
+	planRep := &mocks.RecurringPlanRepositoryInterface{}
+	planRep.On("Insert", mock.Anything, req).Return(nil)
+	suite.service.recurringPlanRepository = planRep
+
+	res := &billingpb.AddRecurringPlanResponse{}
+	err := suite.service.AddRecurringPlan(context.TODO(), req, res)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), billingpb.ResponseStatusOk, res.Status)
+	assert.Equal(suite.T(), req, res.Item)
+	assert.NotEmpty(suite.T(), res.Item.Id)
+	assert.Equal(suite.T(), pkg.RecurringPlanStatusActive, res.Item.Status)
+}
+
+func (suite *RecurringTestSuite) TestUpdateRecurringPlanUnableGetById() {
+	req := &billingpb.RecurringPlan{
+		Id:         primitive.NewObjectID().Hex(),
+		MerchantId: primitive.NewObjectID().Hex(),
+		ProjectId:  primitive.NewObjectID().Hex(),
+		Charge: &billingpb.RecurringPlanCharge{
+			Period: &billingpb.RecurringPlanPeriod{
+				Value: 1,
+				Type:  recurringpb.RecurringPeriodDay,
+			},
+		},
+	}
+
+	merchantRep := &mocks.MerchantRepositoryInterface{}
+	merchantRep.On("GetById", mock.Anything, req.MerchantId).Return(&billingpb.Merchant{Id: req.MerchantId}, nil)
+	suite.service.merchantRepository = merchantRep
+
+	projectRep := &mocks.ProjectRepositoryInterface{}
+	projectRep.On("GetById", mock.Anything, req.ProjectId).Return(&billingpb.Project{MerchantId: req.MerchantId}, nil)
+	suite.service.project = projectRep
+
+	planRep := &mocks.RecurringPlanRepositoryInterface{}
+	planRep.On("GetById", mock.Anything, req.Id).Return(nil, errors.New("error"))
+	suite.service.recurringPlanRepository = planRep
+
+	res := &billingpb.UpdateRecurringPlanResponse{}
+	err := suite.service.UpdateRecurringPlan(context.TODO(), req, res)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), billingpb.ResponseStatusNotFound, res.Status)
+	assert.Equal(suite.T(), recurringErrorPlanNotFound, res.Message)
+}
+
+func (suite *RecurringTestSuite) TestUpdateRecurringPlanError() {
+	req := &billingpb.RecurringPlan{
+		Id:         primitive.NewObjectID().Hex(),
+		MerchantId: primitive.NewObjectID().Hex(),
+		ProjectId:  primitive.NewObjectID().Hex(),
+		Charge: &billingpb.RecurringPlanCharge{
+			Period: &billingpb.RecurringPlanPeriod{
+				Value: 1,
+				Type:  recurringpb.RecurringPeriodDay,
+			},
+		},
+	}
+
+	merchantRep := &mocks.MerchantRepositoryInterface{}
+	merchantRep.On("GetById", mock.Anything, req.MerchantId).Return(&billingpb.Merchant{Id: req.MerchantId}, nil)
+	suite.service.merchantRepository = merchantRep
+
+	projectRep := &mocks.ProjectRepositoryInterface{}
+	projectRep.On("GetById", mock.Anything, req.ProjectId).Return(&billingpb.Project{MerchantId: req.MerchantId}, nil)
+	suite.service.project = projectRep
+
+	planRep := &mocks.RecurringPlanRepositoryInterface{}
+	planRep.On("GetById", mock.Anything, req.Id).Return(req, nil)
+	planRep.On("Update", mock.Anything, req).Return(errors.New("error"))
+	suite.service.recurringPlanRepository = planRep
+
+	res := &billingpb.UpdateRecurringPlanResponse{}
+	err := suite.service.UpdateRecurringPlan(context.TODO(), req, res)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), billingpb.ResponseStatusSystemError, res.Status)
+	assert.Equal(suite.T(), recurringErrorPlanUpdate, res.Message)
+}
+
+func (suite *RecurringTestSuite) TestUpdateRecurringPlanOk() {
+	req := &billingpb.RecurringPlan{
+		Id:         primitive.NewObjectID().Hex(),
+		MerchantId: primitive.NewObjectID().Hex(),
+		ProjectId:  primitive.NewObjectID().Hex(),
+		Charge: &billingpb.RecurringPlanCharge{
+			Period: &billingpb.RecurringPlanPeriod{
+				Value: 1,
+				Type:  recurringpb.RecurringPeriodDay,
+			},
+		},
+		Name:        map[string]string{"en": "en"},
+		Description: map[string]string{"en": "en"},
+		Tags:        []string{"tag"},
+		Status:      pkg.RecurringPlanStatusActive,
+		GroupId:     "group",
+		ExternalId:  "ext",
+		Expiration: &billingpb.RecurringPlanExpiration{
+			Value: 1,
+			Type:  recurringpb.RecurringPeriodDay,
+		},
+		Trial: &billingpb.RecurringPlanTrial{
+			Value: 1,
+			Type:  recurringpb.RecurringPeriodDay,
+		},
+		GracePeriod: &billingpb.RecurringPlanGracePeriod{
+			Value: 1,
+			Type:  recurringpb.RecurringPeriodDay,
+		},
+	}
+	plan := &billingpb.RecurringPlan{
+		Id:         req.Id,
+		MerchantId: req.MerchantId,
+		ProjectId:  req.ProjectId,
+		Charge: &billingpb.RecurringPlanCharge{
+			Period: &billingpb.RecurringPlanPeriod{
+				Value: 2,
+				Type:  recurringpb.RecurringPeriodMinute,
+			},
+		},
+		Name:        map[string]string{"en": "ru"},
+		Description: map[string]string{"en": "ru"},
+		Tags:        []string{"tag2"},
+		Status:      pkg.RecurringPlanStatusDisabled,
+		GroupId:     "group2",
+		ExternalId:  "ext2",
+		Expiration: &billingpb.RecurringPlanExpiration{
+			Value: 3,
+			Type:  recurringpb.RecurringPeriodWeek,
+		},
+		Trial: &billingpb.RecurringPlanTrial{
+			Value: 4,
+			Type:  recurringpb.RecurringPeriodMonth,
+		},
+		GracePeriod: &billingpb.RecurringPlanGracePeriod{
+			Value: 5,
+			Type:  recurringpb.RecurringPeriodYear,
+		},
+	}
+
+	merchantRep := &mocks.MerchantRepositoryInterface{}
+	merchantRep.On("GetById", mock.Anything, req.MerchantId).Return(&billingpb.Merchant{Id: req.MerchantId}, nil)
+	suite.service.merchantRepository = merchantRep
+
+	projectRep := &mocks.ProjectRepositoryInterface{}
+	projectRep.On("GetById", mock.Anything, req.ProjectId).Return(&billingpb.Project{MerchantId: req.MerchantId}, nil)
+	suite.service.project = projectRep
+
+	planRep := &mocks.RecurringPlanRepositoryInterface{}
+	planRep.On("GetById", mock.Anything, req.Id).Return(plan, nil)
+	planRep.On("Update", mock.Anything, req).Return(nil)
+	suite.service.recurringPlanRepository = planRep
+
+	res := &billingpb.UpdateRecurringPlanResponse{}
+	err := suite.service.UpdateRecurringPlan(context.TODO(), req, res)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), billingpb.ResponseStatusOk, res.Status)
+}
+
+func (suite *RecurringTestSuite) TestEnableRecurringPlanGetByIdError() {
+	req := &billingpb.EnableRecurringPlanRequest{
+		PlanId:     primitive.NewObjectID().Hex(),
+		MerchantId: primitive.NewObjectID().Hex(),
+		ProjectId:  primitive.NewObjectID().Hex(),
+	}
+
+	merchantRep := &mocks.MerchantRepositoryInterface{}
+	merchantRep.On("GetById", mock.Anything, req.MerchantId).Return(&billingpb.Merchant{Id: req.MerchantId}, nil)
+	suite.service.merchantRepository = merchantRep
+
+	projectRep := &mocks.ProjectRepositoryInterface{}
+	projectRep.On("GetById", mock.Anything, req.ProjectId).Return(&billingpb.Project{MerchantId: req.MerchantId}, nil)
+	suite.service.project = projectRep
+
+	planRep := &mocks.RecurringPlanRepositoryInterface{}
+	planRep.On("GetById", mock.Anything, req.PlanId).Return(nil, errors.New("error"))
+	suite.service.recurringPlanRepository = planRep
+
+	res := &billingpb.EnableRecurringPlanResponse{}
+	err := suite.service.EnableRecurringPlan(context.TODO(), req, res)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), billingpb.ResponseStatusNotFound, res.Status)
+	assert.Equal(suite.T(), recurringErrorPlanNotFound, res.Message)
+}
+
+func (suite *RecurringTestSuite) TestEnableRecurringPlanUpdateError() {
+	req := &billingpb.EnableRecurringPlanRequest{
+		PlanId:     primitive.NewObjectID().Hex(),
+		MerchantId: primitive.NewObjectID().Hex(),
+		ProjectId:  primitive.NewObjectID().Hex(),
+	}
+	plan := &billingpb.RecurringPlan{
+		Id:         req.PlanId,
+		MerchantId: req.MerchantId,
+		ProjectId:  req.ProjectId,
+		Charge: &billingpb.RecurringPlanCharge{
+			Period: &billingpb.RecurringPlanPeriod{
+				Value: 2,
+				Type:  recurringpb.RecurringPeriodMinute,
+			},
+		},
+		Status: pkg.RecurringPlanStatusDisabled,
+	}
+
+	merchantRep := &mocks.MerchantRepositoryInterface{}
+	merchantRep.On("GetById", mock.Anything, req.MerchantId).Return(&billingpb.Merchant{Id: req.MerchantId}, nil)
+	suite.service.merchantRepository = merchantRep
+
+	projectRep := &mocks.ProjectRepositoryInterface{}
+	projectRep.On("GetById", mock.Anything, req.ProjectId).Return(&billingpb.Project{MerchantId: req.MerchantId}, nil)
+	suite.service.project = projectRep
+
+	planRep := &mocks.RecurringPlanRepositoryInterface{}
+	planRep.On("GetById", mock.Anything, req.PlanId).Return(plan, nil)
+	planRep.On("Update", mock.Anything, plan).Return(errors.New("error"))
+	suite.service.recurringPlanRepository = planRep
+
+	res := &billingpb.EnableRecurringPlanResponse{}
+	err := suite.service.EnableRecurringPlan(context.TODO(), req, res)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), billingpb.ResponseStatusSystemError, res.Status)
+	assert.Equal(suite.T(), recurringErrorPlanUpdate, res.Message)
+}
+
+func (suite *RecurringTestSuite) TestEnableRecurringPlanOk() {
+	req := &billingpb.EnableRecurringPlanRequest{
+		PlanId:     primitive.NewObjectID().Hex(),
+		MerchantId: primitive.NewObjectID().Hex(),
+		ProjectId:  primitive.NewObjectID().Hex(),
+	}
+	plan := &billingpb.RecurringPlan{
+		Id:         req.PlanId,
+		MerchantId: req.MerchantId,
+		ProjectId:  req.ProjectId,
+		Charge: &billingpb.RecurringPlanCharge{
+			Period: &billingpb.RecurringPlanPeriod{
+				Value: 2,
+				Type:  recurringpb.RecurringPeriodMinute,
+			},
+		},
+		Status: pkg.RecurringPlanStatusDisabled,
+	}
+
+	merchantRep := &mocks.MerchantRepositoryInterface{}
+	merchantRep.On("GetById", mock.Anything, req.MerchantId).Return(&billingpb.Merchant{Id: req.MerchantId}, nil)
+	suite.service.merchantRepository = merchantRep
+
+	projectRep := &mocks.ProjectRepositoryInterface{}
+	projectRep.On("GetById", mock.Anything, req.ProjectId).Return(&billingpb.Project{MerchantId: req.MerchantId}, nil)
+	suite.service.project = projectRep
+
+	planRep := &mocks.RecurringPlanRepositoryInterface{}
+	planRep.On("GetById", mock.Anything, req.PlanId).Return(plan, nil)
+	planRep.On("Update", mock.Anything, plan).Return(nil)
+	suite.service.recurringPlanRepository = planRep
+
+	res := &billingpb.EnableRecurringPlanResponse{}
+	err := suite.service.EnableRecurringPlan(context.TODO(), req, res)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), billingpb.ResponseStatusOk, res.Status)
+	assert.Equal(suite.T(), pkg.RecurringPlanStatusActive, plan.Status)
+}
+
+func (suite *RecurringTestSuite) TestDisableRecurringPlanGetByIdError() {
+	req := &billingpb.DisableRecurringPlanRequest{
+		PlanId:     primitive.NewObjectID().Hex(),
+		MerchantId: primitive.NewObjectID().Hex(),
+		ProjectId:  primitive.NewObjectID().Hex(),
+	}
+
+	merchantRep := &mocks.MerchantRepositoryInterface{}
+	merchantRep.On("GetById", mock.Anything, req.MerchantId).Return(&billingpb.Merchant{Id: req.MerchantId}, nil)
+	suite.service.merchantRepository = merchantRep
+
+	projectRep := &mocks.ProjectRepositoryInterface{}
+	projectRep.On("GetById", mock.Anything, req.ProjectId).Return(&billingpb.Project{MerchantId: req.MerchantId}, nil)
+	suite.service.project = projectRep
+
+	planRep := &mocks.RecurringPlanRepositoryInterface{}
+	planRep.On("GetById", mock.Anything, req.PlanId).Return(nil, errors.New("error"))
+	suite.service.recurringPlanRepository = planRep
+
+	res := &billingpb.DisableRecurringPlanResponse{}
+	err := suite.service.DisableRecurringPlan(context.TODO(), req, res)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), billingpb.ResponseStatusNotFound, res.Status)
+	assert.Equal(suite.T(), recurringErrorPlanNotFound, res.Message)
+}
+
+func (suite *RecurringTestSuite) TestDisableRecurringPlanUpdateError() {
+	req := &billingpb.DisableRecurringPlanRequest{
+		PlanId:     primitive.NewObjectID().Hex(),
+		MerchantId: primitive.NewObjectID().Hex(),
+		ProjectId:  primitive.NewObjectID().Hex(),
+	}
+	plan := &billingpb.RecurringPlan{
+		Id:         req.PlanId,
+		MerchantId: req.MerchantId,
+		ProjectId:  req.ProjectId,
+		Charge: &billingpb.RecurringPlanCharge{
+			Period: &billingpb.RecurringPlanPeriod{
+				Value: 2,
+				Type:  recurringpb.RecurringPeriodMinute,
+			},
+		},
+		Status: pkg.RecurringPlanStatusActive,
+	}
+
+	merchantRep := &mocks.MerchantRepositoryInterface{}
+	merchantRep.On("GetById", mock.Anything, req.MerchantId).Return(&billingpb.Merchant{Id: req.MerchantId}, nil)
+	suite.service.merchantRepository = merchantRep
+
+	projectRep := &mocks.ProjectRepositoryInterface{}
+	projectRep.On("GetById", mock.Anything, req.ProjectId).Return(&billingpb.Project{MerchantId: req.MerchantId}, nil)
+	suite.service.project = projectRep
+
+	planRep := &mocks.RecurringPlanRepositoryInterface{}
+	planRep.On("GetById", mock.Anything, req.PlanId).Return(plan, nil)
+	planRep.On("Update", mock.Anything, plan).Return(errors.New("error"))
+	suite.service.recurringPlanRepository = planRep
+
+	res := &billingpb.DisableRecurringPlanResponse{}
+	err := suite.service.DisableRecurringPlan(context.TODO(), req, res)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), billingpb.ResponseStatusSystemError, res.Status)
+	assert.Equal(suite.T(), recurringErrorPlanUpdate, res.Message)
+}
+
+func (suite *RecurringTestSuite) TestDisableRecurringPlanOk() {
+	req := &billingpb.DisableRecurringPlanRequest{
+		PlanId:     primitive.NewObjectID().Hex(),
+		MerchantId: primitive.NewObjectID().Hex(),
+		ProjectId:  primitive.NewObjectID().Hex(),
+	}
+	plan := &billingpb.RecurringPlan{
+		Id:         req.PlanId,
+		MerchantId: req.MerchantId,
+		ProjectId:  req.ProjectId,
+		Charge: &billingpb.RecurringPlanCharge{
+			Period: &billingpb.RecurringPlanPeriod{
+				Value: 2,
+				Type:  recurringpb.RecurringPeriodMinute,
+			},
+		},
+		Status: pkg.RecurringPlanStatusDisabled,
+	}
+
+	merchantRep := &mocks.MerchantRepositoryInterface{}
+	merchantRep.On("GetById", mock.Anything, req.MerchantId).Return(&billingpb.Merchant{Id: req.MerchantId}, nil)
+	suite.service.merchantRepository = merchantRep
+
+	projectRep := &mocks.ProjectRepositoryInterface{}
+	projectRep.On("GetById", mock.Anything, req.ProjectId).Return(&billingpb.Project{MerchantId: req.MerchantId}, nil)
+	suite.service.project = projectRep
+
+	planRep := &mocks.RecurringPlanRepositoryInterface{}
+	planRep.On("GetById", mock.Anything, req.PlanId).Return(plan, nil)
+	planRep.On("Update", mock.Anything, plan).Return(nil)
+	suite.service.recurringPlanRepository = planRep
+
+	res := &billingpb.DisableRecurringPlanResponse{}
+	err := suite.service.DisableRecurringPlan(context.TODO(), req, res)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), billingpb.ResponseStatusOk, res.Status)
+	assert.Equal(suite.T(), pkg.RecurringPlanStatusDisabled, plan.Status)
+}
+
+func (suite *RecurringTestSuite) TestDeleteRecurringPlanGetByIdError() {
+	req := &billingpb.DeleteRecurringPlanRequest{
+		PlanId:     primitive.NewObjectID().Hex(),
+		MerchantId: primitive.NewObjectID().Hex(),
+		ProjectId:  primitive.NewObjectID().Hex(),
+	}
+
+	merchantRep := &mocks.MerchantRepositoryInterface{}
+	merchantRep.On("GetById", mock.Anything, req.MerchantId).Return(&billingpb.Merchant{Id: req.MerchantId}, nil)
+	suite.service.merchantRepository = merchantRep
+
+	projectRep := &mocks.ProjectRepositoryInterface{}
+	projectRep.On("GetById", mock.Anything, req.ProjectId).Return(&billingpb.Project{MerchantId: req.MerchantId}, nil)
+	suite.service.project = projectRep
+
+	planRep := &mocks.RecurringPlanRepositoryInterface{}
+	planRep.On("GetById", mock.Anything, req.PlanId).Return(nil, errors.New("error"))
+	suite.service.recurringPlanRepository = planRep
+
+	res := &billingpb.DeleteRecurringPlanResponse{}
+	err := suite.service.DeleteRecurringPlan(context.TODO(), req, res)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), billingpb.ResponseStatusNotFound, res.Status)
+	assert.Equal(suite.T(), recurringErrorPlanNotFound, res.Message)
+}
+
+func (suite *RecurringTestSuite) TestDeleteRecurringPlanUpdateError() {
+	req := &billingpb.DeleteRecurringPlanRequest{
+		PlanId:     primitive.NewObjectID().Hex(),
+		MerchantId: primitive.NewObjectID().Hex(),
+		ProjectId:  primitive.NewObjectID().Hex(),
+	}
+	plan := &billingpb.RecurringPlan{
+		Id:         req.PlanId,
+		MerchantId: req.MerchantId,
+		ProjectId:  req.ProjectId,
+		Charge: &billingpb.RecurringPlanCharge{
+			Period: &billingpb.RecurringPlanPeriod{
+				Value: 2,
+				Type:  recurringpb.RecurringPeriodMinute,
+			},
+		},
+	}
+
+	merchantRep := &mocks.MerchantRepositoryInterface{}
+	merchantRep.On("GetById", mock.Anything, req.MerchantId).Return(&billingpb.Merchant{Id: req.MerchantId}, nil)
+	suite.service.merchantRepository = merchantRep
+
+	projectRep := &mocks.ProjectRepositoryInterface{}
+	projectRep.On("GetById", mock.Anything, req.ProjectId).Return(&billingpb.Project{MerchantId: req.MerchantId}, nil)
+	suite.service.project = projectRep
+
+	planRep := &mocks.RecurringPlanRepositoryInterface{}
+	planRep.On("GetById", mock.Anything, req.PlanId).Return(plan, nil)
+	planRep.On("Update", mock.Anything, plan).Return(errors.New("error"))
+	suite.service.recurringPlanRepository = planRep
+
+	res := &billingpb.DeleteRecurringPlanResponse{}
+	err := suite.service.DeleteRecurringPlan(context.TODO(), req, res)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), billingpb.ResponseStatusSystemError, res.Status)
+	assert.Equal(suite.T(), recurringErrorPlanUpdate, res.Message)
+}
+
+func (suite *RecurringTestSuite) TestDeleteRecurringPlanOk() {
+	req := &billingpb.DeleteRecurringPlanRequest{
+		PlanId:     primitive.NewObjectID().Hex(),
+		MerchantId: primitive.NewObjectID().Hex(),
+		ProjectId:  primitive.NewObjectID().Hex(),
+	}
+	plan := &billingpb.RecurringPlan{
+		Id:         req.PlanId,
+		MerchantId: req.MerchantId,
+		ProjectId:  req.ProjectId,
+		Charge: &billingpb.RecurringPlanCharge{
+			Period: &billingpb.RecurringPlanPeriod{
+				Value: 2,
+				Type:  recurringpb.RecurringPeriodMinute,
+			},
+		},
+	}
+
+	merchantRep := &mocks.MerchantRepositoryInterface{}
+	merchantRep.On("GetById", mock.Anything, req.MerchantId).Return(&billingpb.Merchant{Id: req.MerchantId}, nil)
+	suite.service.merchantRepository = merchantRep
+
+	projectRep := &mocks.ProjectRepositoryInterface{}
+	projectRep.On("GetById", mock.Anything, req.ProjectId).Return(&billingpb.Project{MerchantId: req.MerchantId}, nil)
+	suite.service.project = projectRep
+
+	planRep := &mocks.RecurringPlanRepositoryInterface{}
+	planRep.On("GetById", mock.Anything, req.PlanId).Return(plan, nil)
+	planRep.On("Update", mock.Anything, plan).Return(nil)
+	suite.service.recurringPlanRepository = planRep
+
+	res := &billingpb.DeleteRecurringPlanResponse{}
+	err := suite.service.DeleteRecurringPlan(context.TODO(), req, res)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), billingpb.ResponseStatusOk, res.Status)
+	assert.NotEmpty(suite.T(), plan.DeletedAt)
+}
+
+func (suite *RecurringTestSuite) TestGetRecurringPlanGetByIdError() {
+	req := &billingpb.GetRecurringPlanRequest{
+		PlanId:     primitive.NewObjectID().Hex(),
+		MerchantId: primitive.NewObjectID().Hex(),
+		ProjectId:  primitive.NewObjectID().Hex(),
+	}
+
+	merchantRep := &mocks.MerchantRepositoryInterface{}
+	merchantRep.On("GetById", mock.Anything, req.MerchantId).Return(&billingpb.Merchant{Id: req.MerchantId}, nil)
+	suite.service.merchantRepository = merchantRep
+
+	projectRep := &mocks.ProjectRepositoryInterface{}
+	projectRep.On("GetById", mock.Anything, req.ProjectId).Return(&billingpb.Project{MerchantId: req.MerchantId}, nil)
+	suite.service.project = projectRep
+
+	planRep := &mocks.RecurringPlanRepositoryInterface{}
+	planRep.On("GetById", mock.Anything, req.PlanId).Return(nil, errors.New("error"))
+	suite.service.recurringPlanRepository = planRep
+
+	res := &billingpb.GetRecurringPlanResponse{}
+	err := suite.service.GetRecurringPlan(context.TODO(), req, res)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), billingpb.ResponseStatusNotFound, res.Status)
+	assert.Equal(suite.T(), recurringErrorPlanNotFound, res.Message)
+}
+
+func (suite *RecurringTestSuite) TestGetRecurringPlanOk() {
+	req := &billingpb.GetRecurringPlanRequest{
+		PlanId:     primitive.NewObjectID().Hex(),
+		MerchantId: primitive.NewObjectID().Hex(),
+		ProjectId:  primitive.NewObjectID().Hex(),
+	}
+	plan := &billingpb.RecurringPlan{
+		Id:         req.PlanId,
+		MerchantId: req.MerchantId,
+		ProjectId:  req.ProjectId,
+		Charge: &billingpb.RecurringPlanCharge{
+			Period: &billingpb.RecurringPlanPeriod{
+				Value: 2,
+				Type:  recurringpb.RecurringPeriodMinute,
+			},
+		},
+	}
+
+	merchantRep := &mocks.MerchantRepositoryInterface{}
+	merchantRep.On("GetById", mock.Anything, req.MerchantId).Return(&billingpb.Merchant{Id: req.MerchantId}, nil)
+	suite.service.merchantRepository = merchantRep
+
+	projectRep := &mocks.ProjectRepositoryInterface{}
+	projectRep.On("GetById", mock.Anything, req.ProjectId).Return(&billingpb.Project{MerchantId: req.MerchantId}, nil)
+	suite.service.project = projectRep
+
+	planRep := &mocks.RecurringPlanRepositoryInterface{}
+	planRep.On("GetById", mock.Anything, req.PlanId).Return(plan, nil)
+	suite.service.recurringPlanRepository = planRep
+
+	res := &billingpb.GetRecurringPlanResponse{}
+	err := suite.service.GetRecurringPlan(context.TODO(), req, res)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), billingpb.ResponseStatusOk, res.Status)
+	assert.Equal(suite.T(), plan, res.Item)
+}
+
+func (suite *RecurringTestSuite) TestGetRecurringPlansFindCountError() {
+	req := &billingpb.GetRecurringPlansRequest{
+		MerchantId: primitive.NewObjectID().Hex(),
+		ProjectId:  primitive.NewObjectID().Hex(),
+		ExternalId: "ext",
+		GroupId:    "group",
+		Query:      "query",
+		Offset:     0,
+		Limit:      1,
+	}
+
+	merchantRep := &mocks.MerchantRepositoryInterface{}
+	merchantRep.On("GetById", mock.Anything, req.MerchantId).Return(&billingpb.Merchant{Id: req.MerchantId}, nil)
+	suite.service.merchantRepository = merchantRep
+
+	projectRep := &mocks.ProjectRepositoryInterface{}
+	projectRep.On("GetById", mock.Anything, req.ProjectId).Return(&billingpb.Project{MerchantId: req.MerchantId}, nil)
+	suite.service.project = projectRep
+
+	planRep := &mocks.RecurringPlanRepositoryInterface{}
+	planRep.On("FindCount", mock.Anything, req.MerchantId, req.ProjectId, req.ExternalId, req.GroupId, req.Query).
+		Return(int64(0), errors.New("error"))
+	suite.service.recurringPlanRepository = planRep
+
+	res := &billingpb.GetRecurringPlansResponse{}
+	err := suite.service.GetRecurringPlans(context.TODO(), req, res)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), billingpb.ResponseStatusSystemError, res.Status)
+	assert.Equal(suite.T(), recurringErrorUnknown, res.Message)
+}
+
+func (suite *RecurringTestSuite) TestGetRecurringPlansFindError() {
+	req := &billingpb.GetRecurringPlansRequest{
+		MerchantId: primitive.NewObjectID().Hex(),
+		ProjectId:  primitive.NewObjectID().Hex(),
+		ExternalId: "ext",
+		GroupId:    "group",
+		Query:      "query",
+		Offset:     0,
+		Limit:      1,
+	}
+
+	merchantRep := &mocks.MerchantRepositoryInterface{}
+	merchantRep.On("GetById", mock.Anything, req.MerchantId).Return(&billingpb.Merchant{Id: req.MerchantId}, nil)
+	suite.service.merchantRepository = merchantRep
+
+	projectRep := &mocks.ProjectRepositoryInterface{}
+	projectRep.On("GetById", mock.Anything, req.ProjectId).Return(&billingpb.Project{MerchantId: req.MerchantId}, nil)
+	suite.service.project = projectRep
+
+	planRep := &mocks.RecurringPlanRepositoryInterface{}
+	planRep.On("FindCount", mock.Anything, req.MerchantId, req.ProjectId, req.ExternalId, req.GroupId, req.Query).
+		Return(int64(1), nil)
+	planRep.On("Find", mock.Anything, req.MerchantId, req.ProjectId, req.ExternalId, req.GroupId, req.Query, req.Offset, req.Limit).
+		Return(nil, errors.New("error"))
+	suite.service.recurringPlanRepository = planRep
+
+	res := &billingpb.GetRecurringPlansResponse{}
+	err := suite.service.GetRecurringPlans(context.TODO(), req, res)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), billingpb.ResponseStatusSystemError, res.Status)
+	assert.Equal(suite.T(), recurringErrorUnknown, res.Message)
+}
+
+func (suite *RecurringTestSuite) TestGetRecurringPlansOk() {
+	req := &billingpb.GetRecurringPlansRequest{
+		MerchantId: primitive.NewObjectID().Hex(),
+		ProjectId:  primitive.NewObjectID().Hex(),
+		ExternalId: "ext",
+		GroupId:    "group",
+		Query:      "query",
+		Offset:     0,
+		Limit:      1,
+	}
+	plan := &billingpb.RecurringPlan{
+		Id:         primitive.NewObjectID().Hex(),
+		MerchantId: req.MerchantId,
+		ProjectId:  req.ProjectId,
+		Charge: &billingpb.RecurringPlanCharge{
+			Period: &billingpb.RecurringPlanPeriod{
+				Value: 2,
+				Type:  recurringpb.RecurringPeriodMinute,
+			},
+		},
+	}
+
+	merchantRep := &mocks.MerchantRepositoryInterface{}
+	merchantRep.On("GetById", mock.Anything, req.MerchantId).Return(&billingpb.Merchant{Id: req.MerchantId}, nil)
+	suite.service.merchantRepository = merchantRep
+
+	projectRep := &mocks.ProjectRepositoryInterface{}
+	projectRep.On("GetById", mock.Anything, req.ProjectId).Return(&billingpb.Project{MerchantId: req.MerchantId}, nil)
+	suite.service.project = projectRep
+
+	planRep := &mocks.RecurringPlanRepositoryInterface{}
+	planRep.On("FindCount", mock.Anything, req.MerchantId, req.ProjectId, req.ExternalId, req.GroupId, req.Query).
+		Return(int64(1), nil)
+	planRep.On("Find", mock.Anything, req.MerchantId, req.ProjectId, req.ExternalId, req.GroupId, req.Query, req.Offset, req.Limit).
+		Return([]*billingpb.RecurringPlan{plan}, nil)
+	suite.service.recurringPlanRepository = planRep
+
+	res := &billingpb.GetRecurringPlansResponse{}
+	err := suite.service.GetRecurringPlans(context.TODO(), req, res)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), billingpb.ResponseStatusOk, res.Status)
+	assert.Equal(suite.T(), int32(1), res.Count)
+	assert.Len(suite.T(), res.List, 1)
 }

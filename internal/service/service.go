@@ -114,6 +114,7 @@ type Service struct {
 	merchantDocumentRepository             repository.MerchantDocumentRepositoryInterface
 	validateUserBroker                     rabbitmq.BrokerInterface
 	autoincrementRepository                repository.AutoincrementRepositoryInterface
+	recurringPlanRepository                repository.RecurringPlanRepositoryInterface
 	moneyRegistry                          map[string]*helper.Money
 	moneyRegistryMx                        sync.Mutex
 }
@@ -204,6 +205,7 @@ func (s *Service) Init() (err error) {
 	s.dashboardRepository = repository.NewDashboardRepository(s.db, s.cacher)
 	s.autoincrementRepository = repository.NewAutoincrementRepository(s.db)
 	s.merchantDocumentRepository = repository.NewMerchantDocumentRepository(s.db)
+	s.recurringPlanRepository = repository.NewRecurringPlanRepository(s.db)
 
 	sCurr, err := s.curService.GetSupportedCurrencies(context.TODO(), &currenciespb.EmptyRequest{})
 	if err != nil {
