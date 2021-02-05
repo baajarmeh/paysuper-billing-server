@@ -713,6 +713,13 @@ func (s *Service) SetMerchantAcceptedStatus(
 		return nil
 	}
 
+	availableTariff, err := s.paymentChannelCostMerchantRepository.GetActiveForMerchant(ctx, merchant.Id)
+	if len(availableTariff) < 1 {
+		rsp.Status = billingpb.ResponseStatusBadData
+		rsp.Message = merchantTariffsNotFound
+		return nil
+	}
+
 	merchant.Status = billingpb.MerchantStatusAccepted
 	merchant.StatusLastUpdatedAt = ptypes.TimestampNow()
 
@@ -1425,20 +1432,10 @@ func (s *Service) generateMerchantAgreement(ctx context.Context, merchant *billi
 		return err
 	}
 
-	availableTariff, err := s.paymentChannelCostMerchantRepository.GetAllForMerchant(ctx, merchant.Id)
+	availableTariff, err := s.paymentChannelCostMerchantRepository.GetActiveForMerchant(ctx, merchant.Id)
 	if err != nil {
 		zap.L().Error("Payment costs tariff not found", zap.Error(err), zap.String("merchant_id", merchant.Id))
 		return err
-	}
-
-	var paymentTariffs []*billingpb.PaymentChannelCostMerchant
-
-	for _, tariff := range availableTariff {
-		if !tariff.IsActive {
-			continue
-		}
-
-		paymentTariffs = append(paymentTariffs, tariff)
 	}
 
 	params := map[string]interface{}{
@@ -1449,7 +1446,7 @@ func (s *Service) generateMerchantAgreement(ctx context.Context, merchant *billi
 		reporterpb.RequestParameterAgreementPayoutCost:                         payoutCost,
 		reporterpb.RequestParameterAgreementMinimalPayoutLimit:                 minPayoutLimit,
 		reporterpb.RequestParameterAgreementPayoutCurrency:                     merchant.GetPayoutCurrency(),
-		reporterpb.RequestParameterAgreementPSRate:                             paymentTariffs,
+		reporterpb.RequestParameterAgreementPSRate:                             availableTariff,
 		reporterpb.RequestParameterAgreementHomeRegion:                         billingpb.HomeRegions[merchant.Tariff.HomeRegion],
 		reporterpb.RequestParameterAgreementMerchantAuthorizedName:             merchant.Contacts.Authorized.Name,
 		reporterpb.RequestParameterAgreementMerchantAuthorizedPosition:         merchant.Contacts.Authorized.Position,

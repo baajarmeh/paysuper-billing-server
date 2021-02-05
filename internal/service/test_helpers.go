@@ -729,6 +729,7 @@ func HelperCreateMerchant(
 		PsFixedFee:              0.05,
 		PsFixedFeeCurrency:      "EUR",
 		MccCode:                 billingpb.MccCodeLowRisk,
+		IsActive:                true,
 	}
 	paymentMerCost2 := &billingpb.PaymentChannelCostMerchant{
 		MerchantId:              merchant.Id,
@@ -744,6 +745,7 @@ func HelperCreateMerchant(
 		PsFixedFee:              0.05,
 		PsFixedFeeCurrency:      "EUR",
 		MccCode:                 billingpb.MccCodeLowRisk,
+		IsActive:                true,
 	}
 	paymentMerCost3 := &billingpb.PaymentChannelCostMerchant{
 		MerchantId:              merchant.Id,
@@ -759,6 +761,7 @@ func HelperCreateMerchant(
 		PsFixedFee:              0.05,
 		PsFixedFeeCurrency:      "EUR",
 		MccCode:                 billingpb.MccCodeLowRisk,
+		IsActive:                true,
 	}
 	paymentMerCost4 := &billingpb.PaymentChannelCostMerchant{
 		MerchantId:              merchant.Id,
@@ -774,6 +777,7 @@ func HelperCreateMerchant(
 		PsFixedFee:              0.05,
 		PsFixedFeeCurrency:      "EUR",
 		MccCode:                 billingpb.MccCodeLowRisk,
+		IsActive:                true,
 	}
 
 	err = service.paymentChannelCostMerchantRepository.MultipleInsert(context.TODO(), []*billingpb.PaymentChannelCostMerchant{paymentMerCost1, paymentMerCost2, paymentMerCost3, paymentMerCost4})

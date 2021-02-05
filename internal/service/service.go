@@ -114,6 +114,7 @@ type Service struct {
 	merchantDocumentRepository             repository.MerchantDocumentRepositoryInterface
 	validateUserBroker                     rabbitmq.BrokerInterface
 	autoincrementRepository                repository.AutoincrementRepositoryInterface
+	recurringPlanRepository                repository.RecurringPlanRepositoryInterface
 	moneyRegistry                          map[string]*helper.Money
 	moneyRegistryMx                        sync.Mutex
 }
@@ -204,6 +205,7 @@ func (s *Service) Init() (err error) {
 	s.dashboardRepository = repository.NewDashboardRepository(s.db, s.cacher)
 	s.autoincrementRepository = repository.NewAutoincrementRepository(s.db)
 	s.merchantDocumentRepository = repository.NewMerchantDocumentRepository(s.db)
+	s.recurringPlanRepository = repository.NewRecurringPlanRepository(s.db)
 
 	sCurr, err := s.curService.GetSupportedCurrencies(context.TODO(), &currenciespb.EmptyRequest{})
 	if err != nil {
@@ -495,6 +497,8 @@ func (s *Service) TaskExtendPayoutsWithVat(ctx context.Context) (err error) {
 
 			payout.B2BVatRate = 0.19
 			payout.B2BVatBase = 0
+			payout.TotalFees = 0
+			payout.Balance = 0
 
 			for _, royaltyReportId := range payout.SourceId {
 				report, err := s.royaltyReportRepository.GetById(ctx, royaltyReportId)
@@ -503,7 +507,12 @@ func (s *Service) TaskExtendPayoutsWithVat(ctx context.Context) (err error) {
 				}
 
 				payout.B2BVatBase += report.Totals.FeeAmount
+				payout.TotalFees += report.Totals.PayoutAmount + report.Totals.CorrectionAmount
+				payout.Balance += report.Totals.PayoutAmount + report.Totals.CorrectionAmount - report.Totals.RollingReserveAmount
 			}
+
+			payout.TotalFees = math.Round(payout.TotalFees*100) / 100
+			payout.Balance = math.Round(payout.Balance*100) / 100
 
 			payout.B2BVatBase = math.Round(payout.B2BVatBase*100) / 100
 			payout.B2BVatAmount = math.Round((payout.B2BVatBase*payout.B2BVatRate)*100) / 100

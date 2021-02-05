@@ -272,6 +272,9 @@ const (
 	HeaderContentLength = "Content-Length"
 	MIMEApplicationForm = "application/x-www-form-urlencoded"
 	MIMEApplicationJSON = "application/json"
+
+	RecurringPlanStatusActive   = "active"
+	RecurringPlanStatusDisabled = "disabled"
 )
 
 var (
