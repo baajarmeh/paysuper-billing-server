@@ -1590,15 +1590,15 @@ func (suite *RecurringTestSuite) TestUpdateRecurringPlanOk() {
 		Status:      pkg.RecurringPlanStatusActive,
 		GroupId:     "group",
 		ExternalId:  "ext",
-		Expiration: &billingpb.RecurringPlanExpiration{
+		Expiration: &billingpb.RecurringPlanPeriod{
 			Value: 1,
 			Type:  recurringpb.RecurringPeriodDay,
 		},
-		Trial: &billingpb.RecurringPlanTrial{
+		Trial: &billingpb.RecurringPlanPeriod{
 			Value: 1,
 			Type:  recurringpb.RecurringPeriodDay,
 		},
-		GracePeriod: &billingpb.RecurringPlanGracePeriod{
+		GracePeriod: &billingpb.RecurringPlanPeriod{
 			Value: 1,
 			Type:  recurringpb.RecurringPeriodDay,
 		},
@@ -1619,15 +1619,15 @@ func (suite *RecurringTestSuite) TestUpdateRecurringPlanOk() {
 		Status:      pkg.RecurringPlanStatusDisabled,
 		GroupId:     "group2",
 		ExternalId:  "ext2",
-		Expiration: &billingpb.RecurringPlanExpiration{
+		Expiration: &billingpb.RecurringPlanPeriod{
 			Value: 3,
 			Type:  recurringpb.RecurringPeriodWeek,
 		},
-		Trial: &billingpb.RecurringPlanTrial{
+		Trial: &billingpb.RecurringPlanPeriod{
 			Value: 4,
 			Type:  recurringpb.RecurringPeriodMonth,
 		},
-		GracePeriod: &billingpb.RecurringPlanGracePeriod{
+		GracePeriod: &billingpb.RecurringPlanPeriod{
 			Value: 5,
 			Type:  recurringpb.RecurringPeriodYear,
 		},

@@ -105,15 +105,15 @@ func (suite *RecurringPlanTestSuite) TestRecurringPlan_Update() {
 		Amount:   100,
 		Currency: "RUB",
 	}
-	plan2.Expiration = &billingpb.RecurringPlanExpiration{
+	plan2.Expiration = &billingpb.RecurringPlanPeriod{
 		Value: 10,
 		Type:  "month",
 	}
-	plan2.Trial = &billingpb.RecurringPlanTrial{
+	plan2.Trial = &billingpb.RecurringPlanPeriod{
 		Value: 11,
 		Type:  "month",
 	}
-	plan2.GracePeriod = &billingpb.RecurringPlanGracePeriod{
+	plan2.GracePeriod = &billingpb.RecurringPlanPeriod{
 		Value: 12,
 		Type:  "month",
 	}
@@ -328,15 +328,15 @@ func (suite *RecurringPlanTestSuite) template() *billingpb.RecurringPlan {
 			Amount:   10,
 			Currency: "USD",
 		},
-		Expiration: &billingpb.RecurringPlanExpiration{
+		Expiration: &billingpb.RecurringPlanPeriod{
 			Value: 6,
 			Type:  "day",
 		},
-		Trial: &billingpb.RecurringPlanTrial{
+		Trial: &billingpb.RecurringPlanPeriod{
 			Value: 5,
 			Type:  "day",
 		},
-		GracePeriod: &billingpb.RecurringPlanGracePeriod{
+		GracePeriod: &billingpb.RecurringPlanPeriod{
 			Value: 4,
 			Type:  "day",
 		},
