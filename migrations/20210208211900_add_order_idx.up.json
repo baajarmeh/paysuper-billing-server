@@ -1,0 +1,61 @@
+[
+  {
+    "createIndexes": "order",
+    "indexes": [
+      {
+        "key": {
+          "is_notifications_sent.created": 1
+        },
+        "name": "order_is_notifications_sent_created_idx"
+      },
+      {
+        "key": {
+          "is_notifications_sent.processed": 1
+        },
+        "name": "order_is_notifications_sent_processed_idx"
+      },
+      {
+        "key": {
+          "is_notifications_sent.canceled": 1
+        },
+        "name": "order_is_notifications_sent_canceled_idx"
+      },
+      {
+        "key": {
+          "is_notifications_sent.rejected": 1
+        },
+        "name": "order_is_notifications_sent_rejected_idx"
+      },
+      {
+        "key": {
+          "is_notifications_sent.refunded": 1
+        },
+        "name": "order_is_notifications_sent_refunded_idx"
+      },
+      {
+        "key": {
+          "is_notifications_sent.chargeback": 1
+        },
+        "name": "order_is_notifications_sent_chargeback_idx"
+      },
+      {
+        "key": {
+          "is_notifications_sent.pending": 1
+        },
+        "name": "order_is_notifications_sent_pending_idx"
+      },
+      {
+        "key": {
+          "is_notifications_sent.taxjar-payment": 1
+        },
+        "name": "order_is_notifications_sent_taxjar_payment_idx"
+      },
+      {
+        "key": {
+          "is_notifications_sent.taxjar-refund": 1
+        },
+        "name": "order_is_notifications_sent_taxjar_refund_idx"
+      }
+    ]
+  }
+]
