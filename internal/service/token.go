@@ -87,11 +87,12 @@ func (s *Service) CreateToken(
 	processor := &OrderCreateRequestProcessor{
 		Service: s,
 		request: &billingpb.OrderCreateRequest{
-			ProjectId:  req.Settings.ProjectId,
-			Amount:     req.Settings.Amount,
-			Currency:   req.Settings.Currency,
-			Products:   req.Settings.ProductsIds,
-			PlatformId: req.Settings.PlatformId,
+			ProjectId:       req.Settings.ProjectId,
+			Amount:          req.Settings.Amount,
+			Currency:        req.Settings.Currency,
+			Products:        req.Settings.ProductsIds,
+			PlatformId:      req.Settings.PlatformId,
+			RecurringPlanId: req.Settings.RecurringPlanId,
 		},
 		checked: &orderCreateRequestProcessorChecked{
 			user: &billingpb.OrderUser{},
@@ -211,19 +212,6 @@ func (s *Service) CreateToken(
 			return nil
 		}
 		break
-	case pkg.OrderTypeVirtualCurrency:
-		err := processor.processVirtualCurrency(ctx)
-		if err != nil {
-			zap.L().Error(
-				pkg.MethodFinishedWithError,
-				zap.Error(err),
-			)
-
-			rsp.Status = billingpb.ResponseStatusBadData
-			rsp.Message = err.(*billingpb.ResponseErrorMessage)
-			return nil
-		}
-		break
 	default:
 		rsp.Status = billingpb.ResponseStatusBadData
 		rsp.Message = tokenErrorSettingsTypeRequired
@@ -255,16 +243,14 @@ func (s *Service) CreateToken(
 		return err
 	}
 
-	if req.Settings.RecurringPeriod != "" {
-		if err := processor.processRecurringSettings(); err != nil {
-			zap.S().Errorw(pkg.MethodFinishedWithError, "err", err.Error())
-			if e, ok := err.(*billingpb.ResponseErrorMessage); ok {
-				rsp.Status = billingpb.ResponseStatusBadData
-				rsp.Message = e
-				return nil
-			}
-			return err
+	if err := processor.processRecurringSettings(); err != nil {
+		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err.Error())
+		if e, ok := err.(*billingpb.ResponseErrorMessage); ok {
+			rsp.Status = billingpb.ResponseStatusBadData
+			rsp.Message = e
+			return nil
 		}
+		return err
 	}
 
 	token, err := s.createToken(req, customer)

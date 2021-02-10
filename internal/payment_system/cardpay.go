@@ -1112,14 +1112,14 @@ func (h *CardPayOrderRecurringResponse) IsSuccessStatus() bool {
 }
 
 func (h *cardPay) CreateRecurringSubscription(
-	order *billingpb.Order, subscription *recurringpb.Subscription, successUrl, failUrl string, requisites map[string]string,
+	order *billingpb.Order, subscription *billingpb.RecurringSubscription, successUrl, failUrl string, requisites map[string]string,
 ) (string, error) {
 	var (
 		err         error
 		redirectUrl string
 	)
 
-	subscription.CardpayPlanId, err = h.createRecurringPlan(order)
+	subscription.CardpayPlanId, err = h.createRecurringPlan(order, subscription.Plan)
 
 	if err != nil {
 		return "", err
@@ -1134,7 +1134,7 @@ func (h *cardPay) CreateRecurringSubscription(
 	return redirectUrl, nil
 }
 
-func (h *cardPay) createRecurringPlan(order *billingpb.Order) (string, error) {
+func (h *cardPay) createRecurringPlan(order *billingpb.Order, plan *billingpb.RecurringPlan) (string, error) {
 	data := &CardPayRecurringPlanRequest{
 		Request: &CardPayRequest{
 			Id:   order.Id,
@@ -1143,9 +1143,9 @@ func (h *cardPay) createRecurringPlan(order *billingpb.Order) (string, error) {
 		PlanData: &CardPayRecurringPlanData{
 			Amount:   order.ChargeAmount,
 			Currency: order.ChargeCurrency,
-			Interval: order.RecurringSettings.Interval,
+			Interval: plan.Charge.Period.Value,
 			Name:     order.Id,
-			Period:   order.RecurringSettings.Period,
+			Period:   plan.Charge.Period.Type,
 			Retries:  1,
 		},
 	}
@@ -1355,7 +1355,7 @@ func (h *cardPay) IsSubscriptionCallback(request proto.Message) bool {
 	return req.RecurringData != nil && req.RecurringData.Subscription != nil && req.RecurringData.Subscription.Id != ""
 }
 
-func (h *cardPay) DeleteRecurringSubscription(order *billingpb.Order, subscription *recurringpb.Subscription) error {
+func (h *cardPay) DeleteRecurringSubscription(order *billingpb.Order, subscription *billingpb.RecurringSubscription) error {
 	err := h.updateRecurringSubscription(order, subscription, cardPayStatusCancelled)
 
 	if err != nil {
@@ -1372,7 +1372,7 @@ func (h *cardPay) DeleteRecurringSubscription(order *billingpb.Order, subscripti
 	return nil
 }
 
-func (h *cardPay) updateRecurringSubscription(order *billingpb.Order, subscription *recurringpb.Subscription, status string) error {
+func (h *cardPay) updateRecurringSubscription(order *billingpb.Order, subscription *billingpb.RecurringSubscription, status string) error {
 	data := &CardPayRecurringSubscriptionUpdateRequest{
 		Request: &CardPayRequest{
 			Id:   subscription.CardpaySubscriptionId + time.Now().UTC().Format(CardPayDateFormat),
@@ -1418,7 +1418,7 @@ func (h *cardPay) updateRecurringSubscription(order *billingpb.Order, subscripti
 	return nil
 }
 
-func (h *cardPay) deleteRecurringPlan(order *billingpb.Order, subscription *recurringpb.Subscription) error {
+func (h *cardPay) deleteRecurringPlan(order *billingpb.Order, subscription *billingpb.RecurringSubscription) error {
 	req, err := h.getRequestWithAuth(order, nil, pkg.PaymentSystemActionDeleteRecurringPlan, subscription.CardpayPlanId)
 
 	if err != nil {

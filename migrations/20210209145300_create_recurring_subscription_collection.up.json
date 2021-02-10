@@ -1,0 +1,19 @@
+[
+  {
+    "create": "recurring_subscription"
+  },
+  {
+    "createIndexes": "recurring_subscription",
+    "indexes": [
+      {
+        "key": {
+          "customer.id": 1,
+          "plan.id": 1,
+          "expire_at": 1
+        },
+        "name": "customer_plan_expire",
+        "unique": true
+      }
+    ]
+  }
+]

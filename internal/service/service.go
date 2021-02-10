@@ -115,6 +115,7 @@ type Service struct {
 	validateUserBroker                     rabbitmq.BrokerInterface
 	autoincrementRepository                repository.AutoincrementRepositoryInterface
 	recurringPlanRepository                repository.RecurringPlanRepositoryInterface
+	recurringSubscriptionRepository        repository.RecurringSubscriptionRepositoryInterface
 	moneyRegistry                          map[string]*helper.Money
 	moneyRegistryMx                        sync.Mutex
 }

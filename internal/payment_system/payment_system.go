@@ -4,7 +4,6 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/paysuper/paysuper-billing-server/pkg/errors"
 	"github.com/paysuper/paysuper-proto/go/billingpb"
-	"github.com/paysuper/paysuper-proto/go/recurringpb"
 )
 
 const (
@@ -40,9 +39,9 @@ type PaymentSystemInterface interface {
 	GetRecurringId(request proto.Message) string
 	CreateRefund(order *billingpb.Order, refund *billingpb.Refund) error
 	ProcessRefund(order *billingpb.Order, refund *billingpb.Refund, message proto.Message, raw, signature string) error
-	CreateRecurringSubscription(order *billingpb.Order, subscription *recurringpb.Subscription, successUrl, failUrl string, requisites map[string]string) (string, error)
+	CreateRecurringSubscription(order *billingpb.Order, subscription *billingpb.RecurringSubscription, successUrl, failUrl string, requisites map[string]string) (string, error)
 	IsSubscriptionCallback(request proto.Message) bool
-	DeleteRecurringSubscription(order *billingpb.Order, subscription *recurringpb.Subscription) error
+	DeleteRecurringSubscription(order *billingpb.Order, subscription *billingpb.RecurringSubscription) error
 }
 
 type PaymentSystemManagerInterface interface {
