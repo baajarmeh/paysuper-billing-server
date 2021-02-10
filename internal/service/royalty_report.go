@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/jinzhu/now"
-	"github.com/paysuper/paysuper-billing-server/internal/helper"
 	pkg2 "github.com/paysuper/paysuper-billing-server/internal/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/errors"
@@ -18,7 +17,6 @@ import (
 	"github.com/paysuper/paysuper-proto/go/postmarkpb"
 	"github.com/paysuper/paysuper-proto/go/recurringpb"
 	"github.com/paysuper/paysuper-proto/go/reporterpb"
-	tools "github.com/paysuper/paysuper-tools/number"
 	"github.com/streadway/amqp"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -432,6 +430,15 @@ func (s *Service) ChangeRoyaltyReport(
 			return nil
 		}
 
+		report.Totals.B2BVatBase = report.Totals.PayoutAmount + report.Totals.CorrectionAmount
+		report.Totals.B2BVatAmount = math.Round(report.Totals.B2BVatAmount*100) / 100
+
+		report.Totals.B2BVatAmount = report.Totals.B2BVatBase * report.Totals.B2BVatRate
+		report.Totals.FinalPayoutAmount = report.Totals.PayoutAmount - report.Totals.B2BVatAmount
+
+		report.Totals.B2BVatAmount = math.Round(report.Totals.B2BVatAmount*100) / 100
+		report.Totals.FinalPayoutAmount = math.Round(report.Totals.FinalPayoutAmount*100) / 100
+
 		hasChanges = true
 	}
 
@@ -602,6 +609,25 @@ func (h *royaltyHandler) createMerchantRoyaltyReport(ctx context.Context, mercha
 		return err
 	}
 
+	oc, err := h.Service.operatingCompanyRepository.GetById(ctx, newReport.OperatingCompanyId)
+	if err != nil {
+		return merchantOperatingCompanyNotFound
+	}
+
+	newReport.Totals.B2BVatRate, err = h.Service.GetB2bVatRate(oc.Country, merchant.Company.Country)
+	if err != nil {
+		return errorGettingB2BVatRate
+	}
+
+	newReport.Totals.B2BVatBase = newReport.Totals.FeeAmount
+	newReport.Totals.B2BVatAmount = math.Round(newReport.Totals.B2BVatAmount*100) / 100
+
+	newReport.Totals.B2BVatAmount = newReport.Totals.B2BVatBase * newReport.Totals.B2BVatRate
+	newReport.Totals.FinalPayoutAmount = newReport.Totals.PayoutAmount + newReport.Totals.CorrectionAmount - newReport.Totals.B2BVatAmount
+
+	newReport.Totals.B2BVatAmount = math.Round(newReport.Totals.B2BVatAmount*100) / 100
+	newReport.Totals.FinalPayoutAmount = math.Round(newReport.Totals.FinalPayoutAmount*100) / 100
+
 	if existingReport != nil {
 		newReport.Id = existingReport.Id
 		newReport.CreatedAt = existingReport.CreatedAt
@@ -661,147 +687,6 @@ func (h *royaltyHandler) createMerchantRoyaltyReport(ctx context.Context, mercha
 	zap.L().Info("generating royalty reports for merchant finished", zap.String("merchant_id", merchantId.Hex()))
 
 	return nil
-}
-
-func (h *royaltyHandler) buildMerchantRoyaltyReport(
-	ctx context.Context, merchant *billingpb.Merchant,
-) (*billingpb.RoyaltyReport, []primitive.ObjectID, error) {
-	merchantPayoutCurrency := merchant.GetPayoutCurrency()
-	summaryItems, summaryTotal, ordersIds, err := h.orderViewRepository.GetRoyaltySummary(
-		ctx,
-		merchant.Id,
-		merchantPayoutCurrency,
-		h.from,
-		h.to,
-	)
-
-	if err != nil {
-		return nil, nil, err
-	}
-
-	corrections, correctionsTotal, err := h.getRoyaltyReportCorrections(ctx, merchant.Id, merchantPayoutCurrency)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	reserves, reservesTotal, err := h.getRoyaltyReportRollingReserves(ctx, merchant.Id, merchantPayoutCurrency)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	report := &billingpb.RoyaltyReport{
-		Id:                 primitive.NewObjectID().Hex(),
-		MerchantId:         merchant.Id,
-		OperatingCompanyId: merchant.OperatingCompanyId,
-		Currency:           merchant.GetPayoutCurrency(),
-		Status:             billingpb.RoyaltyReportStatusPending,
-		CreatedAt:          ptypes.TimestampNow(),
-		UpdatedAt:          ptypes.TimestampNow(),
-		Totals: &billingpb.RoyaltyReportTotals{
-			TransactionsCount:    summaryTotal.TotalTransactions,
-			FeeAmount:            summaryTotal.TotalFees,
-			VatAmount:            summaryTotal.TotalVat,
-			PayoutAmount:         summaryTotal.PayoutAmount,
-			CorrectionAmount:     tools.ToPrecise(correctionsTotal),
-			RollingReserveAmount: tools.ToPrecise(reservesTotal),
-		},
-		Summary: &billingpb.RoyaltyReportSummary{
-			ProductsItems:   summaryItems,
-			ProductsTotal:   summaryTotal,
-			Corrections:     corrections,
-			RollingReserves: reserves,
-		},
-	}
-
-	totalEndUserFeesMoney := helper.NewMoney()
-	returnsAmountMoney := helper.NewMoney()
-	endUserFeesMoney := helper.NewMoney()
-	vatOnEndUserSalesMoney := helper.NewMoney()
-	licenseRevenueShareMoney := helper.NewMoney()
-
-	totalGrossSalesAmount := float64(0)
-	totalGrossReturnsAmount := float64(0)
-	totalGrossTotalAmount := float64(0)
-	totalVat := float64(0)
-	totalFees := float64(0)
-	totalPayoutAmount := float64(0)
-
-	for _, item := range summaryItems {
-		grossSalesAmount, err := totalEndUserFeesMoney.Round(item.GrossSalesAmount)
-
-		if err != nil {
-			return nil, nil, err
-		}
-
-		grossReturnsAmount, err := returnsAmountMoney.Round(item.GrossReturnsAmount)
-
-		if err != nil {
-			return nil, nil, err
-		}
-
-		grossTotalAmount, err := endUserFeesMoney.Round(item.GrossTotalAmount)
-
-		if err != nil {
-			return nil, nil, err
-		}
-
-		vat, err := vatOnEndUserSalesMoney.Round(item.TotalVat)
-
-		if err != nil {
-			return nil, nil, err
-		}
-
-		fees, err := licenseRevenueShareMoney.Round(item.TotalFees)
-
-		if err != nil {
-			return nil, nil, err
-		}
-
-		payoutAmount := grossTotalAmount - vat - fees
-
-		totalGrossSalesAmount += grossSalesAmount
-		totalGrossReturnsAmount += grossReturnsAmount
-		totalGrossTotalAmount += grossTotalAmount
-		totalVat += vat
-		totalFees += fees
-		totalPayoutAmount += payoutAmount
-	}
-
-	report.Totals.FeeAmount = math.Round(totalFees*100) / 100
-	report.Totals.VatAmount = math.Round(totalVat*100) / 100
-	report.Totals.PayoutAmount = math.Round(totalPayoutAmount*100) / 100
-	report.Summary.ProductsTotal.GrossSalesAmount = math.Round(totalGrossSalesAmount*100) / 100
-	report.Summary.ProductsTotal.GrossReturnsAmount = math.Round(totalGrossReturnsAmount*100) / 100
-	report.Summary.ProductsTotal.GrossTotalAmount = math.Round(totalGrossTotalAmount*100) / 100
-	report.Summary.ProductsTotal.TotalVat = math.Round(totalVat*100) / 100
-	report.Summary.ProductsTotal.TotalFees = math.Round(totalFees*100) / 100
-	report.Summary.ProductsTotal.PayoutAmount = math.Round(totalPayoutAmount*100) / 100
-
-	report.PeriodFrom, err = ptypes.TimestampProto(h.from)
-	if err != nil {
-		return nil, nil, err
-	}
-	report.StringPeriodFrom = h.from.Format("2006-01-02")
-
-	report.PeriodTo, err = ptypes.TimestampProto(h.to)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	// temporary f*cking magic, will be deleted after switch royalty reports generation to UTC time
-	to, err := ptypes.Timestamp(report.PeriodTo)
-	if err != nil {
-		return nil, nil, err
-	}
-	to = now.New(to).EndOfDay()
-	report.StringPeriodTo = to.Format("2006-01-02")
-
-	report.AcceptExpireAt, err = ptypes.TimestampProto(time.Now().Add(time.Duration(h.cfg.RoyaltyReportAcceptTimeout) * time.Second))
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return report, ordersIds, nil
 }
 
 func (s *Service) renderRoyaltyReport(
