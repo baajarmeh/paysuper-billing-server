@@ -161,7 +161,60 @@ func (r *recurringSubscriptionRepository) GetByPlanIdCustomerId(ctx context.Cont
 	}
 
 	var mgo = models.MgoRecurringSubscription{}
-	filter := bson.M{"plan.id": planOid, "customer.id": customerOid}
+	filter := bson.M{"plan._id": planOid, "customer.id": customerOid}
+	err = r.db.Collection(collectionRecurringSubscription).FindOne(ctx, filter).Decode(&mgo)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionRecurringSubscription),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, filter),
+		)
+		return nil, err
+	}
+
+	obj, err := r.mapper.MapMgoToObject(&mgo)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseMapModelFailed,
+			zap.Error(err),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, obj),
+		)
+		return nil, err
+	}
+
+	return obj.(*billingpb.RecurringSubscription), nil
+}
+
+func (r *recurringSubscriptionRepository) GetActiveByPlanIdCustomerId(ctx context.Context, planId, customerId string) (*billingpb.RecurringSubscription, error) {
+	planOid, err := primitive.ObjectIDFromHex(planId)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseInvalidObjectId,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionRecurringSubscription),
+			zap.String(pkg.ErrorDatabaseFieldQuery, planId),
+		)
+		return nil, err
+	}
+
+	customerOid, err := primitive.ObjectIDFromHex(customerId)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseInvalidObjectId,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionRecurringSubscription),
+			zap.String(pkg.ErrorDatabaseFieldQuery, customerId),
+		)
+		return nil, err
+	}
+
+	var mgo = models.MgoRecurringSubscription{}
+	filter := bson.M{"plan._id": planOid, "customer.id": customerOid, "status": billingpb.RecurringSubscriptionStatusActive}
 	err = r.db.Collection(collectionRecurringSubscription).FindOne(ctx, filter).Decode(&mgo)
 
 	if err != nil {
@@ -202,7 +255,7 @@ func (r *recurringSubscriptionRepository) FindByCustomerId(ctx context.Context, 
 	}
 
 	q := bson.M{"customer.id": customerOid}
-	cursor, err := r.db.Collection(collectionRecurringPlan).Find(ctx, q)
+	cursor, err := r.db.Collection(collectionRecurringSubscription).Find(ctx, q)
 
 	if err != nil {
 		zap.L().Error(
@@ -272,8 +325,8 @@ func (r *recurringSubscriptionRepository) FindByMerchantIdCustomerId(
 		return nil, err
 	}
 
-	q := bson.M{"plan.merchant.id": merchantOid, "customer.id": customerOid}
-	cursor, err := r.db.Collection(collectionRecurringPlan).Find(ctx, q)
+	q := bson.M{"plan.merchant_id": merchantOid, "customer.id": customerOid}
+	cursor, err := r.db.Collection(collectionRecurringSubscription).Find(ctx, q)
 
 	if err != nil {
 		zap.L().Error(

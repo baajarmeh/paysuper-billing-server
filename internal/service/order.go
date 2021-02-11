@@ -33,7 +33,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
-	"math"
 	"regexp"
 	"sort"
 	"strconv"
@@ -2770,12 +2769,12 @@ func (v *OrderCreateRequestProcessor) processRecurringSettings() (err error) {
 	}
 
 	if v.checked.user.Id != "" {
-		subscription, err := v.recurringSubscriptionRepository.GetByPlanIdCustomerId(v.ctx, v.request.RecurringPlanId, v.checked.user.Id)
+		subscription, err := v.recurringSubscriptionRepository.GetActiveByPlanIdCustomerId(v.ctx, v.request.RecurringPlanId, v.checked.user.Id)
 		if err != nil && err != mongo.ErrNoDocuments {
 			return err
 		}
 
-		if subscription != nil && subscription.Status == billingpb.RecurringSubscriptionStatusActive {
+		if subscription != nil {
 			return orderErrorRecurringSubscriptionAlreadyExists
 		}
 	}

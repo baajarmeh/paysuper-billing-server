@@ -19,6 +19,9 @@ type RecurringSubscriptionRepositoryInterface interface {
 	// GetByPlanIdCustomerId returns the recurring subscription by recurring plan and customer identity.
 	GetByPlanIdCustomerId(ctx context.Context, planId, customerId string) (*billingpb.RecurringSubscription, error)
 
+	// GetActiveByPlanIdCustomerId returns the active recurring subscription by recurring plan and customer identity.
+	GetActiveByPlanIdCustomerId(ctx context.Context, planId, customerId string) (*billingpb.RecurringSubscription, error)
+
 	// FindByCustomerId returns list of recurring subscriptions by customer identifier.
 	FindByCustomerId(context.Context, string) ([]*billingpb.RecurringSubscription, error)
 
