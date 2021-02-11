@@ -207,6 +207,7 @@ func (s *Service) Init() (err error) {
 	s.autoincrementRepository = repository.NewAutoincrementRepository(s.db)
 	s.merchantDocumentRepository = repository.NewMerchantDocumentRepository(s.db)
 	s.recurringPlanRepository = repository.NewRecurringPlanRepository(s.db)
+	s.recurringSubscriptionRepository = repository.NewRecurringSubscriptionRepository(s.db)
 
 	sCurr, err := s.curService.GetSupportedCurrencies(context.TODO(), &currenciespb.EmptyRequest{})
 	if err != nil {
