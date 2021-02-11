@@ -1119,7 +1119,7 @@ func (h *cardPay) CreateRecurringSubscription(
 		redirectUrl string
 	)
 
-	subscription.CardpayPlanId, err = h.createRecurringPlan(order, subscription.Plan)
+	subscription.CardpayPlanId, err = h.createRecurringPlan(order, subscription.Plan.Charge.Period)
 
 	if err != nil {
 		return "", err
@@ -1134,7 +1134,7 @@ func (h *cardPay) CreateRecurringSubscription(
 	return redirectUrl, nil
 }
 
-func (h *cardPay) createRecurringPlan(order *billingpb.Order, plan *billingpb.RecurringPlan) (string, error) {
+func (h *cardPay) createRecurringPlan(order *billingpb.Order, period *billingpb.RecurringPlanPeriod) (string, error) {
 	data := &CardPayRecurringPlanRequest{
 		Request: &CardPayRequest{
 			Id:   order.Id,
@@ -1143,9 +1143,9 @@ func (h *cardPay) createRecurringPlan(order *billingpb.Order, plan *billingpb.Re
 		PlanData: &CardPayRecurringPlanData{
 			Amount:   order.ChargeAmount,
 			Currency: order.ChargeCurrency,
-			Interval: plan.Charge.Period.Value,
+			Interval: period.Value,
 			Name:     order.Id,
-			Period:   plan.Charge.Period.Type,
+			Period:   period.Type,
 			Retries:  1,
 		},
 	}

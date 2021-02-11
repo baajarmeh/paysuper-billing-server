@@ -95,7 +95,6 @@ type MgoOrder struct {
 	RoyaltyReportId             string                                   `bson:"royalty_report_id"`
 	NetRevenue                  *billingpb.OrderViewMoney                `bson:"-"`
 	Fee                         *billingpb.OrderViewMoney                `bson:"-"`
-	RecurringSettings           *billingpb.OrderRecurringSettings        `bson:"recurring_settings"`
 	RecurringPlanId             string                                   `bson:"recurring_plan_id"`
 	RecurringSubscriptionId     string                                   `bson:"recurring_subscription_id"`
 }
