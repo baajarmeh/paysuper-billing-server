@@ -7,7 +7,7 @@
         "u": [
           {
             "$set": {
-              "totals.b2b_vat_base": {"$round": [{"$sum": ["$totals.payout_amount", "$totals.correction_total_amount"]}, 2]},
+              "totals.b2b_vat_base": {"$round": ["$totals.fee_amount", 2]},
               "totals.final_payout_amount": {"$round": [{"$sum": ["$totals.payout_amount", "$totals.correction_total_amount"]}, 2]},
               "totals.b2b_vat_rate": 0,
               "totals.b2b_vat_amount": 0
