@@ -430,11 +430,10 @@ func (s *Service) ChangeRoyaltyReport(
 			return nil
 		}
 
-		report.Totals.B2BVatBase = report.Totals.PayoutAmount + report.Totals.CorrectionAmount
-		report.Totals.B2BVatAmount = math.Round(report.Totals.B2BVatAmount*100) / 100
-
+		report.Totals.B2BVatBase = report.Totals.FeeAmount
 		report.Totals.B2BVatAmount = report.Totals.B2BVatBase * report.Totals.B2BVatRate
-		report.Totals.FinalPayoutAmount = report.Totals.PayoutAmount - report.Totals.B2BVatAmount
+		// FinalPayoutAmount is a real amount to be paid to merchant, excluding all VAT and including all manual corrections, if any.
+		report.Totals.FinalPayoutAmount = report.Totals.PayoutAmount + report.Totals.CorrectionAmount - report.Totals.B2BVatAmount
 
 		report.Totals.B2BVatAmount = math.Round(report.Totals.B2BVatAmount*100) / 100
 		report.Totals.FinalPayoutAmount = math.Round(report.Totals.FinalPayoutAmount*100) / 100
