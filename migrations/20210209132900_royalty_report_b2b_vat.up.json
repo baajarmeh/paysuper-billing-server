@@ -1,0 +1,21 @@
+[
+  {
+    "update": "royalty_report",
+    "updates": [
+      {
+        "q": {},
+        "u": [
+          {
+            "$set": {
+              "b2b_vat_base": {"$round": [{"$sum": ["$payout_amount", "$correction_amount"]}, 2]},
+              "final_payout_amount": {"$round": [{"$sum": ["$payout_amount", "$correction_amount"]}, 2]},
+              "b2b_vat_rate": 0,
+              "b2b_vat_amount": 0
+            }
+          }
+        ],
+        "multi": true
+      }
+    ]
+  }
+]

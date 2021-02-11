@@ -131,16 +131,36 @@ func (s *Service) GetActOfCompletion(
 		return err
 	}
 
-	payoutAmount := report.Summary.ProductsTotal.GrossTotalAmount - report.Summary.ProductsTotal.TotalFees - report.Summary.ProductsTotal.TotalVat
-	totalFeesAmount := payoutAmount + report.Totals.CorrectionAmount
-	balanceAmount := payoutAmount + report.Totals.CorrectionAmount - report.Totals.RollingReserveAmount
+	oc, err := s.operatingCompanyRepository.GetById(ctx, report.OperatingCompanyId)
+	if err != nil {
+		return merchantOperatingCompanyNotFound
+	}
+
+	report.Totals.B2BVatRate, err = s.GetB2bVatRate(oc.Country, merchant.Company.Country)
+	if err != nil {
+		return errorGettingB2BVatRate
+	}
+
+	report.Totals.B2BVatBase = report.Totals.FeeAmount
+	report.Totals.B2BVatAmount = math.Round(report.Totals.B2BVatAmount*100) / 100
+
+	report.Totals.B2BVatAmount = report.Totals.B2BVatBase * report.Totals.B2BVatRate
+	report.Totals.FinalPayoutAmount = report.Totals.PayoutAmount + report.Totals.CorrectionAmount - report.Totals.B2BVatAmount
+
+	report.Totals.B2BVatAmount = math.Round(report.Totals.B2BVatAmount*100) / 100
+	report.Totals.FinalPayoutAmount = math.Round(report.Totals.FinalPayoutAmount*100) / 100
 
 	rsp.Status = billingpb.ResponseStatusOk
 	rsp.Item = &billingpb.ActOfCompletionDocument{
 		MerchantId:        merchant.Id,
-		TotalFees:         math.Round(totalFeesAmount*100) / 100,
-		Balance:           math.Round(balanceAmount*100) / 100,
+		TotalFees:         report.Totals.PayoutAmount,
+		Balance:           report.Totals.FinalPayoutAmount - report.Totals.RollingReserveAmount,
 		TotalTransactions: report.Totals.TransactionsCount,
+		B2BVatBase:        report.Totals.B2BVatBase,
+		B2BVatRate:        report.Totals.B2BVatRate,
+		B2BVatAmount:      report.Totals.B2BVatAmount,
+		FeesExcludingVat:  report.Totals.PayoutAmount - report.Totals.B2BVatAmount,
+		CorrectionsAmount: report.Totals.CorrectionAmount,
 	}
 
 	return nil
