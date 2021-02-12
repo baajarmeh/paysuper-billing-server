@@ -540,7 +540,7 @@ func (s *Service) TaskExtendRoyaltiesWithVat(ctx context.Context) (err error) {
 			continue
 		}
 
-		reports, err := s.royaltyReportRepository.FindByMerchantStatusDates(ctx, "", []string{}, "2021-01-01T00:00:00", "", -1, 0, []string{})
+		reports, err := s.royaltyReportRepository.FindByMerchantStatusDates(ctx, "", []string{}, "2021-01-01T00:00:00", "", 0, -1, []string{})
 		if err != nil {
 			return err
 		}
