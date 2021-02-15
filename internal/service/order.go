@@ -495,7 +495,9 @@ func (s *Service) OrderCreateProcess(
 		}
 
 		if processor.checked.recurringPlan != nil && !processor.checked.paymentMethod.RecurringAllowed {
-			return orderErrorRecurringNotAllowed
+			rsp.Status = billingpb.ResponseStatusBadData
+			rsp.Message = orderErrorRecurringNotAllowed
+			return nil
 		}
 	}
 
@@ -1366,6 +1368,8 @@ func (s *Service) PaymentCallbackProcess(
 	if pErr == nil {
 		if h.IsSubscriptionCallback(data) && subscription != nil {
 			if order.PrivateStatus != recurringpb.OrderStatusPaymentSystemComplete {
+				subscription.Status = billingpb.RecurringSubscriptionStatusCanceled
+
 				err = h.DeleteRecurringSubscription(order, subscription)
 
 				if err != nil {
@@ -1386,21 +1390,21 @@ func (s *Service) PaymentCallbackProcess(
 				subscription.Status = billingpb.RecurringSubscriptionStatusActive
 				subscription.LastPaymentAt = latestPayment
 				subscription.TotalAmount += subscription.Plan.Charge.Amount
+			}
 
-				err := s.recurringSubscriptionRepository.Update(ctx, subscription)
+			err := s.recurringSubscriptionRepository.Update(ctx, subscription)
 
-				if err != nil {
-					zap.L().Error(
-						pkg.MethodFinishedWithError,
-						zap.String("Method", "UpdateSubscription"),
-						zap.Error(err),
-						zap.String("orderId", order.Id),
-						zap.String("subscriptionId", order.RecurringSubscriptionId),
-						zap.String("cardPaySubscriptionId", subscription.CardpaySubscriptionId),
-					)
+			if err != nil {
+				zap.L().Error(
+					pkg.MethodFinishedWithError,
+					zap.String("Method", "UpdateSubscription"),
+					zap.Error(err),
+					zap.String("orderId", order.Id),
+					zap.String("subscriptionId", order.RecurringSubscriptionId),
+					zap.String("cardPaySubscriptionId", subscription.CardpaySubscriptionId),
+				)
 
-					return errors.New(subscriptionUpdateFailed)
-				}
+				return errors.New(subscriptionUpdateFailed)
 			}
 		}
 
@@ -2760,7 +2764,7 @@ func (v *OrderCreateRequestProcessor) processRecurringSettings() (err error) {
 	}
 
 	plan, err := v.recurringPlanRepository.GetById(v.ctx, v.request.RecurringPlanId)
-	if err != nil {
+	if err != nil || plan.ProjectId != v.checked.project.Id {
 		return orderErrorRecurringPlanNotFound
 	}
 
@@ -4600,7 +4604,7 @@ func (s *Service) getOrderReceiptObject(ctx context.Context, order *billingpb.Or
 		receipt.SubscriptionViewUrl = fmt.Sprintf("%s/subscriptions/%s", s.cfg.CheckoutUrl, order.RecurringSubscriptionId)
 		receipt.RecurringPeriod = subscription.Plan.Charge.Period.Type
 		receipt.RecurringInterval = fmt.Sprintf("%d", subscription.Plan.Charge.Period.Value)
-		receipt.RecurringDateEnd = expireAt.Format(billingpb.FilterDatetimeFormat)
+		receipt.RecurringDateEnd = expireAt.Format(billingpb.FilterDateFormat)
 	}
 
 	if len(subscriptions) > 0 {

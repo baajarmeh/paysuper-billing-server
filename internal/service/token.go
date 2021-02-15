@@ -150,6 +150,18 @@ func (s *Service) CreateToken(
 		}
 	}
 
+	// We need to check for recurring subscriptions before validating currency and amount.
+	// Upon successful validation, we must take the currency and value from the recurring plan.
+	if err := processor.processRecurringSettings(); err != nil {
+		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err.Error())
+		if e, ok := err.(*billingpb.ResponseErrorMessage); ok {
+			rsp.Status = billingpb.ResponseStatusBadData
+			rsp.Message = e
+			return nil
+		}
+		return err
+	}
+
 	err = processor.processCurrency(req.Settings.Type)
 	if err != nil {
 		rsp.Status = billingpb.ResponseStatusBadData
@@ -235,16 +247,6 @@ func (s *Service) CreateToken(
 
 	if err != nil {
 		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err)
-		if e, ok := err.(*billingpb.ResponseErrorMessage); ok {
-			rsp.Status = billingpb.ResponseStatusBadData
-			rsp.Message = e
-			return nil
-		}
-		return err
-	}
-
-	if err := processor.processRecurringSettings(); err != nil {
-		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err.Error())
 		if e, ok := err.(*billingpb.ResponseErrorMessage); ok {
 			rsp.Status = billingpb.ResponseStatusBadData
 			rsp.Message = e

@@ -120,21 +120,29 @@ func (m *recurringSubscriptionMapper) MapObjectToMgo(obj interface{}) (interface
 
 	out.ExpireAt = t
 
-	t, err = ptypes.Timestamp(in.CreatedAt)
+	if in.CreatedAt != nil {
+		t, err := ptypes.Timestamp(in.CreatedAt)
 
-	if err != nil {
-		return nil, err
+		if err != nil {
+			return nil, err
+		}
+
+		out.CreatedAt = t
+	} else {
+		out.CreatedAt = time.Now()
 	}
 
-	out.CreatedAt = t
+	if in.UpdatedAt != nil {
+		t, err := ptypes.Timestamp(in.UpdatedAt)
 
-	t, err = ptypes.Timestamp(in.UpdatedAt)
+		if err != nil {
+			return nil, err
+		}
 
-	if err != nil {
-		return nil, err
+		out.UpdatedAt = t
+	} else {
+		out.UpdatedAt = time.Now()
 	}
-
-	out.UpdatedAt = t
 
 	return out, nil
 }
@@ -180,7 +188,7 @@ func (m *recurringSubscriptionMapper) MapMgoToObject(obj interface{}) (interface
 		}
 	}
 
-	if !in.LastPaymentAt.IsZero() {
+	if in.LastPaymentAt != nil && !in.LastPaymentAt.IsZero() {
 		out.LastPaymentAt, err = ptypes.TimestampProto(*in.LastPaymentAt)
 
 		if err != nil {

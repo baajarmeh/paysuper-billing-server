@@ -18,7 +18,6 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-proto/go/billingpb"
 	"github.com/paysuper/paysuper-proto/go/recurringpb"
-	recurringMocks "github.com/paysuper/paysuper-proto/go/recurringpb/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
@@ -956,8 +955,7 @@ func HelperCreateAndPayOrderWithRecurring(
 	project *billingpb.Project,
 	paymentMethod *billingpb.PaymentMethod,
 	cookie,
-	recurringPeriod,
-	recurringDateEnd string,
+	recurringPlanId string,
 ) *billingpb.Order {
 	centrifugoMock := &mocks.CentrifugoInterface{}
 	centrifugoMock.On("GetChannelToken", mock.Anything, mock.Anything).Return("token")
@@ -991,8 +989,7 @@ func HelperCreateAndPayOrderWithRecurring(
 				PostalCode: zip,
 			},
 		},
-		RecurringPeriod:  recurringPeriod,
-		RecurringDateEnd: recurringDateEnd,
+		RecurringPlanId: recurringPlanId,
 	}
 
 	rsp := &billingpb.OrderCreateProcessResponse{}
@@ -1016,13 +1013,6 @@ func HelperPayOrder(
 	centrifugoMock.On("Publish", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	service.centrifugoDashboard = centrifugoMock
 	service.centrifugoPaymentForm = centrifugoMock
-
-	recurring := &recurringMocks.RepositoryService{}
-	recurring.On("AddSubscription", mock.Anything, mock.Anything).Return(&recurringpb.AddSubscriptionResponse{Status: billingpb.ResponseStatusOk, SubscriptionId: "subscription_id"}, nil)
-	recurring.On("UpdateSubscription", mock.Anything, mock.Anything).Return(&recurringpb.UpdateSubscriptionResponse{Status: billingpb.ResponseStatusOk}, nil)
-	recurring.On("GetSubscription", mock.Anything, mock.Anything).Return(&recurringpb.GetSubscriptionResponse{Subscription: &recurringpb.Subscription{}, Status: billingpb.ResponseStatusOk}, nil)
-	recurring.On("FindSubscriptions", mock.Anything, mock.Anything).Return(&recurringpb.FindSubscriptionsResponse{List: []*recurringpb.Subscription{{Id: "id"}}}, nil)
-	service.rep = recurring
 
 	req1 := &billingpb.PaymentCreateRequest{
 		Data: map[string]string{
@@ -1325,11 +1315,6 @@ func HelperCreateAndPayOrder2(
 	service.centrifugoDashboard = centrifugoMock
 	service.centrifugoPaymentForm = centrifugoMock
 
-	recurring := &recurringMocks.RepositoryService{}
-	recurring.On("AddSubscription", mock.Anything, mock.Anything).Return(&recurringpb.AddSubscriptionResponse{Status: billingpb.ResponseStatusOk, SubscriptionId: "subscription_id"}, nil)
-	recurring.On("FindSubscriptions", mock.Anything, mock.Anything).Return(&recurringpb.FindSubscriptionsResponse{List: []*recurringpb.Subscription{{Id: "id"}}}, nil)
-	service.rep = recurring
-
 	req := &billingpb.OrderCreateRequest{
 		ProjectId:   project.Id,
 		Account:     "unit test",
@@ -1467,11 +1452,6 @@ func HelperCreateAndPayOrderWithUser(
 	centrifugoMock.On("Publish", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	service.centrifugoDashboard = centrifugoMock
 	service.centrifugoPaymentForm = centrifugoMock
-
-	recurring := &recurringMocks.RepositoryService{}
-	recurring.On("AddSubscription", mock.Anything, mock.Anything).Return(&recurringpb.AddSubscriptionResponse{Status: billingpb.ResponseStatusOk, SubscriptionId: "subscription_id"}, nil)
-	recurring.On("FindSubscriptions", mock.Anything, mock.Anything).Return(&recurringpb.FindSubscriptionsResponse{List: []*recurringpb.Subscription{{Id: "id"}}}, nil)
-	service.rep = recurring
 
 	if len(userEmail) == 0 {
 		userEmail = "test@unit.unit"
