@@ -87,6 +87,15 @@ func (s *Service) SendWebhookToMerchant(
 		break
 	case pkg.OrderType_simple:
 		processor.processAmount()
+	case pkg.OrderTypeVirtualCurrency:
+		err = processor.processVirtualCurrency(ctx)
+
+		if err != nil {
+			res.Status = billingpb.ResponseStatusBadData
+			res.Message = err.(*billingpb.ResponseErrorMessage)
+			return nil
+		}
+		break
 	default:
 		zap.L().Error(
 			webhookTypeIncorrect.Message,

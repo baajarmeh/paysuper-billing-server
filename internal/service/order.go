@@ -33,6 +33,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
+	"math"
 	"regexp"
 	"sort"
 	"strconv"
@@ -431,6 +432,19 @@ func (s *Service) OrderCreateProcess(
 	case pkg.OrderType_simple:
 		if req.Amount != 0 {
 			processor.processAmount()
+		}
+		break
+	case pkg.OrderTypeVirtualCurrency:
+		err := processor.processVirtualCurrency(ctx)
+		if err != nil {
+			zap.L().Error(
+				pkg.MethodFinishedWithError,
+				zap.Error(err),
+			)
+
+			rsp.Status = billingpb.ResponseStatusBadData
+			rsp.Message = err.(*billingpb.ResponseErrorMessage)
+			return nil
 		}
 		break
 	case pkg.OrderType_product:
@@ -4688,6 +4702,29 @@ func (s *Service) paymentSystemPaymentCallbackComplete(ctx context.Context, orde
 	}
 
 	return s.centrifugoPaymentForm.Publish(ctx, ch, message)
+}
+
+func (v *OrderCreateRequestProcessor) processVirtualCurrency(_ context.Context) error {
+	amount := v.request.Amount
+	virtualCurrency := v.checked.project.VirtualCurrency
+
+	if virtualCurrency == nil || len(virtualCurrency.Prices) <= 0 {
+		return orderErrorVirtualCurrencyNotFilled
+	}
+
+	_, frac := math.Modf(amount)
+
+	if virtualCurrency.SellCountType == pkg.ProjectSellCountTypeIntegral && frac > 0 {
+		return orderErrorVirtualCurrencyFracNotSupported
+	}
+
+	if amount < virtualCurrency.MinPurchaseValue ||
+		(virtualCurrency.MaxPurchaseValue > 0 && amount > virtualCurrency.MaxPurchaseValue) {
+		return orderErrorVirtualCurrencyLimits
+	}
+
+	v.checked.virtualAmount = amount
+	return nil
 }
 
 func (s *Service) OrderReCreateProcess(

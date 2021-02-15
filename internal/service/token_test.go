@@ -1289,6 +1289,8 @@ func (suite *TokenTestSuite) TestToken_CreateToken_WithRecurringPlan() {
 				Type:  billingpb.RecurringPeriodDay,
 				Value: 1,
 			},
+			Currency: "RUB",
+			Amount:   1,
 		},
 		Status: pkg.RecurringPlanStatusActive,
 		Name:   map[string]string{"en": "name"},
