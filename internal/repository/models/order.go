@@ -363,6 +363,12 @@ func (o *orderMapper) MapObjectToMgo(obj interface{}) (interface{}, error) {
 		}
 	}
 
+	if m.Project != nil && len(m.Project.FormDefaultText) > 0 {
+		for k, v := range m.Project.FormDefaultText {
+			st.Project.FormDefaultText = append(st.Project.FormDefaultText, &MgoMultiLang{Lang: k, Value: v})
+		}
+	}
+
 	if m.Project != nil && m.Project.FirstPaymentAt != nil {
 		st.Project.FirstPaymentAt, err = ptypes.Timestamp(m.Project.FirstPaymentAt)
 		if err != nil {
