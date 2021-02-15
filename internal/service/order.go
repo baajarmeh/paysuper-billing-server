@@ -4611,12 +4611,17 @@ func (s *Service) getOrderReceiptObject(ctx context.Context, order *billingpb.Or
 		return nil, err
 	}
 
+	merchantName := merchant.GetTrademark()
+	if merchantName == "" {
+		merchantName = merchant.GetCompanyName()
+	}
+
 	receipt := &billingpb.OrderReceipt{
 		TotalPrice:                 totalPrice,
 		TransactionId:              order.Uuid,
 		TransactionDate:            date,
 		ProjectName:                order.Project.Name[DefaultLanguage],
-		MerchantName:               merchant.GetCompanyName(),
+		MerchantName:               merchantName,
 		Items:                      items,
 		OrderType:                  order.Type,
 		PlatformName:               platformName,
