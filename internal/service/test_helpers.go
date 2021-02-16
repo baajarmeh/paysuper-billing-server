@@ -843,6 +843,9 @@ func HelperCreateProject(
 			},
 			SellCountType: "integral",
 		},
+		FormDefaultText: map[string]string{
+			"en": "In-game purchase",
+		},
 	}
 
 	if err := service.project.Insert(context.TODO(), project); err != nil {

@@ -1,0 +1,18 @@
+[
+  {
+    "update": "merchant",
+    "updates": [
+      {
+        "q": {"company": {"$ne": null}},
+        "u": [
+          {
+            "$set": {
+              "company.trademark": ""
+            }
+          }
+        ],
+        "multi": true
+      }
+    ]
+  }
+]
