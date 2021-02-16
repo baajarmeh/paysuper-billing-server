@@ -6,29 +6,110 @@
         "q": {},
         "u": [
           {
+            "$unset": "form_default_text"
+          },
+          {
             "$set": {
-              "form_default_text.ar":"المبلغ المحدد",
-              "form_default_text.bg":"Избрана сума",
-              "form_default_text.cs":"Zvolená částka",
-              "form_default_text.da":"Valgt beløb",
-              "form_default_text.de":"Ausgewählter Betrag",
-              "form_default_text.el":"Επιλεγμένο ποσό",
-              "form_default_text.en":"In-game purchase",
-              "form_default_text.es":"Monto seleccionado",
-              "form_default_text.fi":"Valittu määrä",
-              "form_default_text.fr":"Montant sélectionné",
-              "form_default_text.he":"הסכום שנבחר",
-              "form_default_text.it":"Importo selezionato",
-              "form_default_text.ja":"選択された合計",
-              "form_default_text.ko":"선택 금액",
-              "form_default_text.pl":"Wybrana kwota",
-              "form_default_text.pt":"Quantia selecionada",
-              "form_default_text.ru":"Покупка в игре",
-              "form_default_text.sv":"Vald summa",
-              "form_default_text.th":"จำนวนที่เลือก",
-              "form_default_text.tr":"Seçilen tutar",
-              "form_default_text.vi":"Số tiền được chọn",
-              "form_default_text.zh":"选择金额"
+              "form_default_text": []
+            }
+          },
+          {
+            "$set": {
+              "form_default_text": {
+                "$concatArrays": [
+                  "$form_default_text",
+                  [
+                    {
+                      "lang": "ar",
+                      "value": "المبلغ المحدد"
+                    },
+                    {
+                      "lang": "bg",
+                      "value": "Избрана сума"
+                    },
+                    {
+                      "lang": "cs",
+                      "value": "Zvolená částka"
+                    },
+                    {
+                      "lang": "da",
+                      "value": "Valgt beløb"
+                    },
+                    {
+                      "lang": "de",
+                      "value": "Ausgewählter Betrag"
+                    },
+                    {
+                      "lang": "el",
+                      "value": "Επιλεγμένο ποσό"
+                    },
+                    {
+                      "lang": "en",
+                      "value": "In-game purchase"
+                    },
+                    {
+                      "lang": "es",
+                      "value": "Monto seleccionado"
+                    },
+                    {
+                      "lang": "fi",
+                      "value": "Valittu määrä"
+                    },
+                    {
+                      "lang": "fr",
+                      "value": "Montant sélectionné"
+                    },
+                    {
+                      "lang": "he",
+                      "value": "הסכום שנבחר"
+                    },
+                    {
+                      "lang": "it",
+                      "value": "Importo selezionato"
+                    },
+                    {
+                      "lang": "ja",
+                      "value": "選択された合計"
+                    },
+                    {
+                      "lang": "ko",
+                      "value": "선택 금액"
+                    },
+                    {
+                      "lang": "pl",
+                      "value": "Wybrana kwota"
+                    },
+                    {
+                      "lang": "pt",
+                      "value": "Quantia selecionada"
+                    },
+                    {
+                      "lang": "ru",
+                      "value": "Покупка в игре"
+                    },
+                    {
+                      "lang": "sv",
+                      "value": "Vald summa"
+                    },
+                    {
+                      "lang": "th",
+                      "value": "จำนวนที่เลือก"
+                    },
+                    {
+                      "lang": "tr",
+                      "value": "Seçilen tutar"
+                    },
+                    {
+                      "lang": "vi",
+                      "value": "Số tiền được chọn"
+                    },
+                    {
+                      "lang": "zh",
+                      "value": "选择金额"
+                    }
+                  ]
+                ]
+              }
             }
           }
         ],
