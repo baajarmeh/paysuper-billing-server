@@ -10,6 +10,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
 	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v2"
+	"time"
 )
 
 const (
@@ -347,6 +348,51 @@ func (r *recurringSubscriptionRepository) FindByMerchantIdCustomerId(
 			zap.Error(err),
 			zap.String(pkg.ErrorDatabaseFieldCollection, collectionRecurringSubscription),
 			zap.Any(pkg.ErrorDatabaseFieldQuery, q),
+		)
+		return nil, err
+	}
+
+	objs := make([]*billingpb.RecurringSubscription, len(list))
+
+	for i, obj := range list {
+		v, err := r.mapper.MapMgoToObject(obj)
+		if err != nil {
+			zap.L().Error(
+				pkg.ErrorDatabaseMapModelFailed,
+				zap.Error(err),
+				zap.Any(pkg.ErrorDatabaseFieldQuery, obj),
+			)
+			return nil, err
+		}
+		objs[i] = v.(*billingpb.RecurringSubscription)
+	}
+
+	return objs, nil
+}
+
+func (r *recurringSubscriptionRepository) FindExpired(ctx context.Context, expireAt time.Time) ([]*billingpb.RecurringSubscription, error) {
+	query := bson.M{"expire_at": bson.M{"$lt": expireAt}, "status": billingpb.RecurringSubscriptionStatusActive}
+	cursor, err := r.db.Collection(collectionRecurringSubscription).Find(ctx, query)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionRecurringSubscription),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+		)
+		return nil, err
+	}
+
+	var list []*models.MgoRecurringSubscription
+	err = cursor.All(ctx, &list)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorQueryCursorExecutionFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionRecurringSubscription),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
 		)
 		return nil, err
 	}

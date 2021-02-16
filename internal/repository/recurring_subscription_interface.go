@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"github.com/paysuper/paysuper-proto/go/billingpb"
+	"time"
 )
 
 // RecurringSubscriptionRepositoryInterface is abstraction layer for working with recurring subscription information and representation in database.
@@ -27,4 +28,7 @@ type RecurringSubscriptionRepositoryInterface interface {
 
 	// FindByMerchantIdCustomerId returns list of recurring subscriptions by merchant and customer identifier.
 	FindByMerchantIdCustomerId(ctx context.Context, merchantId, customerId string) ([]*billingpb.RecurringSubscription, error)
+
+	// FindExpired returns list of recurring subscriptions with expire time.
+	FindExpired(ctx context.Context, expireAt time.Time) ([]*billingpb.RecurringSubscription, error)
 }

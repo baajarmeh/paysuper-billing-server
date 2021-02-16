@@ -13,6 +13,7 @@ import (
 	"go.uber.org/zap"
 	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v2"
 	"testing"
+	"time"
 )
 
 type RecurringSubscriptionTestSuite struct {
@@ -244,6 +245,24 @@ func (suite *RecurringSubscriptionTestSuite) TestFindByMerchantIdCustomerId() {
 	assert.NotEmpty(suite.T(), subscriptions2)
 	assert.Len(suite.T(), subscriptions2, 1)
 	assert.Equal(suite.T(), subscription2.Id, subscriptions2[0].Id)
+}
+
+func (suite *RecurringSubscriptionTestSuite) TestFindExpired() {
+	subscription1 := suite.template()
+	err := suite.repository.Insert(context.TODO(), subscription1)
+	assert.NoError(suite.T(), err)
+
+	subscription2 := suite.template()
+	exp := time.Now().UTC().AddDate(0, 0, 1)
+	subscription2.ExpireAt, _ = ptypes.TimestampProto(exp)
+	err = suite.repository.Insert(context.TODO(), subscription2)
+	assert.NoError(suite.T(), err)
+
+	subscriptions, err := suite.repository.FindExpired(context.TODO(), time.Now().UTC())
+	assert.NoError(suite.T(), err)
+	assert.NotEmpty(suite.T(), subscriptions)
+	assert.Len(suite.T(), subscriptions, 1)
+	assert.Equal(suite.T(), subscription1.Id, subscriptions[0].Id)
 }
 
 func (suite *RecurringSubscriptionTestSuite) template() *billingpb.RecurringSubscription {

@@ -16,6 +16,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v2"
 	"testing"
+	"time"
 )
 
 type RecurringTestSuite struct {
@@ -81,7 +82,7 @@ func (suite *RecurringTestSuite) TearDownTest() {
 	}
 }
 
-func (suite *RecurringTestSuite) TestRecurring_DeleteSavedCard_Ok() {
+func (suite *RecurringTestSuite) TestDeleteSavedCard_Ok() {
 	customer := &BrowserCookieCustomer{
 		VirtualCustomerId: primitive.NewObjectID().Hex(),
 		Ip:                "127.0.0.1",
@@ -104,7 +105,7 @@ func (suite *RecurringTestSuite) TestRecurring_DeleteSavedCard_Ok() {
 	assert.Empty(suite.T(), rsp.Message)
 }
 
-func (suite *RecurringTestSuite) TestRecurring_DeleteSavedCard_IncorrectCookie_Error() {
+func (suite *RecurringTestSuite) TestDeleteSavedCard_IncorrectCookie_Error() {
 	req := &billingpb.DeleteSavedCardRequest{
 		Id:     primitive.NewObjectID().Hex(),
 		Cookie: primitive.NewObjectID().Hex(),
@@ -116,7 +117,7 @@ func (suite *RecurringTestSuite) TestRecurring_DeleteSavedCard_IncorrectCookie_E
 	assert.Equal(suite.T(), recurringErrorIncorrectCookie, rsp.Message)
 }
 
-func (suite *RecurringTestSuite) TestRecurring_DeleteSavedCard_DontHaveCustomerId_Error() {
+func (suite *RecurringTestSuite) TestDeleteSavedCard_DontHaveCustomerId_Error() {
 	customer := &BrowserCookieCustomer{
 		Ip:             "127.0.0.1",
 		AcceptLanguage: "fr-CA",
@@ -138,7 +139,7 @@ func (suite *RecurringTestSuite) TestRecurring_DeleteSavedCard_DontHaveCustomerI
 	assert.Equal(suite.T(), recurringCustomerNotFound, rsp.Message)
 }
 
-func (suite *RecurringTestSuite) TestRecurring_DeleteSavedCard_RealCustomer_Ok() {
+func (suite *RecurringTestSuite) TestDeleteSavedCard_RealCustomer_Ok() {
 	project := &billingpb.Project{
 		Id:         primitive.NewObjectID().Hex(),
 		MerchantId: primitive.NewObjectID().Hex(),
@@ -183,7 +184,7 @@ func (suite *RecurringTestSuite) TestRecurring_DeleteSavedCard_RealCustomer_Ok()
 	assert.Empty(suite.T(), rsp.Message)
 }
 
-func (suite *RecurringTestSuite) TestRecurring_DeleteSavedCard_RealCustomerNotFound_Error() {
+func (suite *RecurringTestSuite) TestDeleteSavedCard_RealCustomerNotFound_Error() {
 	browserCustomer := &BrowserCookieCustomer{
 		CustomerId:     primitive.NewObjectID().Hex(),
 		Ip:             "127.0.0.1",
@@ -206,7 +207,7 @@ func (suite *RecurringTestSuite) TestRecurring_DeleteSavedCard_RealCustomerNotFo
 	assert.Equal(suite.T(), recurringCustomerNotFound, rsp.Message)
 }
 
-func (suite *RecurringTestSuite) TestRecurring_DeleteSavedCard_RecurringServiceSystem_Error() {
+func (suite *RecurringTestSuite) TestDeleteSavedCard_RecurringServiceSystem_Error() {
 	browserCustomer := &BrowserCookieCustomer{
 		VirtualCustomerId: primitive.NewObjectID().Hex(),
 		Ip:                "127.0.0.1",
@@ -231,7 +232,7 @@ func (suite *RecurringTestSuite) TestRecurring_DeleteSavedCard_RecurringServiceS
 	assert.Equal(suite.T(), recurringErrorUnknown, rsp.Message)
 }
 
-func (suite *RecurringTestSuite) TestRecurring_DeleteSavedCard_RecurringServiceResult_Error() {
+func (suite *RecurringTestSuite) TestDeleteSavedCard_RecurringServiceResult_Error() {
 	browserCustomer := &BrowserCookieCustomer{
 		VirtualCustomerId: primitive.NewObjectID().Hex(),
 		Ip:                "127.0.0.1",
@@ -256,7 +257,7 @@ func (suite *RecurringTestSuite) TestRecurring_DeleteSavedCard_RecurringServiceR
 	assert.Equal(suite.T(), recurringSavedCardNotFount, rsp.Message)
 }
 
-func (suite *RecurringTestSuite) TestRecurring_DeleteSavedCard_RecurringServiceResultSystemError_Error() {
+func (suite *RecurringTestSuite) TestDeleteSavedCard_RecurringServiceResultSystemError_Error() {
 	browserCustomer := &BrowserCookieCustomer{
 		VirtualCustomerId: "ffffffffffffffffffffffff",
 		Ip:                "127.0.0.1",
@@ -1210,4 +1211,531 @@ func (suite *RecurringTestSuite) TestGetRecurringPlansOk() {
 	assert.Equal(suite.T(), billingpb.ResponseStatusOk, res.Status)
 	assert.Equal(suite.T(), int32(1), res.Count)
 	assert.Len(suite.T(), res.List, 1)
+}
+
+func (suite *RecurringTestSuite) TestDeleteRecurringSubscription_WithoutCookie_Ok() {
+	var (
+		psId      = "payment_system_id"
+		psHandler = "payment_system_handler"
+	)
+
+	subscription := &billingpb.RecurringSubscription{
+		Id: primitive.NewObjectID().Hex(),
+		Plan: &billingpb.RecurringPlan{
+			MerchantId: primitive.NewObjectID().Hex(),
+		},
+	}
+	order := &billingpb.Order{
+		PaymentMethod: &billingpb.PaymentMethodOrder{
+			PaymentSystemId: psId,
+		},
+	}
+
+	orderRepository := &mocks.OrderRepositoryInterface{}
+	orderRepository.On("GetManyBy", mock.Anything, mock.Anything).Return([]*billingpb.Order{order}, nil)
+	suite.service.orderRepository = orderRepository
+
+	subscriptionRepository := &mocks.RecurringSubscriptionRepositoryInterface{}
+	subscriptionRepository.On("GetById", mock.Anything, subscription.Id).Return(subscription, nil)
+	subscriptionRepository.On("Update", mock.Anything, mock.MatchedBy(func(input *billingpb.RecurringSubscription) bool {
+		return input.Id == subscription.Id && input.Status == billingpb.RecurringSubscriptionStatusCanceled
+	})).Return(nil)
+	suite.service.recurringSubscriptionRepository = subscriptionRepository
+
+	psRepository := &mocks.PaymentSystemRepositoryInterface{}
+	psRepository.On("GetById", mock.Anything, psId).Return(&billingpb.PaymentSystem{
+		Handler: psHandler,
+	}, nil)
+	suite.service.paymentSystemRepository = psRepository
+
+	paymentSystem := &mocks.PaymentSystemInterface{}
+	paymentSystem.On("DeleteRecurringSubscription", order, subscription).Return(nil)
+
+	gatewayManagerMock := &mocks.PaymentSystemManagerInterface{}
+	gatewayManagerMock.On("GetGateway", psHandler).Return(paymentSystem, nil)
+	suite.service.paymentSystemGateway = gatewayManagerMock
+
+	rsp := &billingpb.EmptyResponseWithStatus{}
+	err := suite.service.DeleteRecurringSubscription(context.Background(), &billingpb.DeleteRecurringSubscriptionRequest{
+		Id:         subscription.Id,
+		MerchantId: subscription.Plan.MerchantId,
+	}, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp.Status)
+}
+
+func (suite *RecurringTestSuite) TestDeleteRecurringSubscription_WithCookie_Ok() {
+	var (
+		psId      = "payment_system_id"
+		psHandler = "payment_system_handler"
+	)
+
+	subscription := &billingpb.RecurringSubscription{
+		Id: primitive.NewObjectID().Hex(),
+		Plan: &billingpb.RecurringPlan{
+			MerchantId: primitive.NewObjectID().Hex(),
+		},
+		Customer: &billingpb.RecurringSubscriptionCustomer{
+			Id: primitive.NewObjectID().Hex(),
+		},
+	}
+	order := &billingpb.Order{
+		PaymentMethod: &billingpb.PaymentMethodOrder{
+			PaymentSystemId: psId,
+		},
+	}
+
+	browserCustomer := &BrowserCookieCustomer{
+		CustomerId:     subscription.Customer.Id,
+		Ip:             "127.0.0.1",
+		AcceptLanguage: "fr-CA",
+		UserAgent:      "windows",
+		SessionCount:   0,
+	}
+	cookie, err := suite.service.generateBrowserCookie(browserCustomer)
+	assert.NoError(suite.T(), err)
+	assert.NotEmpty(suite.T(), cookie)
+
+	orderRepository := &mocks.OrderRepositoryInterface{}
+	orderRepository.On("GetManyBy", mock.Anything, mock.Anything).Return([]*billingpb.Order{order}, nil)
+	suite.service.orderRepository = orderRepository
+
+	subscriptionRepository := &mocks.RecurringSubscriptionRepositoryInterface{}
+	subscriptionRepository.On("GetById", mock.Anything, subscription.Id).Return(subscription, nil)
+	subscriptionRepository.On("Update", mock.Anything, mock.MatchedBy(func(input *billingpb.RecurringSubscription) bool {
+		return input.Id == subscription.Id && input.Status == billingpb.RecurringSubscriptionStatusCanceled
+	})).Return(nil)
+	suite.service.recurringSubscriptionRepository = subscriptionRepository
+
+	psRepository := &mocks.PaymentSystemRepositoryInterface{}
+	psRepository.On("GetById", mock.Anything, psId).Return(&billingpb.PaymentSystem{
+		Handler: psHandler,
+	}, nil)
+	suite.service.paymentSystemRepository = psRepository
+
+	paymentSystem := &mocks.PaymentSystemInterface{}
+	paymentSystem.On("DeleteRecurringSubscription", order, subscription).Return(nil)
+
+	gatewayManagerMock := &mocks.PaymentSystemManagerInterface{}
+	gatewayManagerMock.On("GetGateway", psHandler).Return(paymentSystem, nil)
+	suite.service.paymentSystemGateway = gatewayManagerMock
+
+	rsp := &billingpb.EmptyResponseWithStatus{}
+	err = suite.service.DeleteRecurringSubscription(context.Background(), &billingpb.DeleteRecurringSubscriptionRequest{
+		Id:     subscription.Id,
+		Cookie: cookie,
+	}, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp.Status)
+}
+
+func (suite *RecurringTestSuite) TestDeleteRecurringSubscription_BadCookie_Error() {
+	rsp := &billingpb.EmptyResponseWithStatus{}
+	err := suite.service.DeleteRecurringSubscription(context.Background(), &billingpb.DeleteRecurringSubscriptionRequest{
+		Id:     "id",
+		Cookie: "cookie",
+	}, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), billingpb.ResponseStatusForbidden, rsp.Status)
+	assert.Equal(suite.T(), recurringCustomerNotFound, rsp.Message)
+}
+
+func (suite *RecurringTestSuite) TestDeleteRecurringSubscription_NoCustomerOnCookie_Error() {
+	subscription := &billingpb.RecurringSubscription{
+		Id: primitive.NewObjectID().Hex(),
+		Plan: &billingpb.RecurringPlan{
+			MerchantId: primitive.NewObjectID().Hex(),
+		},
+		Customer: &billingpb.RecurringSubscriptionCustomer{
+			Id: primitive.NewObjectID().Hex(),
+		},
+	}
+
+	subscriptionRepository := &mocks.RecurringSubscriptionRepositoryInterface{}
+	subscriptionRepository.On("GetById", mock.Anything, mock.Anything).Return(subscription, nil)
+	suite.service.recurringSubscriptionRepository = subscriptionRepository
+
+	browserCustomer := &BrowserCookieCustomer{
+		VirtualCustomerId: "customerId",
+		Ip:                "127.0.0.1",
+		AcceptLanguage:    "fr-CA",
+		UserAgent:         "windows",
+		SessionCount:      0,
+	}
+	cookie, err := suite.service.generateBrowserCookie(browserCustomer)
+	assert.NoError(suite.T(), err)
+	assert.NotEmpty(suite.T(), cookie)
+
+	rsp := &billingpb.EmptyResponseWithStatus{}
+	err = suite.service.DeleteRecurringSubscription(context.Background(), &billingpb.DeleteRecurringSubscriptionRequest{
+		Id:     "id",
+		Cookie: cookie,
+	}, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), billingpb.ResponseStatusForbidden, rsp.Status)
+	assert.Equal(suite.T(), recurringErrorAccessDeny, rsp.Message)
+}
+
+func (suite *RecurringTestSuite) TestDeleteRecurringSubscription_SubscriptionNotFound_Error() {
+	subscriptionRepository := &mocks.RecurringSubscriptionRepositoryInterface{}
+	subscriptionRepository.On("GetById", mock.Anything, mock.Anything).Return(nil, errors.New("error"))
+	suite.service.recurringSubscriptionRepository = subscriptionRepository
+
+	rsp := &billingpb.EmptyResponseWithStatus{}
+	err := suite.service.DeleteRecurringSubscription(context.Background(), &billingpb.DeleteRecurringSubscriptionRequest{
+		Id: "recurring_id",
+	}, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), billingpb.ResponseStatusNotFound, rsp.Status)
+	assert.Equal(suite.T(), orderErrorRecurringSubscriptionNotFound, rsp.Message)
+}
+
+func (suite *RecurringTestSuite) TestDeleteRecurringSubscription_AccessDenyByEmptyIdentifiers_Error() {
+	subscription := &billingpb.RecurringSubscription{
+		Id: primitive.NewObjectID().Hex(),
+		Plan: &billingpb.RecurringPlan{
+			MerchantId: primitive.NewObjectID().Hex(),
+		},
+		Customer: &billingpb.RecurringSubscriptionCustomer{
+			Id: primitive.NewObjectID().Hex(),
+		},
+	}
+
+	subscriptionRepository := &mocks.RecurringSubscriptionRepositoryInterface{}
+	subscriptionRepository.On("GetById", mock.Anything, mock.Anything).Return(subscription, nil)
+	suite.service.recurringSubscriptionRepository = subscriptionRepository
+
+	rsp := &billingpb.EmptyResponseWithStatus{}
+	err := suite.service.DeleteRecurringSubscription(context.Background(), &billingpb.DeleteRecurringSubscriptionRequest{
+		Id: "recurring_id",
+	}, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), billingpb.ResponseStatusForbidden, rsp.Status)
+	assert.Equal(suite.T(), recurringErrorAccessDeny, rsp.Message)
+}
+
+func (suite *RecurringTestSuite) TestDeleteRecurringSubscription_AccessDenyByMerchant_Error() {
+	subscription := &billingpb.RecurringSubscription{
+		Id: primitive.NewObjectID().Hex(),
+		Plan: &billingpb.RecurringPlan{
+			MerchantId: primitive.NewObjectID().Hex(),
+		},
+		Customer: &billingpb.RecurringSubscriptionCustomer{
+			Id: primitive.NewObjectID().Hex(),
+		},
+	}
+
+	subscriptionRepository := &mocks.RecurringSubscriptionRepositoryInterface{}
+	subscriptionRepository.On("GetById", mock.Anything, mock.Anything).Return(subscription, nil)
+	suite.service.recurringSubscriptionRepository = subscriptionRepository
+
+	rsp := &billingpb.EmptyResponseWithStatus{}
+	err := suite.service.DeleteRecurringSubscription(context.Background(), &billingpb.DeleteRecurringSubscriptionRequest{
+		Id:         subscription.Id,
+		MerchantId: "merchant_id",
+	}, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), billingpb.ResponseStatusForbidden, rsp.Status)
+	assert.Equal(suite.T(), recurringErrorAccessDeny, rsp.Message)
+}
+
+func (suite *RecurringTestSuite) TestDeleteRecurringSubscription_AccessDenyByCustomer_Error() {
+	browserCustomer := &BrowserCookieCustomer{
+		CustomerId:     "customer_id",
+		Ip:             "127.0.0.1",
+		AcceptLanguage: "fr-CA",
+		UserAgent:      "windows",
+		SessionCount:   0,
+	}
+	cookie, err := suite.service.generateBrowserCookie(browserCustomer)
+	assert.NoError(suite.T(), err)
+	assert.NotEmpty(suite.T(), cookie)
+
+	subscription := &billingpb.RecurringSubscription{
+		Id: primitive.NewObjectID().Hex(),
+		Plan: &billingpb.RecurringPlan{
+			MerchantId: primitive.NewObjectID().Hex(),
+		},
+		Customer: &billingpb.RecurringSubscriptionCustomer{
+			Id: primitive.NewObjectID().Hex(),
+		},
+	}
+
+	subscriptionRepository := &mocks.RecurringSubscriptionRepositoryInterface{}
+	subscriptionRepository.On("GetById", mock.Anything, mock.Anything).Return(subscription, nil)
+	suite.service.recurringSubscriptionRepository = subscriptionRepository
+
+	rsp := &billingpb.EmptyResponseWithStatus{}
+	err = suite.service.DeleteRecurringSubscription(context.Background(), &billingpb.DeleteRecurringSubscriptionRequest{
+		Id:     subscription.Id,
+		Cookie: cookie,
+	}, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), billingpb.ResponseStatusForbidden, rsp.Status)
+	assert.Equal(suite.T(), recurringErrorAccessDeny, rsp.Message)
+}
+
+func (suite *RecurringTestSuite) TestDeleteRecurringSubscription_OrderNotFound_Error() {
+	subscription := &billingpb.RecurringSubscription{
+		Id: primitive.NewObjectID().Hex(),
+		Plan: &billingpb.RecurringPlan{
+			MerchantId: primitive.NewObjectID().Hex(),
+		},
+		Customer: &billingpb.RecurringSubscriptionCustomer{
+			Id: primitive.NewObjectID().Hex(),
+		},
+	}
+
+	subscriptionRepository := &mocks.RecurringSubscriptionRepositoryInterface{}
+	subscriptionRepository.On("GetById", mock.Anything, mock.Anything).Return(subscription, nil)
+	suite.service.recurringSubscriptionRepository = subscriptionRepository
+
+	orderRepository := &mocks.OrderRepositoryInterface{}
+	orderRepository.On("GetManyBy", mock.Anything, mock.Anything).Return(nil, errors.New("notfound"))
+	suite.service.orderRepository = orderRepository
+
+	rsp := &billingpb.EmptyResponseWithStatus{}
+	err := suite.service.DeleteRecurringSubscription(context.Background(), &billingpb.DeleteRecurringSubscriptionRequest{
+		Id:         subscription.Id,
+		MerchantId: subscription.Plan.MerchantId,
+	}, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), billingpb.ResponseStatusNotFound, rsp.Status)
+	assert.Equal(suite.T(), orderErrorNotFound, rsp.Message)
+}
+
+func (suite *RecurringTestSuite) TestDeleteRecurringSubscription_PaymentSystemNotFound_Error() {
+	var (
+		psId = "payment_system_id"
+	)
+
+	subscription := &billingpb.RecurringSubscription{
+		Id: primitive.NewObjectID().Hex(),
+		Plan: &billingpb.RecurringPlan{
+			MerchantId: primitive.NewObjectID().Hex(),
+		},
+		Customer: &billingpb.RecurringSubscriptionCustomer{
+			Id: primitive.NewObjectID().Hex(),
+		},
+	}
+	order := &billingpb.Order{
+		PaymentMethod: &billingpb.PaymentMethodOrder{
+			PaymentSystemId: psId,
+		},
+	}
+
+	orderRepository := &mocks.OrderRepositoryInterface{}
+	orderRepository.On("GetManyBy", mock.Anything, mock.Anything).Return([]*billingpb.Order{order}, nil)
+	suite.service.orderRepository = orderRepository
+
+	subscriptionRepository := &mocks.RecurringSubscriptionRepositoryInterface{}
+	subscriptionRepository.On("GetById", mock.Anything, subscription.Id).Return(subscription, nil)
+	suite.service.recurringSubscriptionRepository = subscriptionRepository
+
+	psRepository := &mocks.PaymentSystemRepositoryInterface{}
+	psRepository.On("GetById", mock.Anything, psId).Return(nil, errors.New("notfound"))
+	suite.service.paymentSystemRepository = psRepository
+
+	rsp := &billingpb.EmptyResponseWithStatus{}
+	err := suite.service.DeleteRecurringSubscription(context.Background(), &billingpb.DeleteRecurringSubscriptionRequest{
+		Id:         subscription.Id,
+		MerchantId: subscription.Plan.MerchantId,
+	}, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), billingpb.ResponseStatusNotFound, rsp.Status)
+	assert.Equal(suite.T(), orderErrorPaymentSystemInactive, rsp.Message)
+}
+
+func (suite *RecurringTestSuite) TestDeleteRecurringSubscription_PaymentSystemGatewayNotFound_Error() {
+	var (
+		psId      = "payment_system_id"
+		psHandler = "payment_system_handler"
+	)
+
+	subscription := &billingpb.RecurringSubscription{
+		Id: primitive.NewObjectID().Hex(),
+		Plan: &billingpb.RecurringPlan{
+			MerchantId: primitive.NewObjectID().Hex(),
+		},
+		Customer: &billingpb.RecurringSubscriptionCustomer{
+			Id: primitive.NewObjectID().Hex(),
+		},
+	}
+	order := &billingpb.Order{
+		PaymentMethod: &billingpb.PaymentMethodOrder{
+			PaymentSystemId: psId,
+		},
+	}
+
+	orderRepository := &mocks.OrderRepositoryInterface{}
+	orderRepository.On("GetManyBy", mock.Anything, mock.Anything).Return([]*billingpb.Order{order}, nil)
+	suite.service.orderRepository = orderRepository
+
+	subscriptionRepository := &mocks.RecurringSubscriptionRepositoryInterface{}
+	subscriptionRepository.On("GetById", mock.Anything, subscription.Id).Return(subscription, nil)
+	suite.service.recurringSubscriptionRepository = subscriptionRepository
+
+	psRepository := &mocks.PaymentSystemRepositoryInterface{}
+	psRepository.On("GetById", mock.Anything, psId).Return(&billingpb.PaymentSystem{
+		Handler: psHandler,
+	}, nil)
+	suite.service.paymentSystemRepository = psRepository
+
+	paymentSystem := &mocks.PaymentSystemInterface{}
+	paymentSystem.On("DeleteRecurringSubscription", order, subscription).Return(nil)
+
+	gatewayManagerMock := &mocks.PaymentSystemManagerInterface{}
+	gatewayManagerMock.On("GetGateway", psHandler).Return(nil, errors.New("notfound"))
+	suite.service.paymentSystemGateway = gatewayManagerMock
+
+	rsp := &billingpb.EmptyResponseWithStatus{}
+	err := suite.service.DeleteRecurringSubscription(context.Background(), &billingpb.DeleteRecurringSubscriptionRequest{
+		Id:         subscription.Id,
+		MerchantId: subscription.Plan.MerchantId,
+	}, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), billingpb.ResponseStatusSystemError, rsp.Status)
+	assert.Equal(suite.T(), orderErrorPaymentSystemInactive, rsp.Message)
+}
+
+func (suite *RecurringTestSuite) TestDeleteRecurringSubscription_DeleteSubscriptionOnPaymentSystem_Error() {
+	var (
+		psId      = "payment_system_id"
+		psHandler = "payment_system_handler"
+	)
+
+	subscription := &billingpb.RecurringSubscription{
+		Id: primitive.NewObjectID().Hex(),
+		Plan: &billingpb.RecurringPlan{
+			MerchantId: primitive.NewObjectID().Hex(),
+		},
+		Customer: &billingpb.RecurringSubscriptionCustomer{
+			Id: primitive.NewObjectID().Hex(),
+		},
+	}
+	order := &billingpb.Order{
+		PaymentMethod: &billingpb.PaymentMethodOrder{
+			PaymentSystemId: psId,
+		},
+	}
+
+	orderRepository := &mocks.OrderRepositoryInterface{}
+	orderRepository.On("GetManyBy", mock.Anything, mock.Anything).Return([]*billingpb.Order{order}, nil)
+	suite.service.orderRepository = orderRepository
+
+	subscriptionRepository := &mocks.RecurringSubscriptionRepositoryInterface{}
+	subscriptionRepository.On("GetById", mock.Anything, subscription.Id).Return(subscription, nil)
+	suite.service.recurringSubscriptionRepository = subscriptionRepository
+
+	psRepository := &mocks.PaymentSystemRepositoryInterface{}
+	psRepository.On("GetById", mock.Anything, psId).Return(&billingpb.PaymentSystem{
+		Handler: psHandler,
+	}, nil)
+	suite.service.paymentSystemRepository = psRepository
+
+	paymentSystem := &mocks.PaymentSystemInterface{}
+	paymentSystem.On("DeleteRecurringSubscription", order, subscription).Return(errors.New("error"))
+
+	gatewayManagerMock := &mocks.PaymentSystemManagerInterface{}
+	gatewayManagerMock.On("GetGateway", psHandler).Return(paymentSystem, nil)
+	suite.service.paymentSystemGateway = gatewayManagerMock
+
+	rsp := &billingpb.EmptyResponseWithStatus{}
+	err := suite.service.DeleteRecurringSubscription(context.Background(), &billingpb.DeleteRecurringSubscriptionRequest{
+		Id:         subscription.Id,
+		MerchantId: subscription.Plan.MerchantId,
+	}, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), billingpb.ResponseStatusSystemError, rsp.Status)
+	assert.Equal(suite.T(), recurringErrorDeleteSubscription, rsp.Message)
+}
+
+func (suite *RecurringTestSuite) TestDeleteRecurringSubscription_DeleteFromRepository_Error() {
+	var (
+		psId      = "payment_system_id"
+		psHandler = "payment_system_handler"
+	)
+
+	subscription := &billingpb.RecurringSubscription{
+		Id: primitive.NewObjectID().Hex(),
+		Plan: &billingpb.RecurringPlan{
+			MerchantId: primitive.NewObjectID().Hex(),
+		},
+		Customer: &billingpb.RecurringSubscriptionCustomer{
+			Id: primitive.NewObjectID().Hex(),
+		},
+	}
+	order := &billingpb.Order{
+		PaymentMethod: &billingpb.PaymentMethodOrder{
+			PaymentSystemId: psId,
+		},
+	}
+
+	orderRepository := &mocks.OrderRepositoryInterface{}
+	orderRepository.On("GetManyBy", mock.Anything, mock.Anything).Return([]*billingpb.Order{order}, nil)
+	suite.service.orderRepository = orderRepository
+
+	subscriptionRepository := &mocks.RecurringSubscriptionRepositoryInterface{}
+	subscriptionRepository.On("GetById", mock.Anything, subscription.Id).Return(subscription, nil)
+	subscriptionRepository.On("Update", mock.Anything, mock.Anything).Return(errors.New("error"))
+	suite.service.recurringSubscriptionRepository = subscriptionRepository
+
+	psRepository := &mocks.PaymentSystemRepositoryInterface{}
+	psRepository.On("GetById", mock.Anything, psId).Return(&billingpb.PaymentSystem{
+		Handler: psHandler,
+	}, nil)
+	suite.service.paymentSystemRepository = psRepository
+
+	paymentSystem := &mocks.PaymentSystemInterface{}
+	paymentSystem.On("DeleteRecurringSubscription", order, subscription).Return(nil)
+
+	gatewayManagerMock := &mocks.PaymentSystemManagerInterface{}
+	gatewayManagerMock.On("GetGateway", psHandler).Return(paymentSystem, nil)
+	suite.service.paymentSystemGateway = gatewayManagerMock
+
+	rsp := &billingpb.EmptyResponseWithStatus{}
+	err := suite.service.DeleteRecurringSubscription(context.Background(), &billingpb.DeleteRecurringSubscriptionRequest{
+		Id:         subscription.Id,
+		MerchantId: subscription.Plan.MerchantId,
+	}, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), billingpb.ResponseStatusSystemError, rsp.Status)
+	assert.Equal(suite.T(), recurringErrorDeleteSubscription, rsp.Message)
+}
+
+func (suite *RecurringTestSuite) TestFindExpiredSubscriptions_InvalidExpireAt() {
+	rsp := &billingpb.FindExpiredSubscriptionsResponse{}
+	err := suite.service.FindExpiredSubscriptions(context.Background(), &billingpb.FindExpiredSubscriptionsRequest{
+		ExpireAt: "time",
+	}, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), billingpb.ResponseStatusBadData, rsp.Status)
+	assert.Equal(suite.T(), recurringErrorInvalidExpireDate, rsp.Message)
+}
+
+func (suite *RecurringTestSuite) TestFindExpiredSubscriptions_RepositoryError() {
+	subscriptionRepository := &mocks.RecurringSubscriptionRepositoryInterface{}
+	subscriptionRepository.On("FindExpired", mock.Anything, mock.Anything).Return(nil, errors.New("error"))
+	suite.service.recurringSubscriptionRepository = subscriptionRepository
+
+	rsp := &billingpb.FindExpiredSubscriptionsResponse{}
+	err := suite.service.FindExpiredSubscriptions(context.Background(), &billingpb.FindExpiredSubscriptionsRequest{
+		ExpireAt: time.Now().UTC().Format("2006-01-02"),
+	}, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), billingpb.ResponseStatusSystemError, rsp.Status)
+	assert.Equal(suite.T(), recurringErrorUnknown, rsp.Message)
+}
+
+func (suite *RecurringTestSuite) TestFindExpiredSubscriptions_Ok() {
+	subscriptionRepository := &mocks.RecurringSubscriptionRepositoryInterface{}
+	subscriptionRepository.On("FindExpired", mock.Anything, mock.Anything).Return([]*billingpb.RecurringSubscription{}, nil)
+	suite.service.recurringSubscriptionRepository = subscriptionRepository
+
+	rsp := &billingpb.FindExpiredSubscriptionsResponse{}
+	err := suite.service.FindExpiredSubscriptions(context.Background(), &billingpb.FindExpiredSubscriptionsRequest{
+		ExpireAt: time.Now().UTC().Format("2006-01-02"),
+	}, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp.Status)
 }
