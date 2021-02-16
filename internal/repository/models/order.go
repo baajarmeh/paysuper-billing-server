@@ -519,6 +519,15 @@ func (o *orderMapper) MapMgoToObject(obj interface{}) (interface{}, error) {
 				m.Project.Name[v.Lang] = v.Value
 			}
 		}
+
+		formDefaultTextLen := len(decoded.Project.FormDefaultText)
+		if formDefaultTextLen > 0 {
+			m.Project.FormDefaultText = make(map[string]string, formDefaultTextLen)
+
+			for _, v := range decoded.Project.FormDefaultText {
+				m.Project.FormDefaultText[v.Lang] = v.Value
+			}
+		}
 	}
 
 	m.ProjectParams = decoded.ProjectParams
