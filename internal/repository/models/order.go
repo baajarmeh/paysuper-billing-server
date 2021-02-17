@@ -361,6 +361,12 @@ func (o *orderMapper) MapObjectToMgo(obj interface{}) (interface{}, error) {
 		}
 	}
 
+	if m.Project != nil && len(m.Project.FormDefaultText) > 0 {
+		for k, v := range m.Project.FormDefaultText {
+			st.Project.FormDefaultText = append(st.Project.FormDefaultText, &MgoMultiLang{Lang: k, Value: v})
+		}
+	}
+
 	if m.Project != nil && m.Project.FirstPaymentAt != nil {
 		st.Project.FirstPaymentAt, err = ptypes.Timestamp(m.Project.FirstPaymentAt)
 		if err != nil {
@@ -508,6 +514,15 @@ func (o *orderMapper) MapMgoToObject(obj interface{}) (interface{}, error) {
 
 			for _, v := range decoded.Project.Name {
 				m.Project.Name[v.Lang] = v.Value
+			}
+		}
+
+		formDefaultTextLen := len(decoded.Project.FormDefaultText)
+		if formDefaultTextLen > 0 {
+			m.Project.FormDefaultText = make(map[string]string, formDefaultTextLen)
+
+			for _, v := range decoded.Project.FormDefaultText {
+				m.Project.FormDefaultText[v.Lang] = v.Value
 			}
 		}
 	}

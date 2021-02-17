@@ -60,7 +60,7 @@ type PayoutsTestSuite struct {
 	payout5 *billingpb.PayoutDocument
 	payout6 *billingpb.PayoutDocument
 	payout7 *billingpb.PayoutDocument
-	report8   *billingpb.RoyaltyReport
+	report8 *billingpb.RoyaltyReport
 
 	dateFrom1 *timestamp.Timestamp
 	dateFrom2 *timestamp.Timestamp
@@ -188,11 +188,15 @@ func (suite *PayoutsTestSuite) SetupTest() {
 		MerchantId: suite.merchant.Id,
 		Totals: &billingpb.RoyaltyReportTotals{
 			TransactionsCount:    100,
-			PayoutAmount:         12345,
-			VatAmount:            100,
 			FeeAmount:            50,
+			VatAmount:            100,
+			PayoutAmount:         12345,
 			RollingReserveAmount: 0,
 			CorrectionAmount:     0,
+			B2BVatRate:           0,
+			B2BVatBase:           0,
+			B2BVatAmount:         0,
+			FinalPayoutAmount:    12345,
 		},
 		Summary: &billingpb.RoyaltyReportSummary{
 			ProductsTotal: &billingpb.RoyaltyReportProductSummaryItem{
@@ -217,10 +221,16 @@ func (suite *PayoutsTestSuite) SetupTest() {
 		Id:         primitive.NewObjectID().Hex(),
 		MerchantId: suite.merchant.Id,
 		Totals: &billingpb.RoyaltyReportTotals{
-			TransactionsCount: 10,
-			PayoutAmount:      1234.5,
-			VatAmount:         10,
-			FeeAmount:         5,
+			TransactionsCount:    10,
+			FeeAmount:            5,
+			VatAmount:            10,
+			PayoutAmount:         1234.5,
+			RollingReserveAmount: 0,
+			CorrectionAmount:     0,
+			B2BVatRate:           0,
+			B2BVatBase:           0,
+			B2BVatAmount:         0,
+			FinalPayoutAmount:    1234.5,
 		},
 		Summary: &billingpb.RoyaltyReportSummary{
 			ProductsTotal: &billingpb.RoyaltyReportProductSummaryItem{
@@ -245,10 +255,16 @@ func (suite *PayoutsTestSuite) SetupTest() {
 		Id:         primitive.NewObjectID().Hex(),
 		MerchantId: suite.merchant.Id,
 		Totals: &billingpb.RoyaltyReportTotals{
-			TransactionsCount: 10,
-			PayoutAmount:      1234.5,
-			VatAmount:         10,
-			FeeAmount:         5,
+			TransactionsCount:    10,
+			FeeAmount:            5,
+			VatAmount:            10,
+			PayoutAmount:         1234.5,
+			RollingReserveAmount: 0,
+			CorrectionAmount:     0,
+			B2BVatRate:           0,
+			B2BVatBase:           0,
+			B2BVatAmount:         0,
+			FinalPayoutAmount:    1234.5,
 		},
 		Summary: &billingpb.RoyaltyReportSummary{
 			ProductsTotal: &billingpb.RoyaltyReportProductSummaryItem{
@@ -273,10 +289,16 @@ func (suite *PayoutsTestSuite) SetupTest() {
 		Id:         primitive.NewObjectID().Hex(),
 		MerchantId: suite.merchant.Id,
 		Totals: &billingpb.RoyaltyReportTotals{
-			TransactionsCount: 0,
-			PayoutAmount:      0,
-			VatAmount:         0,
-			FeeAmount:         0,
+			TransactionsCount:    0,
+			FeeAmount:            0,
+			VatAmount:            0,
+			PayoutAmount:         0,
+			RollingReserveAmount: 0,
+			CorrectionAmount:     0,
+			B2BVatRate:           0,
+			B2BVatBase:           0,
+			B2BVatAmount:         0,
+			FinalPayoutAmount:    0,
 		},
 		Summary: &billingpb.RoyaltyReportSummary{
 			ProductsTotal: &billingpb.RoyaltyReportProductSummaryItem{
@@ -301,10 +323,16 @@ func (suite *PayoutsTestSuite) SetupTest() {
 		Id:         primitive.NewObjectID().Hex(),
 		MerchantId: suite.merchant.Id,
 		Totals: &billingpb.RoyaltyReportTotals{
-			TransactionsCount: 10,
-			PayoutAmount:      30,
-			VatAmount:         40,
-			FeeAmount:         50,
+			TransactionsCount:    10,
+			FeeAmount:            50,
+			VatAmount:            40,
+			PayoutAmount:         30,
+			RollingReserveAmount: 0,
+			CorrectionAmount:     0,
+			B2BVatRate:           0,
+			B2BVatBase:           0,
+			B2BVatAmount:         0,
+			FinalPayoutAmount:    30,
 		},
 		Summary: &billingpb.RoyaltyReportSummary{
 			ProductsTotal: &billingpb.RoyaltyReportProductSummaryItem{
@@ -329,10 +357,16 @@ func (suite *PayoutsTestSuite) SetupTest() {
 		Id:         primitive.NewObjectID().Hex(),
 		MerchantId: suite.merchant.Id,
 		Totals: &billingpb.RoyaltyReportTotals{
-			TransactionsCount: 100,
-			PayoutAmount:      alreadyPaidRoyalty,
-			VatAmount:         100,
-			FeeAmount:         50,
+			TransactionsCount:    100,
+			FeeAmount:            50,
+			VatAmount:            100,
+			PayoutAmount:         alreadyPaidRoyalty,
+			RollingReserveAmount: 0,
+			CorrectionAmount:     0,
+			B2BVatRate:           0,
+			B2BVatBase:           0,
+			B2BVatAmount:         0,
+			FinalPayoutAmount:    alreadyPaidRoyalty,
 		},
 		Summary: &billingpb.RoyaltyReportSummary{
 			ProductsTotal: &billingpb.RoyaltyReportProductSummaryItem{
@@ -357,10 +391,16 @@ func (suite *PayoutsTestSuite) SetupTest() {
 		Id:         primitive.NewObjectID().Hex(),
 		MerchantId: suite.merchant.Id,
 		Totals: &billingpb.RoyaltyReportTotals{
-			TransactionsCount: 100,
-			PayoutAmount:      90,
-			VatAmount:         100,
-			FeeAmount:         50,
+			TransactionsCount:    100,
+			FeeAmount:            50,
+			VatAmount:            100,
+			PayoutAmount:         90,
+			RollingReserveAmount: 0,
+			CorrectionAmount:     0,
+			B2BVatRate:           0,
+			B2BVatBase:           0,
+			B2BVatAmount:         0,
+			FinalPayoutAmount:    90,
 		},
 		Summary: &billingpb.RoyaltyReportSummary{
 			ProductsTotal: &billingpb.RoyaltyReportProductSummaryItem{
@@ -385,10 +425,16 @@ func (suite *PayoutsTestSuite) SetupTest() {
 		Id:         primitive.NewObjectID().Hex(),
 		MerchantId: suite.merchant.Id,
 		Totals: &billingpb.RoyaltyReportTotals{
-			TransactionsCount: 1,
-			PayoutAmount:      30,
-			VatAmount:         5,
-			FeeAmount:         5,
+			TransactionsCount:    1,
+			FeeAmount:            5,
+			VatAmount:            5,
+			PayoutAmount:         30,
+			RollingReserveAmount: 0,
+			CorrectionAmount:     0,
+			B2BVatRate:           0,
+			B2BVatBase:           0,
+			B2BVatAmount:         0,
+			FinalPayoutAmount:    30,
 		},
 		Summary: &billingpb.RoyaltyReportSummary{
 			ProductsTotal: &billingpb.RoyaltyReportProductSummaryItem{

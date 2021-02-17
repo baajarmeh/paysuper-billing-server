@@ -618,6 +618,7 @@ func (r *royaltyReportRepository) GetBalanceAmount(ctx context.Context, merchant
 				"payout_amount":                bson.M{"$round": []interface{}{"$totals.payout_amount", 2}},
 				"correction_amount":            bson.M{"$round": []interface{}{"$totals.correction_total_amount", 2}},
 				"rolling_reserve_total_amount": bson.M{"$round": []interface{}{"$totals.rolling_reserve_total_amount", 2}},
+				"final_payout_amount":          bson.M{"$round": []interface{}{"$totals.final_payout_amount", 2}},
 			},
 		},
 	}

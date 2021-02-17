@@ -49,10 +49,10 @@ type MgoProject struct {
 	RedirectSettings *billingpb.ProjectRedirectSettings `bson:"redirect_settings" json:"redirect_settings"`
 	WebHookMode      string                             `bson:"webhook_mode" json:"webhook_mode"`
 	WebhookTesting   *billingpb.WebHookTesting          `bson:"webhook_testing" json:"webhook_testing"`
+	FormDefaultText  []*MgoMultiLang                    `bson:"form_default_text" json:"form_default_text"`
 }
 
 type projectMapper struct {
-
 }
 
 func (p *projectMapper) MapObjectToMgo(obj interface{}) (interface{}, error) {
@@ -102,6 +102,12 @@ func (p *projectMapper) MapObjectToMgo(obj interface{}) (interface{}, error) {
 	if len(m.Name) > 0 {
 		for k, v := range m.Name {
 			st.Name = append(st.Name, &MgoMultiLang{Lang: k, Value: v})
+		}
+	}
+
+	if len(m.FormDefaultText) > 0 {
+		for k, v := range m.FormDefaultText {
+			st.FormDefaultText = append(st.FormDefaultText, &MgoMultiLang{Lang: k, Value: v})
 		}
 	}
 
@@ -193,6 +199,16 @@ func (p *projectMapper) MapMgoToObject(obj interface{}) (interface{}, error) {
 
 		for _, v := range decoded.Name {
 			m.Name[v.Lang] = v.Value
+		}
+	}
+
+	formDefaultTextLen := len(decoded.FormDefaultText)
+
+	if formDefaultTextLen > 0 {
+		m.FormDefaultText = make(map[string]string, formDefaultTextLen)
+
+		for _, v := range decoded.FormDefaultText {
+			m.FormDefaultText[v.Lang] = v.Value
 		}
 	}
 

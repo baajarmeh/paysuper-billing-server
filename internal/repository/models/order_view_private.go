@@ -253,6 +253,12 @@ func (o *orderViewPrivateMapper) MapObjectToMgo(obj interface{}) (interface{}, e
 		}
 	}
 
+	if in.Project != nil && len(in.Project.FormDefaultText) > 0 {
+		for k, v := range in.Project.FormDefaultText {
+			out.Project.FormDefaultText = append(out.Project.FormDefaultText, &MgoMultiLang{Lang: k, Value: v})
+		}
+	}
+
 	if in.Project != nil && in.Project.FirstPaymentAt != nil {
 		out.Project.FirstPaymentAt, err = ptypes.Timestamp(in.Project.FirstPaymentAt)
 		if err != nil {

@@ -114,4 +114,6 @@ type BalanceQueryResult struct {
 	PayoutAmount         float64 `bson:"payout_amount"`
 	CorrectionAmount     float64 `bson:"correction_amount"`
 	RollingReserveAmount float64 `bson:"rolling_reserve_total_amount"`
+	// FinalPayoutAmount is result of sum PayoutAmount - B2B Vat + CorrectionAmount
+	FinalPayoutAmount float64 `bson:"final_payout_amount"`
 }

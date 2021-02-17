@@ -1030,6 +1030,9 @@ func (suite *OrderTestSuite) SetupTest() {
 			},
 			Keys: &billingpb.KeysTesting{IsPassed: true},
 		},
+		FormDefaultText: map[string]string{
+			"en": "In-game purchase",
+		},
 	}
 	projectFixedAmount := &billingpb.Project{
 		Id:                       primitive.NewObjectID().Hex(),
@@ -1065,6 +1068,9 @@ func (suite *OrderTestSuite) SetupTest() {
 				IncorrectPayment: true,
 			},
 			Keys: &billingpb.KeysTesting{IsPassed: true},
+		},
+		FormDefaultText: map[string]string{
+			"en": "In-game purchase",
 		},
 	}
 
@@ -1119,6 +1125,9 @@ func (suite *OrderTestSuite) SetupTest() {
 		},
 		UrlRedirectSuccess: "http://localhost?success",
 		UrlRedirectFail:    "http://localhost?fail",
+		FormDefaultText: map[string]string{
+			"en": "In-game purchase",
+		},
 	}
 
 	projectWithProducts := &billingpb.Project{
@@ -1141,6 +1150,9 @@ func (suite *OrderTestSuite) SetupTest() {
 		},
 		UrlRedirectSuccess: "http://localhost?success",
 		UrlRedirectFail:    "http://localhost?fail",
+		FormDefaultText: map[string]string{
+			"en": "In-game purchase",
+		},
 	}
 	projectWithKeyProducts := &billingpb.Project{
 		Id:                       primitive.NewObjectID().Hex(),
@@ -1162,6 +1174,9 @@ func (suite *OrderTestSuite) SetupTest() {
 		},
 		UrlRedirectSuccess: "http://localhost?success",
 		UrlRedirectFail:    "http://localhost?fail",
+		FormDefaultText: map[string]string{
+			"en": "In-game purchase",
+		},
 	}
 	projectUahLimitCurrency := &billingpb.Project{
 		Id:                 primitive.NewObjectID().Hex(),
@@ -1182,6 +1197,9 @@ func (suite *OrderTestSuite) SetupTest() {
 		},
 		UrlRedirectSuccess: "http://localhost?success",
 		UrlRedirectFail:    "http://localhost?fail",
+		FormDefaultText: map[string]string{
+			"en": "In-game purchase",
+		},
 	}
 	projectIncorrectPaymentMethodId := &billingpb.Project{
 		Id:                 primitive.NewObjectID().Hex(),
@@ -1202,6 +1220,9 @@ func (suite *OrderTestSuite) SetupTest() {
 		},
 		UrlRedirectSuccess: "http://localhost?success",
 		UrlRedirectFail:    "http://localhost?fail",
+		FormDefaultText: map[string]string{
+			"en": "In-game purchase",
+		},
 	}
 	projectEmptyPaymentMethodTerminal := &billingpb.Project{
 		Id:                 primitive.NewObjectID().Hex(),
@@ -1222,6 +1243,9 @@ func (suite *OrderTestSuite) SetupTest() {
 		},
 		UrlRedirectSuccess: "http://localhost?success",
 		UrlRedirectFail:    "http://localhost?fail",
+		FormDefaultText: map[string]string{
+			"en": "In-game purchase",
+		},
 	}
 	projectWithoutPaymentMethods := &billingpb.Project{
 		Id:                 primitive.NewObjectID().Hex(),
@@ -1242,6 +1266,9 @@ func (suite *OrderTestSuite) SetupTest() {
 		},
 		UrlRedirectSuccess: "http://localhost?success",
 		UrlRedirectFail:    "http://localhost?fail",
+		FormDefaultText: map[string]string{
+			"en": "In-game purchase",
+		},
 	}
 	inactiveProject := &billingpb.Project{
 		Id:                 primitive.NewObjectID().Hex(),
@@ -1262,6 +1289,9 @@ func (suite *OrderTestSuite) SetupTest() {
 		},
 		UrlRedirectSuccess: "http://localhost?success",
 		UrlRedirectFail:    "http://localhost?fail",
+		FormDefaultText: map[string]string{
+			"en": "In-game purchase",
+		},
 	}
 	projects := []*billingpb.Project{
 		project,
