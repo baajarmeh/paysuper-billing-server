@@ -48,6 +48,7 @@ var (
 	errorPayoutRequireFailureFields    = errors.NewBillingServerErrorMsg("po000018", "fields failure_code and failure_message is required when status changing to failure")
 	errorPayoutTarrifNotFound          = errors.NewBillingServerErrorMsg("po000019", "not found minimal tarrif for payout currency")
 	errorPayoutTarrifMinimal           = errors.NewBillingServerErrorMsg("po000020", "minimal payout should be greater")
+	errorGettingB2BVatRate             = errors.NewBillingServerErrorMsg("po000021", "failed to get B2B vat rate")
 
 	statusForUpdateBalance = map[string]bool{
 		pkg.PayoutDocumentStatusPending: true,
@@ -139,10 +140,16 @@ func (s *Service) createPayoutDocument(
 	stringTimes := make([]string, 0)
 
 	for _, r := range reports {
-		pd.TotalFees += r.Totals.PayoutAmount + r.Totals.CorrectionAmount
-		pd.Balance += r.Totals.PayoutAmount + r.Totals.CorrectionAmount - r.Totals.RollingReserveAmount
+		pd.TotalFees += r.Totals.PayoutAmount
+		pd.FeesExcludingVat += r.Totals.FinalPayoutAmount
+		pd.Balance += r.Totals.FinalPayoutAmount - r.Totals.RollingReserveAmount
 		pd.TotalTransactions += r.Totals.TransactionsCount
-		pd.B2BVatBase += r.Totals.FeeAmount
+		pd.B2BVatBase += r.Totals.B2BVatBase
+		// it's a trick, only last rate will be saved, but they all must be the same
+		// also, this rate value is not used in calculations, only for info purposes
+		pd.B2BVatRate = r.Totals.B2BVatRate
+
+		pd.B2BVatAmount += r.Totals.B2BVatAmount
 		pd.SourceId = append(pd.SourceId, r.Id)
 
 		from, err := ptypes.Timestamp(r.PeriodFrom)
@@ -170,21 +177,9 @@ func (s *Service) createPayoutDocument(
 	pd.TotalFees = math.Round(pd.TotalFees*100) / 100
 	pd.Balance = math.Round((pd.Balance)*100) / 100
 	pd.B2BVatBase = math.Round(pd.B2BVatBase*100) / 100
-
-	oc, err := s.operatingCompanyRepository.GetById(ctx, merchant.OperatingCompanyId)
-	if err != nil {
-		return merchantOperatingCompanyNotFound
-	}
-
-	// tmp hardcode here, unless full logic will be implemented
-	if oc.Country == "CY" && merchant.Company.Country == "CY" {
-		pd.B2BVatRate = 0.19
-		pd.B2BVatAmount = pd.B2BVatBase * pd.B2BVatRate
-	}
-
+	pd.B2BVatRate = math.Round(pd.B2BVatRate*100) / 100
 	pd.B2BVatAmount = math.Round(pd.B2BVatAmount*100) / 100
-	pd.FeesExcludingVat = math.Round((pd.TotalFees-pd.B2BVatAmount)*100) / 100
-	pd.Balance = math.Round((pd.Balance-pd.B2BVatAmount)*100) / 100
+	pd.FeesExcludingVat = math.Round(pd.FeesExcludingVat*100) / 100
 
 	currency := merchant.GetPayoutCurrency()
 	var minimal float32

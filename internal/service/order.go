@@ -854,10 +854,23 @@ func (s *Service) PaymentFormJsonDataProcess(
 }
 
 func (s *Service) fillPaymentFormJsonData(order *billingpb.Order, rsp *billingpb.PaymentFormJsonDataResponse) {
-	projectName, ok := order.Project.Name[order.User.Locale]
+	localeParts := strings.Split(order.User.Locale, "-")
+	language := localeParts[0]
 
+	projectName, ok := order.Project.Name[language]
 	if !ok {
 		projectName = order.Project.Name[DefaultLanguage]
+	}
+
+	formDefaultText := ""
+	if order.Project.FormDefaultText != nil && len(order.Project.FormDefaultText) > 0 {
+		formDefaultText, ok = order.Project.FormDefaultText[language]
+		if !ok {
+			formDefaultText, ok = order.Project.FormDefaultText[DefaultLanguage]
+			if !ok {
+				formDefaultText = ""
+			}
+		}
 	}
 
 	expire := time.Now().Add(time.Minute * 30).Unix()
@@ -874,6 +887,7 @@ func (s *Service) fillPaymentFormJsonData(order *billingpb.Order, rsp *billingpb
 		UrlSuccess:       order.Project.UrlSuccess,
 		UrlFail:          order.Project.UrlFail,
 		RedirectSettings: order.Project.RedirectSettings,
+		FormDefaultText:  formDefaultText,
 	}
 	rsp.Item.Token = s.centrifugoPaymentForm.GetChannelToken(order.Uuid, expire)
 	rsp.Item.Amount = order.OrderAmount
@@ -2352,6 +2366,7 @@ func (v *OrderCreateRequestProcessor) prepareOrder() (*billingpb.Order, error) {
 			MerchantRoyaltyCurrency: v.checked.merchant.GetPayoutCurrency(),
 			RedirectSettings:        v.checked.project.RedirectSettings,
 			FirstPaymentAt:          v.checked.merchant.FirstPaymentAt,
+			FormDefaultText:         v.checked.project.FormDefaultText,
 		},
 		Description:   fmt.Sprintf(pkg.OrderDefaultDescription, id),
 		PrivateStatus: recurringpb.OrderStatusNew,
@@ -4611,12 +4626,17 @@ func (s *Service) getOrderReceiptObject(ctx context.Context, order *billingpb.Or
 		return nil, err
 	}
 
+	merchantName := merchant.GetTrademark()
+	if merchantName == "" {
+		merchantName = merchant.GetCompanyName()
+	}
+
 	receipt := &billingpb.OrderReceipt{
 		TotalPrice:                 totalPrice,
 		TransactionId:              order.Uuid,
 		TransactionDate:            date,
 		ProjectName:                order.Project.Name[DefaultLanguage],
-		MerchantName:               merchant.GetCompanyName(),
+		MerchantName:               merchantName,
 		Items:                      items,
 		OrderType:                  order.Type,
 		PlatformName:               platformName,

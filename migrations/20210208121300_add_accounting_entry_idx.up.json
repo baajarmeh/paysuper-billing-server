@@ -1,0 +1,13 @@
+[
+  {
+    "createIndexes": "accounting_entry",
+    "indexes": [
+      {
+        "key": {
+          "source.id": 1
+        },
+        "name": "accounting_entry_source_idx"
+      }
+    ]
+  }
+]

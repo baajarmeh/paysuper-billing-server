@@ -528,3 +528,62 @@ func (s *Service) TaskExtendPayoutsWithVat(ctx context.Context) (err error) {
 
 	return nil
 }
+
+func (s *Service) TaskExtendRoyaltiesWithVat(ctx context.Context) (err error) {
+
+	ocs, err := s.operatingCompanyRepository.GetAll(ctx)
+	if err != nil {
+		return err
+	}
+
+	for _, oc := range ocs {
+
+		if oc.Country != "CY" {
+			continue
+		}
+
+		reports, err := s.royaltyReportRepository.FindByMerchantStatusDates(ctx, "", []string{}, "2021-01-01T00:00:00", "", 0, -1, []string{})
+		if err != nil {
+			return err
+		}
+
+		for _, report := range reports {
+
+			merchant, err := s.merchantRepository.GetById(ctx, report.MerchantId)
+			if err != nil {
+				return merchantErrorNotFound
+			}
+
+			if merchant.Company.Country != "CY" {
+				continue
+			}
+
+			report.Totals.B2BVatRate, err = s.GetB2bVatRate(oc.Country, merchant.Company.Country)
+			if err != nil {
+				return errorGettingB2BVatRate
+			}
+
+			report.Totals.B2BVatBase = report.Totals.FeeAmount
+			report.Totals.B2BVatAmount = report.Totals.B2BVatBase * report.Totals.B2BVatRate
+			report.Totals.FinalPayoutAmount = report.Totals.PayoutAmount + report.Totals.CorrectionAmount - report.Totals.B2BVatAmount
+
+			report.Totals.B2BVatAmount = math.Round(report.Totals.B2BVatAmount*100) / 100
+			report.Totals.FinalPayoutAmount = math.Round(report.Totals.FinalPayoutAmount*100) / 100
+
+			err = s.royaltyReportRepository.Update(ctx, report, "127.0.0.1", pkg.RoyaltyReportChangeSourceAdmin)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func (s *Service) GetB2bVatRate(operatingCompanyCountry, merchantCountry string) (rate float64, err error) {
+	if operatingCompanyCountry == "CY" && merchantCountry == "CY" {
+		return 0.19, nil
+	}
+
+	return 0, nil
+}
