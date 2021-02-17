@@ -543,13 +543,13 @@ func (s *Service) validateRecurringPlanRequest(req *billingpb.RecurringPlan) *bi
 	return nil
 }
 
-func (s *Service) checkRecurringPeriod(typ string, value int32) bool {
+func (s *Service) checkRecurringPeriod(period string, value int32) bool {
 	if value < 1 ||
-		typ == billingpb.RecurringPeriodMinute && value > 60 ||
-		typ == billingpb.RecurringPeriodDay && value > 365 ||
-		typ == billingpb.RecurringPeriodWeek && value > 52 ||
-		typ == billingpb.RecurringPeriodMonth && value > 12 ||
-		typ == billingpb.RecurringPeriodYear && value > 1 {
+		period == billingpb.RecurringPeriodMinute && value > 60 ||
+		period == billingpb.RecurringPeriodDay && value > 365 ||
+		period == billingpb.RecurringPeriodWeek && value > 52 ||
+		period == billingpb.RecurringPeriodMonth && value > 12 ||
+		period == billingpb.RecurringPeriodYear && value > 1 {
 		return false
 	}
 
