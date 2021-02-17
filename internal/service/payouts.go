@@ -140,7 +140,8 @@ func (s *Service) createPayoutDocument(
 	stringTimes := make([]string, 0)
 
 	for _, r := range reports {
-		pd.TotalFees += r.Totals.FinalPayoutAmount
+		pd.TotalFees += r.Totals.PayoutAmount
+		pd.FeesExcludingVat += r.Totals.FinalPayoutAmount
 		pd.Balance += r.Totals.FinalPayoutAmount - r.Totals.RollingReserveAmount
 		pd.TotalTransactions += r.Totals.TransactionsCount
 		pd.B2BVatBase += r.Totals.B2BVatBase
@@ -178,8 +179,7 @@ func (s *Service) createPayoutDocument(
 	pd.B2BVatBase = math.Round(pd.B2BVatBase*100) / 100
 	pd.B2BVatRate = math.Round(pd.B2BVatRate*100) / 100
 	pd.B2BVatAmount = math.Round(pd.B2BVatAmount*100) / 100
-	pd.FeesExcludingVat = math.Round((pd.TotalFees-pd.B2BVatAmount)*100) / 100
-	pd.Balance = math.Round((pd.Balance-pd.B2BVatAmount)*100) / 100
+	pd.FeesExcludingVat = math.Round(pd.FeesExcludingVat*100) / 100
 
 	currency := merchant.GetPayoutCurrency()
 	var minimal float32
