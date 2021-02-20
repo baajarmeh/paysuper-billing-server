@@ -68,6 +68,7 @@ type Service struct {
 	formatter                              paysuper_i18n.Formatter
 	reporterService                        reporterpb.ReporterService
 	postmarkBroker                         rabbitmq.BrokerInterface
+	recurringBroker                        rabbitmq.BrokerInterface
 	casbinService                          casbinpb.CasbinService
 	notifier                               notifierpb.NotifierService
 	paymentSystemGateway                   payment_system.PaymentSystemManagerInterface
@@ -137,6 +138,7 @@ func NewBillingService(
 	casbinService casbinpb.CasbinService,
 	notifier notifierpb.NotifierService,
 	validateUserBroker rabbitmq.BrokerInterface,
+	recurringBroker rabbitmq.BrokerInterface,
 ) *Service {
 	return &Service{
 		db:                 db,
@@ -155,6 +157,7 @@ func NewBillingService(
 		casbinService:      casbinService,
 		notifier:           notifier,
 		validateUserBroker: validateUserBroker,
+		recurringBroker:    recurringBroker,
 		moneyRegistry:      make(map[string]*helper.Money),
 	}
 }

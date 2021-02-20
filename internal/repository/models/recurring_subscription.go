@@ -24,7 +24,7 @@ type MgoRecurringSubscription struct {
 	ItemList              []string              `bson:"item_list"`
 	CardPayPlanId         string                `bson:"cardpay_plan_id"`
 	CardPaySubscriptionId string                `bson:"cardpay_subscription_id"`
-	ExpireAt              time.Time             `bson:"expire_at"`
+	ExpireAt              *time.Time            `bson:"expire_at"`
 	LastPaymentAt         *time.Time            `bson:"last_payment_at"`
 	CreatedAt             time.Time             `bson:"created_at"`
 	UpdatedAt             time.Time             `bson:"updated_at"`
@@ -112,13 +112,15 @@ func (m *recurringSubscriptionMapper) MapObjectToMgo(obj interface{}) (interface
 		out.LastPaymentAt = &t
 	}
 
-	t, err := ptypes.Timestamp(in.ExpireAt)
+	if in.ExpireAt != nil {
+		t, err := ptypes.Timestamp(in.ExpireAt)
 
-	if err != nil {
-		return nil, err
+		if err != nil {
+			return nil, err
+		}
+
+		out.ExpireAt = &t
 	}
-
-	out.ExpireAt = t
 
 	if in.CreatedAt != nil {
 		t, err := ptypes.Timestamp(in.CreatedAt)
@@ -196,10 +198,12 @@ func (m *recurringSubscriptionMapper) MapMgoToObject(obj interface{}) (interface
 		}
 	}
 
-	out.ExpireAt, err = ptypes.TimestampProto(in.ExpireAt)
+	if in.ExpireAt != nil && !in.ExpireAt.IsZero() {
+		out.ExpireAt, err = ptypes.TimestampProto(*in.ExpireAt)
 
-	if err != nil {
-		return nil, err
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	out.CreatedAt, err = ptypes.TimestampProto(in.CreatedAt)

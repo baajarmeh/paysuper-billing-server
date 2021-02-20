@@ -31,4 +31,13 @@ type RecurringSubscriptionRepositoryInterface interface {
 
 	// FindExpired returns list of recurring subscriptions with expire time.
 	FindExpired(ctx context.Context, expireAt time.Time) ([]*billingpb.RecurringSubscription, error)
+
+	// FindByPlanId returns the recurring subscriptions by recurring plan identity.
+	FindByPlanId(ctx context.Context, planId string) ([]*billingpb.RecurringSubscription, error)
+
+	// Find returns subscription by params.
+	Find(ctx context.Context, userId, merchantId, status, quickFilter string, dateFrom, dateTo *time.Time, limit, offset int64) (items []*billingpb.RecurringSubscription, err error)
+
+	// FindCount returns count subscriptions by params.
+	FindCount(ctx context.Context, userId, merchantId, status, quickFilter string, dateFrom, dateTo *time.Time) (count int64, err error)
 }

@@ -42,4 +42,7 @@ type OrderRepositoryInterface interface {
 
 	// Return orders by some conditions and with options
 	GetManyBy(ctx context.Context, filter bson.M, opts ...*options.FindOptions) ([]*billingpb.Order, error)
+
+	// GetBySubscriptionId returns orders by subscription identifier.
+	GetBySubscriptionId(ctx context.Context, subscriptionId string) (items []*billingpb.Order, err error)
 }

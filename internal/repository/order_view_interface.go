@@ -68,4 +68,10 @@ type OrderViewRepositoryInterface interface {
 
 	// GetRoyaltySummary returns orders for summary royal report by merchant id, currency and dates with checking exists royalty report.
 	GetRoyaltySummaryRoundedAmounts(ctx context.Context, merchantId, currency string, from, to time.Time) (items []*billingpb.RoyaltyReportProductSummaryItem, total *billingpb.RoyaltyReportProductSummaryItem, ordersIds []primitive.ObjectID, err error)
+
+	// FindForRecurringSubscriptions returns orders by subscription params.
+	FindForRecurringSubscriptions(ctx context.Context, userId, merchantId, projectId, subscriptionId, status string, dateFrom, dateTo *time.Time, limit, offset int64) (items []*billingpb.OrderViewPrivate, err error)
+
+	// CountForRecurringSubscriptions returns count orders by subscription params.
+	CountForRecurringSubscriptions(ctx context.Context, userId, merchantId, projectId, subscriptionId, status string, dateFrom, dateTo *time.Time) (count int64, err error)
 }

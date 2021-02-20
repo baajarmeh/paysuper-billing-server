@@ -916,10 +916,20 @@ func (s *Service) fillPaymentFormJsonData(order *billingpb.Order, rsp *billingpb
 
 	if order.HasRecurringPlan() {
 		plan, _ := s.recurringPlanRepository.GetById(s.ctx, order.RecurringPlanId)
-		rsp.Item.RecurringSettings = &billingpb.OrderRecurringSettings{
-			Period:   plan.Charge.Period.Type,
-			Interval: plan.Charge.Period.Value,
-			DateEnd:  plan.GetChargeExpireTime().Format(billingpb.FilterDatetimeFormat),
+
+		if plan != nil {
+			var dateEnd string
+
+			expireTime, _ := plan.GetExpirationTime()
+			if expireTime != nil {
+				dateEnd = expireTime.Format(billingpb.FilterDatetimeFormat)
+			}
+
+			rsp.Item.RecurringSettings = &billingpb.OrderRecurringSettings{
+				Period:   plan.Charge.Period.Type,
+				Interval: plan.Charge.Period.Value,
+				DateEnd:  dateEnd,
+			}
 		}
 	}
 }
@@ -5134,8 +5144,6 @@ func (s *Service) addRecurringSubscription(
 		return nil, "", orderErrorRecurringPlanDisable
 	}
 
-	tsExpireAt, _ := ptypes.TimestampProto(plan.GetChargeExpireTime())
-
 	subscription := &billingpb.RecurringSubscription{
 		Id:   primitive.NewObjectID().Hex(),
 		Plan: plan,
@@ -5151,7 +5159,23 @@ func (s *Service) addRecurringSubscription(
 			Name: order.Project.Name,
 		},
 		ItemType: order.ProductType,
-		ExpireAt: tsExpireAt,
+	}
+
+	if plan.Expiration != nil {
+		expireTime, err := plan.GetExpirationTime()
+
+		if err != nil {
+			zap.L().Error(
+				"Unable to get expiration time",
+				zap.Error(err),
+				zap.Any("order", order),
+			)
+			return nil, "", err
+		}
+
+		if expireTime != nil {
+			subscription.ExpireAt, _ = ptypes.TimestampProto(expireTime.UTC())
+		}
 	}
 
 	for _, item := range order.Items {

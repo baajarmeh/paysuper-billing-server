@@ -21,13 +21,13 @@ type RoyaltyReportRepositoryInterface struct {
 	mock.Mock
 }
 
-// FindByMerchantStatusDates provides a mock function with given fields: ctx, merchantId, statuses, dateFrom, dateTo, limit, offset, sort
-func (_m *RoyaltyReportRepositoryInterface) FindByMerchantStatusDates(ctx context.Context, merchantId string, statuses []string, dateFrom string, dateTo string, limit int64, offset int64, sort []string) ([]*billingpb.RoyaltyReport, error) {
-	ret := _m.Called(ctx, merchantId, statuses, dateFrom, dateTo, limit, offset, sort)
+// FindByMerchantStatusDates provides a mock function with given fields: ctx, merchantId, statuses, dateFrom, dateTo, offset, limit, sort
+func (_m *RoyaltyReportRepositoryInterface) FindByMerchantStatusDates(ctx context.Context, merchantId string, statuses []string, dateFrom string, dateTo string, offset int64, limit int64, sort []string) ([]*billingpb.RoyaltyReport, error) {
+	ret := _m.Called(ctx, merchantId, statuses, dateFrom, dateTo, offset, limit, sort)
 
 	var r0 []*billingpb.RoyaltyReport
 	if rf, ok := ret.Get(0).(func(context.Context, string, []string, string, string, int64, int64, []string) []*billingpb.RoyaltyReport); ok {
-		r0 = rf(ctx, merchantId, statuses, dateFrom, dateTo, limit, offset, sort)
+		r0 = rf(ctx, merchantId, statuses, dateFrom, dateTo, offset, limit, sort)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]*billingpb.RoyaltyReport)
@@ -36,7 +36,7 @@ func (_m *RoyaltyReportRepositoryInterface) FindByMerchantStatusDates(ctx contex
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context, string, []string, string, string, int64, int64, []string) error); ok {
-		r1 = rf(ctx, merchantId, statuses, dateFrom, dateTo, limit, offset, sort)
+		r1 = rf(ctx, merchantId, statuses, dateFrom, dateTo, offset, limit, sort)
 	} else {
 		r1 = ret.Error(1)
 	}

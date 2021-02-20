@@ -61,6 +61,7 @@ func (suite *RecurringTestSuite) SetupTest() {
 		casbin,
 		mocks.NewNotifierOk(),
 		mocks.NewBrokerMockOk(),
+		mocks.NewBrokerMockOk(),
 	)
 
 	if err := suite.service.Init(); err != nil {
@@ -1232,7 +1233,7 @@ func (suite *RecurringTestSuite) TestDeleteRecurringSubscription_WithoutCookie_O
 	}
 
 	orderRepository := &mocks.OrderRepositoryInterface{}
-	orderRepository.On("GetManyBy", mock.Anything, mock.Anything).Return([]*billingpb.Order{order}, nil)
+	orderRepository.On("GetBySubscriptionId", mock.Anything, mock.Anything).Return([]*billingpb.Order{order}, nil)
 	suite.service.orderRepository = orderRepository
 
 	subscriptionRepository := &mocks.RecurringSubscriptionRepositoryInterface{}
@@ -1297,7 +1298,7 @@ func (suite *RecurringTestSuite) TestDeleteRecurringSubscription_WithCookie_Ok()
 	assert.NotEmpty(suite.T(), cookie)
 
 	orderRepository := &mocks.OrderRepositoryInterface{}
-	orderRepository.On("GetManyBy", mock.Anything, mock.Anything).Return([]*billingpb.Order{order}, nil)
+	orderRepository.On("GetBySubscriptionId", mock.Anything, mock.Anything).Return([]*billingpb.Order{order}, nil)
 	suite.service.orderRepository = orderRepository
 
 	subscriptionRepository := &mocks.RecurringSubscriptionRepositoryInterface{}
@@ -1491,7 +1492,7 @@ func (suite *RecurringTestSuite) TestDeleteRecurringSubscription_OrderNotFound_E
 	suite.service.recurringSubscriptionRepository = subscriptionRepository
 
 	orderRepository := &mocks.OrderRepositoryInterface{}
-	orderRepository.On("GetManyBy", mock.Anything, mock.Anything).Return(nil, errors.New("notfound"))
+	orderRepository.On("GetBySubscriptionId", mock.Anything, mock.Anything).Return(nil, errors.New("notfound"))
 	suite.service.orderRepository = orderRepository
 
 	rsp := &billingpb.EmptyResponseWithStatus{}
@@ -1525,7 +1526,7 @@ func (suite *RecurringTestSuite) TestDeleteRecurringSubscription_PaymentSystemNo
 	}
 
 	orderRepository := &mocks.OrderRepositoryInterface{}
-	orderRepository.On("GetManyBy", mock.Anything, mock.Anything).Return([]*billingpb.Order{order}, nil)
+	orderRepository.On("GetBySubscriptionId", mock.Anything, mock.Anything).Return([]*billingpb.Order{order}, nil)
 	suite.service.orderRepository = orderRepository
 
 	subscriptionRepository := &mocks.RecurringSubscriptionRepositoryInterface{}
@@ -1568,7 +1569,7 @@ func (suite *RecurringTestSuite) TestDeleteRecurringSubscription_PaymentSystemGa
 	}
 
 	orderRepository := &mocks.OrderRepositoryInterface{}
-	orderRepository.On("GetManyBy", mock.Anything, mock.Anything).Return([]*billingpb.Order{order}, nil)
+	orderRepository.On("GetBySubscriptionId", mock.Anything, mock.Anything).Return([]*billingpb.Order{order}, nil)
 	suite.service.orderRepository = orderRepository
 
 	subscriptionRepository := &mocks.RecurringSubscriptionRepositoryInterface{}
@@ -1620,7 +1621,7 @@ func (suite *RecurringTestSuite) TestDeleteRecurringSubscription_DeleteSubscript
 	}
 
 	orderRepository := &mocks.OrderRepositoryInterface{}
-	orderRepository.On("GetManyBy", mock.Anything, mock.Anything).Return([]*billingpb.Order{order}, nil)
+	orderRepository.On("GetBySubscriptionId", mock.Anything, mock.Anything).Return([]*billingpb.Order{order}, nil)
 	suite.service.orderRepository = orderRepository
 
 	subscriptionRepository := &mocks.RecurringSubscriptionRepositoryInterface{}
@@ -1672,7 +1673,7 @@ func (suite *RecurringTestSuite) TestDeleteRecurringSubscription_DeleteFromRepos
 	}
 
 	orderRepository := &mocks.OrderRepositoryInterface{}
-	orderRepository.On("GetManyBy", mock.Anything, mock.Anything).Return([]*billingpb.Order{order}, nil)
+	orderRepository.On("GetBySubscriptionId", mock.Anything, mock.Anything).Return([]*billingpb.Order{order}, nil)
 	suite.service.orderRepository = orderRepository
 
 	subscriptionRepository := &mocks.RecurringSubscriptionRepositoryInterface{}
