@@ -2811,7 +2811,7 @@ func (v *OrderCreateRequestProcessor) processRecurringSettings() (err error) {
 		return orderErrorRecurringPlanDisable
 	}
 
-	if v.checked.user.Id != "" {
+	if v.checked.user != nil && v.checked.user.Id != "" {
 		subscription, err := v.recurringSubscriptionRepository.GetActiveByPlanIdCustomerId(v.ctx, v.request.RecurringPlanId, v.checked.user.Id)
 		if err != nil && err != mongo.ErrNoDocuments {
 			return err

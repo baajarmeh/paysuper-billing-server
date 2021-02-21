@@ -1318,7 +1318,7 @@ func (r *orderViewRepository) GetCountBy(ctx context.Context, filter bson.M, opt
 func (r *orderViewRepository) FindForRecurringSubscriptions(
 	ctx context.Context, userId, merchantId, projectId, subscriptionId, status string, dateFrom, dateTo *time.Time, limit, offset int64,
 ) (items []*billingpb.OrderViewPrivate, err error) {
-	query := bson.M{}
+	query := bson.M{"recurring_subscription_id": bson.M{"$nin": bson.A{nil, ""}}}
 
 	if userId != "" {
 		query["user.id"] = userId
@@ -1425,7 +1425,7 @@ func (r *orderViewRepository) FindForRecurringSubscriptions(
 func (r *orderViewRepository) CountForRecurringSubscriptions(
 	ctx context.Context, userId, merchantId, projectId, subscriptionId, status string, dateFrom, dateTo *time.Time,
 ) (count int64, err error) {
-	query := bson.M{}
+	query := bson.M{"recurring_subscription_id": bson.M{"$nin": bson.A{nil, ""}}}
 
 	if userId != "" {
 		query["user.id"] = userId

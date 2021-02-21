@@ -229,6 +229,25 @@ func (suite *OrderViewTestSuite) TestFindForRecurringSubscriptionsLimitOffset() 
 	assert.Equal(suite.T(), order2.Id, orders[0].Id)
 }
 
+func (suite *OrderViewTestSuite) TestFindForRecurringSubscriptionsEmptyWithoutSubscription() {
+	order := suite.getOrderTemplate()
+	order.RecurringPlanId = ""
+	order.RecurringSubscriptionId = ""
+	err := suite.orderRepository.Insert(context.TODO(), order)
+	assert.NoError(suite.T(), err)
+
+	err = suite.orderRepository.UpdateOrderView(context.TODO(), []string{order.Id})
+	assert.NoError(suite.T(), err)
+
+	orders, err := suite.repository.FindForRecurringSubscriptions(context.TODO(), "", order.Project.MerchantId, "", "", "", nil, nil, 1, 0)
+	assert.NoError(suite.T(), err)
+	assert.Empty(suite.T(), orders)
+
+	count, err := suite.repository.CountForRecurringSubscriptions(context.TODO(), "", order.Project.MerchantId, "", "", "", nil, nil)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), int64(0), count)
+}
+
 func (suite *OrderViewTestSuite) getOrderTemplate() *billingpb.Order {
 
 	return &billingpb.Order{
@@ -318,6 +337,7 @@ func (suite *OrderViewTestSuite) getOrderTemplate() *billingpb.Order {
 		PaymentMethodOrderClosedAt:  &timestamp.Timestamp{Seconds: 100},
 		ProjectLastRequestedAt:      &timestamp.Timestamp{Seconds: 100},
 		RefundedAt:                  &timestamp.Timestamp{Seconds: 100},
+		RecurringPlanId:             primitive.NewObjectID().Hex(),
 		RecurringSubscriptionId:     primitive.NewObjectID().Hex(),
 	}
 }
