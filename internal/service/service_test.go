@@ -111,6 +111,7 @@ func (suite *BillingServiceTestSuite) SetupTest() {
 	}
 
 	pmBankCard := &billingpb.PaymentMethod{
+		LimitsCurrency:   "EUR",
 		Id:               primitive.NewObjectID().Hex(),
 		Name:             "Bank card",
 		Group:            "BANKCARD",
@@ -231,6 +232,7 @@ func (suite *BillingServiceTestSuite) SetupTest() {
 	}
 
 	pmQiwi := &billingpb.PaymentMethod{
+		LimitsCurrency:   "EUR",
 		Id:               primitive.NewObjectID().Hex(),
 		Name:             "Qiwi",
 		Group:            "QIWI",
@@ -248,6 +250,7 @@ func (suite *BillingServiceTestSuite) SetupTest() {
 		PaymentSystemId: ps.Id,
 	}
 	pmBitcoin := &billingpb.PaymentMethod{
+		LimitsCurrency:   "EUR",
 		Id:               primitive.NewObjectID().Hex(),
 		Name:             "Bitcoin",
 		Group:            "BITCOIN",
