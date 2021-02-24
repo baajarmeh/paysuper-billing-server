@@ -79,6 +79,7 @@ func (suite *TurnoversTestSuite) SetupTest() {
 		&casbinMocks.CasbinService{},
 		nil,
 		mocks.NewBrokerMockOk(),
+		mocks.NewBrokerMockOk(),
 	)
 
 	if err := suite.service.Init(); err != nil {

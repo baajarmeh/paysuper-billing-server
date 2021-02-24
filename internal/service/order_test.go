@@ -32,7 +32,6 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -1545,6 +1544,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		&casbinMocks.CasbinService{},
 		mocks.NewNotifierOk(),
 		mocks.NewBrokerMockOk(),
+		mocks.NewBrokerMockOk(),
 	)
 
 	if err := suite.service.Init(); err != nil {
@@ -2425,6 +2425,10 @@ func (suite *OrderTestSuite) SetupTest() {
 			},
 			Amount:   99,
 			Currency: "USD",
+		},
+		Expiration: &billingpb.RecurringPlanPeriod{
+			Value: 1,
+			Type:  billingpb.RecurringPeriodDay,
 		},
 		Status: pkg.RecurringPlanStatusActive,
 		Name:   map[string]string{"en": "name"},
@@ -6274,7 +6278,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_Subscription_Recre
 	subscription, err := suite.service.recurringSubscriptionRepository.GetByPlanIdCustomerId(ctx, suite.recurringPlan.Id, order.User.Id)
 	assert.NoError(suite.T(), err)
 
-	orders, err := suite.service.orderRepository.GetManyBy(ctx, bson.M{"recurring_subscription_id": subscription.Id})
+	orders, err := suite.service.orderRepository.GetBySubscriptionId(ctx, subscription.Id)
 	assert.NoError(suite.T(), err)
 	assert.Len(suite.T(), orders, 1)
 
@@ -6283,7 +6287,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_Subscription_Recre
 	assert.Nil(suite.T(), err)
 	assert.Equal(suite.T(), pkg.StatusOK, callbackResponse.Status)
 
-	orders, err = suite.service.orderRepository.GetManyBy(ctx, bson.M{"recurring_subscription_id": subscription.Id})
+	orders, err = suite.service.orderRepository.GetBySubscriptionId(ctx, subscription.Id)
 	assert.NoError(suite.T(), err)
 	assert.Len(suite.T(), orders, 2)
 }
@@ -9540,11 +9544,11 @@ func (suite *OrderTestSuite) TestOrder_RefundReceipt_WithRecurring_Ok() {
 		return nil
 	}
 
-	subscriptionDateEnd := time.Now().AddDate(0, 0, 1).Format("2006-01-02")
+	subscriptionDateEnd, _ := suite.recurringPlan.GetExpirationTime()
+	assert.NotNil(suite.T(), subscriptionDateEnd)
 
 	postmarkBrokerMock := &mocks.BrokerInterface{}
 	postmarkBrokerMock.On("Publish", postmarkpb.PostmarkSenderTopicName, mock.MatchedBy(func(input *postmarkpb.Payload) bool {
-		fmt.Println(input)
 		if v, ok := input.TemplateModel["customerUuid"]; !ok || v == "" {
 			return false
 		}
@@ -9557,7 +9561,7 @@ func (suite *OrderTestSuite) TestOrder_RefundReceipt_WithRecurring_Ok() {
 		if v, ok := input.TemplateModel["recurringInterval"]; !ok || v != "1" {
 			return false
 		}
-		if v, ok := input.TemplateModel["recurringDateEnd"]; !ok || v != subscriptionDateEnd {
+		if v, ok := input.TemplateModel["recurringDateEnd"]; !ok || v != subscriptionDateEnd.Format("2006-01-02") {
 			return false
 		}
 		return true

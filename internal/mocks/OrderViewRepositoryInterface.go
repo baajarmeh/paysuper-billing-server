@@ -23,6 +23,27 @@ type OrderViewRepositoryInterface struct {
 	mock.Mock
 }
 
+// CountForRecurringSubscriptions provides a mock function with given fields: ctx, userId, merchantId, projectId, subscriptionId, status, dateFrom, dateTo
+func (_m *OrderViewRepositoryInterface) CountForRecurringSubscriptions(ctx context.Context, userId string, merchantId string, projectId string, subscriptionId string, status string, dateFrom *time.Time, dateTo *time.Time) (int64, error) {
+	ret := _m.Called(ctx, userId, merchantId, projectId, subscriptionId, status, dateFrom, dateTo)
+
+	var r0 int64
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, string, string, *time.Time, *time.Time) int64); ok {
+		r0 = rf(ctx, userId, merchantId, projectId, subscriptionId, status, dateFrom, dateTo)
+	} else {
+		r0 = ret.Get(0).(int64)
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, string, string, string, string, string, *time.Time, *time.Time) error); ok {
+		r1 = rf(ctx, userId, merchantId, projectId, subscriptionId, status, dateFrom, dateTo)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // CountTransactions provides a mock function with given fields: ctx, match
 func (_m *OrderViewRepositoryInterface) CountTransactions(ctx context.Context, match primitive.M) (int64, error) {
 	ret := _m.Called(ctx, match)
@@ -37,6 +58,29 @@ func (_m *OrderViewRepositoryInterface) CountTransactions(ctx context.Context, m
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context, primitive.M) error); ok {
 		r1 = rf(ctx, match)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// FindForRecurringSubscriptions provides a mock function with given fields: ctx, userId, merchantId, projectId, subscriptionId, status, dateFrom, dateTo, limit, offset
+func (_m *OrderViewRepositoryInterface) FindForRecurringSubscriptions(ctx context.Context, userId string, merchantId string, projectId string, subscriptionId string, status string, dateFrom *time.Time, dateTo *time.Time, limit int64, offset int64) ([]*billingpb.OrderViewPrivate, error) {
+	ret := _m.Called(ctx, userId, merchantId, projectId, subscriptionId, status, dateFrom, dateTo, limit, offset)
+
+	var r0 []*billingpb.OrderViewPrivate
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, string, string, *time.Time, *time.Time, int64, int64) []*billingpb.OrderViewPrivate); ok {
+		r0 = rf(ctx, userId, merchantId, projectId, subscriptionId, status, dateFrom, dateTo, limit, offset)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*billingpb.OrderViewPrivate)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, string, string, string, string, string, *time.Time, *time.Time, int64, int64) error); ok {
+		r1 = rf(ctx, userId, merchantId, projectId, subscriptionId, status, dateFrom, dateTo, limit, offset)
 	} else {
 		r1 = ret.Error(1)
 	}

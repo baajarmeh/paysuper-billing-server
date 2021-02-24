@@ -1314,3 +1314,177 @@ func (r *orderViewRepository) GetCountBy(ctx context.Context, filter bson.M, opt
 
 	return count, nil
 }
+
+func (r *orderViewRepository) FindForRecurringSubscriptions(
+	ctx context.Context, userId, merchantId, projectId, subscriptionId, status string, dateFrom, dateTo *time.Time, limit, offset int64,
+) (items []*billingpb.OrderViewPrivate, err error) {
+	query := bson.M{"recurring_subscription_id": bson.M{"$nin": bson.A{nil, ""}}}
+
+	if userId != "" {
+		query["user.id"] = userId
+	}
+
+	if merchantId != "" {
+		oid, err := primitive.ObjectIDFromHex(merchantId)
+
+		if err != nil {
+			zap.L().Error(
+				pkg.ErrorDatabaseInvalidObjectId,
+				zap.Error(err),
+				zap.String(pkg.ErrorDatabaseFieldCollection, CollectionOrderView),
+				zap.String(pkg.ErrorDatabaseFieldQuery, merchantId),
+			)
+			return nil, err
+		}
+
+		query["project.merchant_id"] = oid
+	}
+
+	if projectId != "" {
+		oid, err := primitive.ObjectIDFromHex(projectId)
+
+		if err != nil {
+			zap.L().Error(
+				pkg.ErrorDatabaseInvalidObjectId,
+				zap.Error(err),
+				zap.String(pkg.ErrorDatabaseFieldCollection, CollectionOrderView),
+				zap.String(pkg.ErrorDatabaseFieldQuery, projectId),
+			)
+			return nil, err
+		}
+
+		query["project._id"] = oid
+	}
+
+	if subscriptionId != "" {
+		query["recurring_subscription_id"] = subscriptionId
+	}
+
+	if status != "" {
+		query["status"] = status
+	}
+
+	if dateFrom != nil && dateTo != nil {
+		query["created_at"] = bson.M{"$gte": dateFrom, "$lte": dateTo}
+	}
+
+	if limit <= 0 {
+		limit = pkg.DatabaseRequestDefaultLimit
+	}
+
+	if offset <= 0 {
+		offset = 0
+	}
+
+	opts := options.Find().
+		SetSort(bson.M{"_id": 1}).
+		SetLimit(limit).
+		SetSkip(offset)
+
+	cursor, err := r.db.Collection(CollectionOrderView).Find(ctx, query, opts)
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, CollectionOrderView),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+		)
+		return nil, err
+	}
+
+	var res []*models.MgoOrderViewPrivate
+
+	err = cursor.All(ctx, &res)
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, CollectionOrderView),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+		)
+		return nil, err
+	}
+
+	orders := make([]*billingpb.OrderViewPrivate, len(res))
+	for i, order := range res {
+		obj, err := r.mapper.MapMgoToObject(order)
+		if err != nil {
+			zap.L().Error(
+				pkg.ErrorMapModelFailed,
+				zap.Error(err),
+				zap.Any(pkg.ErrorDatabaseFieldQuery, res),
+			)
+			return nil, err
+		}
+		orders[i] = obj.(*billingpb.OrderViewPrivate)
+	}
+
+	return orders, nil
+}
+
+func (r *orderViewRepository) CountForRecurringSubscriptions(
+	ctx context.Context, userId, merchantId, projectId, subscriptionId, status string, dateFrom, dateTo *time.Time,
+) (count int64, err error) {
+	query := bson.M{"recurring_subscription_id": bson.M{"$nin": bson.A{nil, ""}}}
+
+	if userId != "" {
+		query["user.id"] = userId
+	}
+
+	if merchantId != "" {
+		oid, err := primitive.ObjectIDFromHex(merchantId)
+
+		if err != nil {
+			zap.L().Error(
+				pkg.ErrorDatabaseInvalidObjectId,
+				zap.Error(err),
+				zap.String(pkg.ErrorDatabaseFieldCollection, CollectionOrderView),
+				zap.String(pkg.ErrorDatabaseFieldQuery, merchantId),
+			)
+			return 0, err
+		}
+
+		query["project.merchant_id"] = oid
+	}
+
+	if projectId != "" {
+		oid, err := primitive.ObjectIDFromHex(projectId)
+
+		if err != nil {
+			zap.L().Error(
+				pkg.ErrorDatabaseInvalidObjectId,
+				zap.Error(err),
+				zap.String(pkg.ErrorDatabaseFieldCollection, CollectionOrderView),
+				zap.String(pkg.ErrorDatabaseFieldQuery, projectId),
+			)
+			return 0, err
+		}
+
+		query["project._id"] = oid
+	}
+
+	if subscriptionId != "" {
+		query["recurring_subscription_id"] = subscriptionId
+	}
+
+	if status != "" {
+		query["status"] = status
+	}
+
+	if dateFrom != nil && dateTo != nil {
+		query["created_at"] = bson.M{"$gte": dateFrom, "$lte": dateTo}
+	}
+
+	count, err = r.db.Collection(CollectionOrderView).CountDocuments(ctx, query)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, CollectionOrderView),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+		)
+	}
+
+	return
+}

@@ -752,3 +752,47 @@ func (h *orderRepository) GetManyBy(ctx context.Context, filter bson.M, opts ...
 
 	return orders, nil
 }
+
+func (h *orderRepository) GetBySubscriptionId(ctx context.Context, subscriptionId string) (items []*billingpb.Order, err error) {
+	query := bson.M{"recurring_subscription_id": subscriptionId}
+
+	cursor, err := h.db.Collection(CollectionOrder).Find(ctx, query)
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, CollectionOrder),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+		)
+		return nil, err
+	}
+
+	var res []*models.MgoOrder
+
+	err = cursor.All(ctx, &res)
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, CollectionOrder),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+		)
+		return nil, err
+	}
+
+	orders := make([]*billingpb.Order, len(res))
+	for i, order := range res {
+		obj, err := h.mapper.MapMgoToObject(order)
+		if err != nil {
+			zap.L().Error(
+				pkg.ErrorMapModelFailed,
+				zap.Error(err),
+				zap.Any(pkg.ErrorDatabaseFieldQuery, res),
+			)
+			return nil, err
+		}
+		orders[i] = obj.(*billingpb.Order)
+	}
+
+	return orders, nil
+}

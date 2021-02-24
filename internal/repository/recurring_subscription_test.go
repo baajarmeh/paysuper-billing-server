@@ -258,11 +258,161 @@ func (suite *RecurringSubscriptionTestSuite) TestFindExpired() {
 	err = suite.repository.Insert(context.TODO(), subscription2)
 	assert.NoError(suite.T(), err)
 
+	subscription3 := suite.template()
+	subscription3.ExpireAt = nil
+	err = suite.repository.Insert(context.TODO(), subscription3)
+	assert.NoError(suite.T(), err)
+
 	subscriptions, err := suite.repository.FindExpired(context.TODO(), time.Now().UTC())
 	assert.NoError(suite.T(), err)
 	assert.NotEmpty(suite.T(), subscriptions)
 	assert.Len(suite.T(), subscriptions, 1)
 	assert.Equal(suite.T(), subscription1.Id, subscriptions[0].Id)
+}
+
+func (suite *RecurringSubscriptionTestSuite) TestFindByUserId() {
+	subscription1 := suite.template()
+	err := suite.repository.Insert(context.TODO(), subscription1)
+	assert.NoError(suite.T(), err)
+
+	subscription2 := suite.template()
+	err = suite.repository.Insert(context.TODO(), subscription2)
+	assert.NoError(suite.T(), err)
+
+	subscriptions, err := suite.repository.Find(context.TODO(), subscription2.Customer.Id, "", "", "", nil, nil, 10, 0)
+	assert.NoError(suite.T(), err)
+	assert.NotEmpty(suite.T(), subscriptions)
+	assert.Len(suite.T(), subscriptions, 1)
+	assert.Equal(suite.T(), subscription2.Id, subscriptions[0].Id)
+
+	count, err := suite.repository.FindCount(context.TODO(), subscription2.Customer.Id, "", "", "", nil, nil)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), int64(1), count)
+}
+
+func (suite *RecurringSubscriptionTestSuite) TestFindByMerchantId() {
+	subscription1 := suite.template()
+	err := suite.repository.Insert(context.TODO(), subscription1)
+	assert.NoError(suite.T(), err)
+
+	subscription2 := suite.template()
+	err = suite.repository.Insert(context.TODO(), subscription2)
+	assert.NoError(suite.T(), err)
+
+	subscriptions, err := suite.repository.Find(context.TODO(), "", subscription2.Plan.MerchantId, "", "", nil, nil, 10, 0)
+	assert.NoError(suite.T(), err)
+	assert.NotEmpty(suite.T(), subscriptions)
+	assert.Len(suite.T(), subscriptions, 1)
+	assert.Equal(suite.T(), subscription2.Plan.MerchantId, subscriptions[0].Plan.MerchantId)
+
+	count, err := suite.repository.FindCount(context.TODO(), "", subscription2.Plan.MerchantId, "", "", nil, nil)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), int64(1), count)
+}
+
+func (suite *RecurringSubscriptionTestSuite) TestFindByStatus() {
+	subscription1 := suite.template()
+	err := suite.repository.Insert(context.TODO(), subscription1)
+	assert.NoError(suite.T(), err)
+
+	subscription2 := suite.template()
+	subscription2.Status = billingpb.RecurringSubscriptionStatusCanceled
+	err = suite.repository.Insert(context.TODO(), subscription2)
+	assert.NoError(suite.T(), err)
+
+	subscriptions, err := suite.repository.Find(context.TODO(), "", "", subscription2.Status, "", nil, nil, 10, 0)
+	assert.NoError(suite.T(), err)
+	assert.NotEmpty(suite.T(), subscriptions)
+	assert.Len(suite.T(), subscriptions, 1)
+	assert.Equal(suite.T(), subscription2.Status, subscriptions[0].Status)
+
+	count, err := suite.repository.FindCount(context.TODO(), "", "", subscription2.Status, "", nil, nil)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), int64(1), count)
+}
+
+func (suite *RecurringSubscriptionTestSuite) TestFindByQuickFilter() {
+	subscription1 := suite.template()
+	err := suite.repository.Insert(context.TODO(), subscription1)
+	assert.NoError(suite.T(), err)
+
+	subscription2 := suite.template()
+	err = suite.repository.Insert(context.TODO(), subscription2)
+	assert.NoError(suite.T(), err)
+
+	subscriptions, err := suite.repository.Find(context.TODO(), "", "", "", subscription2.Customer.Id, nil, nil, 10, 0)
+	assert.NoError(suite.T(), err)
+	assert.NotEmpty(suite.T(), subscriptions)
+	assert.Len(suite.T(), subscriptions, 1)
+	assert.Equal(suite.T(), subscription2.Customer.Id, subscriptions[0].Customer.Id)
+
+	count, err := suite.repository.FindCount(context.TODO(), "", "", "", subscription2.Customer.Id, nil, nil)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), int64(1), count)
+}
+
+func (suite *RecurringSubscriptionTestSuite) TestFindByDates() {
+	now := time.Now().UTC()
+	dateFrom := now.AddDate(0, 0, -2)
+	dateTo := now.AddDate(0, 0, -1)
+
+	subscription1 := suite.template()
+	err := suite.repository.Insert(context.TODO(), subscription1)
+	assert.NoError(suite.T(), err)
+
+	subscription2 := suite.template()
+	subscription2.CreatedAt, _ = ptypes.TimestampProto(dateFrom)
+	err = suite.repository.Insert(context.TODO(), subscription2)
+	assert.NoError(suite.T(), err)
+
+	subscriptions, err := suite.repository.Find(context.TODO(), "", "", "", "", &dateFrom, &dateTo, 10, 0)
+	assert.NoError(suite.T(), err)
+	assert.NotEmpty(suite.T(), subscriptions)
+	assert.Len(suite.T(), subscriptions, 1)
+	assert.Equal(suite.T(), subscription2.Id, subscriptions[0].Id)
+
+	count, err := suite.repository.FindCount(context.TODO(), "", "", "", "", &dateFrom, &dateTo)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), int64(1), count)
+}
+
+func (suite *RecurringSubscriptionTestSuite) TestFindLimitOffset() {
+	subscription1 := suite.template()
+	err := suite.repository.Insert(context.TODO(), subscription1)
+	assert.NoError(suite.T(), err)
+
+	subscription2 := suite.template()
+	subscription2.Plan.MerchantId = subscription1.Plan.MerchantId
+	err = suite.repository.Insert(context.TODO(), subscription2)
+	assert.NoError(suite.T(), err)
+
+	subscriptions, err := suite.repository.Find(context.TODO(), "", subscription1.Plan.MerchantId, "", "", nil, nil, 1, 0)
+	assert.NoError(suite.T(), err)
+	assert.NotEmpty(suite.T(), subscriptions)
+	assert.Len(suite.T(), subscriptions, 1)
+	assert.Equal(suite.T(), subscription1.Customer.Id, subscriptions[0].Customer.Id)
+
+	subscriptions, err = suite.repository.Find(context.TODO(), "", subscription1.Plan.MerchantId, "", "", nil, nil, 1, 1)
+	assert.NoError(suite.T(), err)
+	assert.NotEmpty(suite.T(), subscriptions)
+	assert.Len(suite.T(), subscriptions, 1)
+	assert.Equal(suite.T(), subscription2.Customer.Id, subscriptions[0].Customer.Id)
+}
+
+func (suite *RecurringSubscriptionTestSuite) TestFindByPlanId() {
+	subscription1 := suite.template()
+	err := suite.repository.Insert(context.TODO(), subscription1)
+	assert.NoError(suite.T(), err)
+
+	subscription2 := suite.template()
+	err = suite.repository.Insert(context.TODO(), subscription2)
+	assert.NoError(suite.T(), err)
+
+	subscriptions, err := suite.repository.FindByPlanId(context.TODO(), subscription1.Plan.Id)
+	assert.NoError(suite.T(), err)
+	assert.NotEmpty(suite.T(), subscriptions)
+	assert.Len(suite.T(), subscriptions, 1)
+	assert.Equal(suite.T(), subscription1.Plan.Id, subscriptions[0].Plan.Id)
 }
 
 func (suite *RecurringSubscriptionTestSuite) template() *billingpb.RecurringSubscription {
