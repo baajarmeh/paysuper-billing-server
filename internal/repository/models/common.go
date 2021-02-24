@@ -33,6 +33,7 @@ type MgoOrderProject struct {
 	MerchantRoyaltyCurrency string                             `bson:"merchant_royalty_currency"`
 	RedirectSettings        *billingpb.ProjectRedirectSettings `bson:"redirect_settings"`
 	FirstPaymentAt          time.Time                          `bson:"first_payment_at"`
+	FormDefaultText         []*MgoMultiLang                    `bson:"form_default_text"`
 }
 
 type MgoOrderPaymentMethod struct {
@@ -136,6 +137,14 @@ func getOrderProject(in *MgoOrderProject) *billingpb.ProjectOrder {
 
 		for _, v := range in.Name {
 			project.Name[v.Lang] = v.Value
+		}
+	}
+
+	if len(in.FormDefaultText) > 0 {
+		project.FormDefaultText = make(map[string]string)
+
+		for _, v := range in.FormDefaultText {
+			project.FormDefaultText[v.Lang] = v.Value
 		}
 	}
 

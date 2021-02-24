@@ -99,8 +99,8 @@ type MgoOrderViewPrivate struct {
 	MetadataValues                             []string                                 `bson:"metadata_values"`
 	AmountBeforeVat                            float64                                  `bson:"amount_before_vat"`
 	RoyaltyReportId                            string                                   `bson:"royalty_report_id"`
-	Recurring                                  bool                                     `bson:"recurring"`
-	RecurringId                                string                                   `bson:"recurring_id"`
+	RecurringPlanId                            string                                   `bson:"recurring_plan_id"`
+	RecurringSubscriptionId                    string                                   `bson:"recurring_subscription_id"`
 	ReportSummary                              *MgoOrderViewReportSummary               `bson:"report_summary" json:"report_summary"`
 }
 
@@ -233,8 +233,8 @@ func (o *orderViewPrivateMapper) MapObjectToMgo(obj interface{}) (interface{}, e
 		MetadataValues:                             in.MetadataValues,
 		AmountBeforeVat:                            in.AmountBeforeVat,
 		RoyaltyReportId:                            in.RoyaltyReportId,
-		Recurring:                                  in.Recurring,
-		RecurringId:                                in.RecurringId,
+		RecurringPlanId:                            in.RecurringPlanId,
+		RecurringSubscriptionId:                    in.RecurringSubscriptionId,
 		ReportSummary: &MgoOrderViewReportSummary{
 			Status:  in.ReportSummary.Status,
 			Charge:  in.ReportSummary.Charge,
@@ -250,6 +250,12 @@ func (o *orderViewPrivateMapper) MapObjectToMgo(obj interface{}) (interface{}, e
 	if in.Project != nil && len(in.Project.Name) > 0 {
 		for k, v := range in.Project.Name {
 			out.Project.Name = append(out.Project.Name, &MgoMultiLang{Lang: k, Value: v})
+		}
+	}
+
+	if in.Project != nil && len(in.Project.FormDefaultText) > 0 {
+		for k, v := range in.Project.FormDefaultText {
+			out.Project.FormDefaultText = append(out.Project.FormDefaultText, &MgoMultiLang{Lang: k, Value: v})
 		}
 	}
 
@@ -475,8 +481,8 @@ func (o *orderViewPrivateMapper) MapMgoToObject(obj interface{}) (interface{}, e
 	m.OrderCharge = decoded.OrderCharge
 	m.OrderChargeBeforeVat = decoded.OrderChargeBeforeVat
 	m.PaymentMethodTerminalId = decoded.PaymentMethodTerminalId
-	m.Recurring = decoded.Recurring
-	m.RecurringId = decoded.RecurringId
+	m.RecurringPlanId = decoded.RecurringPlanId
+	m.RecurringSubscriptionId = decoded.RecurringSubscriptionId
 	m.ReportSummary = getOrderViewReportSummary(decoded.ReportSummary)
 
 	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)

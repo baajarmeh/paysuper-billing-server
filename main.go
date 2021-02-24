@@ -63,6 +63,10 @@ func main() {
 		case "extend_payouts_with_vat":
 			err = app.TaskExtendPayoutsWithVat()
 			break
+
+		case "extend_royalties_with_vat":
+			err = app.TaskExtendRoyaltiesWithVat()
+			break
 		}
 
 		if err != nil {

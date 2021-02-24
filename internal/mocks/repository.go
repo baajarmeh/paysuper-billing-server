@@ -11,72 +11,9 @@ import (
 
 type RepositoryServiceOk struct{}
 
-func (r *RepositoryServiceOk) AddSubscription(ctx context.Context, in *recurringpb.Subscription, opts ...client.CallOption) (*recurringpb.AddSubscriptionResponse, error) {
-	panic("implement me")
-}
-
-func (r *RepositoryServiceOk) UpdateSubscription(ctx context.Context, in *recurringpb.Subscription, opts ...client.CallOption) (*recurringpb.UpdateSubscriptionResponse, error) {
-	panic("implement me")
-}
-
-func (r *RepositoryServiceOk) GetSubscription(ctx context.Context, in *recurringpb.GetSubscriptionRequest, opts ...client.CallOption) (*recurringpb.GetSubscriptionResponse, error) {
-	panic("implement me")
-}
-
-func (r *RepositoryServiceOk) FindSubscriptions(ctx context.Context, in *recurringpb.FindSubscriptionsRequest, opts ...client.CallOption) (*recurringpb.FindSubscriptionsResponse, error) {
-	return &recurringpb.FindSubscriptionsResponse{
-		List: []*recurringpb.Subscription{},
-	}, nil
-}
-
-func (r *RepositoryServiceOk) DeleteSubscription(ctx context.Context, in *recurringpb.Subscription, opts ...client.CallOption) (*recurringpb.DeleteSubscriptionResponse, error) {
-	panic("implement me")
-}
-
 type RepositoryServiceEmpty struct{}
 
-
-func (r *RepositoryServiceEmpty) AddSubscription(ctx context.Context, in *recurringpb.Subscription, opts ...client.CallOption) (*recurringpb.AddSubscriptionResponse, error) {
-	panic("implement me")
-}
-
-func (r *RepositoryServiceEmpty) UpdateSubscription(ctx context.Context, in *recurringpb.Subscription, opts ...client.CallOption) (*recurringpb.UpdateSubscriptionResponse, error) {
-	panic("implement me")
-}
-
-func (r *RepositoryServiceEmpty) GetSubscription(ctx context.Context, in *recurringpb.GetSubscriptionRequest, opts ...client.CallOption) (*recurringpb.GetSubscriptionResponse, error) {
-	panic("implement me")
-}
-
-func (r *RepositoryServiceEmpty) FindSubscriptions(ctx context.Context, in *recurringpb.FindSubscriptionsRequest, opts ...client.CallOption) (*recurringpb.FindSubscriptionsResponse, error) {
-	panic("implement me")
-}
-
-func (r *RepositoryServiceEmpty) DeleteSubscription(ctx context.Context, in *recurringpb.Subscription, opts ...client.CallOption) (*recurringpb.DeleteSubscriptionResponse, error) {
-	panic("implement me")
-}
-
 type RepositoryServiceError struct{}
-
-func (r *RepositoryServiceError) AddSubscription(ctx context.Context, in *recurringpb.Subscription, opts ...client.CallOption) (*recurringpb.AddSubscriptionResponse, error) {
-	panic("implement me")
-}
-
-func (r *RepositoryServiceError) UpdateSubscription(ctx context.Context, in *recurringpb.Subscription, opts ...client.CallOption) (*recurringpb.UpdateSubscriptionResponse, error) {
-	panic("implement me")
-}
-
-func (r *RepositoryServiceError) GetSubscription(ctx context.Context, in *recurringpb.GetSubscriptionRequest, opts ...client.CallOption) (*recurringpb.GetSubscriptionResponse, error) {
-	panic("implement me")
-}
-
-func (r *RepositoryServiceError) FindSubscriptions(ctx context.Context, in *recurringpb.FindSubscriptionsRequest, opts ...client.CallOption) (*recurringpb.FindSubscriptionsResponse, error) {
-	panic("implement me")
-}
-
-func (r *RepositoryServiceError) DeleteSubscription(ctx context.Context, in *recurringpb.Subscription, opts ...client.CallOption) (*recurringpb.DeleteSubscriptionResponse, error) {
-	panic("implement me")
-}
 
 func NewRepositoryServiceOk() recurringpb.RepositoryService {
 	return &RepositoryServiceOk{}

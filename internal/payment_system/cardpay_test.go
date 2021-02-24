@@ -221,8 +221,18 @@ func (suite *CardPayTestSuite) TestCardPay_CreateRecurringSubscription_Ok() {
 	suite.typedHandler.httpClient.Transport = &TransportCardPayRecurringPlanOk{}
 
 	order := orderSimpleBankCard
-	order.RecurringSettings = &billingpb.OrderRecurringSettings{Period: recurringpb.RecurringPeriodDay}
-	subscription := &recurringpb.Subscription{}
+	subscription := &billingpb.RecurringSubscription{
+		Plan: &billingpb.RecurringPlan{
+			Charge: &billingpb.RecurringPlanCharge{
+				Period: &billingpb.RecurringPlanPeriod{
+					Type:  billingpb.RecurringPeriodDay,
+					Value: 1,
+				},
+				Amount:   10,
+				Currency: "EUR",
+			},
+		},
+	}
 
 	url, err := suite.handler.CreateRecurringSubscription(
 		order,
@@ -235,8 +245,6 @@ func (suite *CardPayTestSuite) TestCardPay_CreateRecurringSubscription_Ok() {
 	assert.NotEmpty(suite.T(), url)
 	assert.NotEmpty(suite.T(), subscription.CardpayPlanId)
 	assert.NotEmpty(suite.T(), subscription.CardpaySubscriptionId)
-	assert.Equal(suite.T(), order.ChargeAmount, subscription.Amount)
-	assert.Equal(suite.T(), order.ChargeCurrency, subscription.Currency)
 }
 
 func (suite *CardPayTestSuite) TestCardPay_CreateRecurringSubscription_InactivePlan() {
@@ -244,8 +252,18 @@ func (suite *CardPayTestSuite) TestCardPay_CreateRecurringSubscription_InactiveP
 	suite.typedHandler.httpClient.Transport = &TransportCardPayRecurringPlanInactive{}
 
 	order := orderSimpleBankCard
-	order.RecurringSettings = &billingpb.OrderRecurringSettings{Period: recurringpb.RecurringPeriodDay}
-	subscription := &recurringpb.Subscription{}
+	subscription := &billingpb.RecurringSubscription{
+		Plan: &billingpb.RecurringPlan{
+			Charge: &billingpb.RecurringPlanCharge{
+				Period: &billingpb.RecurringPlanPeriod{
+					Type:  billingpb.RecurringPeriodDay,
+					Value: 1,
+				},
+				Amount:   10,
+				Currency: "EUR",
+			},
+		},
+	}
 
 	_, err := suite.handler.CreateRecurringSubscription(
 		order,
@@ -261,7 +279,7 @@ func (suite *CardPayTestSuite) TestCardPay_CreateRecurringSubscription_InactiveP
 func (suite *CardPayTestSuite) TestCardPay_DeleteRecurringSubscription_Ok() {
 	suite.typedHandler.httpClient = NewCardPayHttpClientStatusOk()
 
-	subscription := &recurringpb.Subscription{
+	subscription := &billingpb.RecurringSubscription{
 		CardpayPlanId:         "planId",
 		CardpaySubscriptionId: "subscriptionId",
 	}

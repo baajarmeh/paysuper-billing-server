@@ -26,13 +26,13 @@ import (
 	"github.com/paysuper/paysuper-proto/go/postmarkpb"
 	"github.com/paysuper/paysuper-proto/go/recurringpb"
 	recurringMocks "github.com/paysuper/paysuper-proto/go/recurringpb/mocks"
-	stringTools "github.com/paysuper/paysuper-tools/string"
 	"github.com/stoewer/go-strcase"
 	"github.com/streadway/amqp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -81,6 +81,7 @@ type OrderTestSuite struct {
 	operatingCompany                       *billingpb.OperatingCompany
 	productWithDefaultCurrency             *billingpb.Product
 	customer                               *billingpb.Customer
+	recurringPlan                          *billingpb.RecurringPlan
 	cookie                                 string
 
 	logObserver *zap.Logger
@@ -1029,6 +1030,9 @@ func (suite *OrderTestSuite) SetupTest() {
 			},
 			Keys: &billingpb.KeysTesting{IsPassed: true},
 		},
+		FormDefaultText: map[string]string{
+			"en": "In-game purchase",
+		},
 	}
 	projectFixedAmount := &billingpb.Project{
 		Id:                       primitive.NewObjectID().Hex(),
@@ -1064,6 +1068,9 @@ func (suite *OrderTestSuite) SetupTest() {
 				IncorrectPayment: true,
 			},
 			Keys: &billingpb.KeysTesting{IsPassed: true},
+		},
+		FormDefaultText: map[string]string{
+			"en": "In-game purchase",
 		},
 	}
 
@@ -1118,6 +1125,9 @@ func (suite *OrderTestSuite) SetupTest() {
 		},
 		UrlRedirectSuccess: "http://localhost?success",
 		UrlRedirectFail:    "http://localhost?fail",
+		FormDefaultText: map[string]string{
+			"en": "In-game purchase",
+		},
 	}
 
 	projectWithProducts := &billingpb.Project{
@@ -1140,6 +1150,9 @@ func (suite *OrderTestSuite) SetupTest() {
 		},
 		UrlRedirectSuccess: "http://localhost?success",
 		UrlRedirectFail:    "http://localhost?fail",
+		FormDefaultText: map[string]string{
+			"en": "In-game purchase",
+		},
 	}
 	projectWithKeyProducts := &billingpb.Project{
 		Id:                       primitive.NewObjectID().Hex(),
@@ -1161,6 +1174,9 @@ func (suite *OrderTestSuite) SetupTest() {
 		},
 		UrlRedirectSuccess: "http://localhost?success",
 		UrlRedirectFail:    "http://localhost?fail",
+		FormDefaultText: map[string]string{
+			"en": "In-game purchase",
+		},
 	}
 	projectUahLimitCurrency := &billingpb.Project{
 		Id:                 primitive.NewObjectID().Hex(),
@@ -1181,6 +1197,9 @@ func (suite *OrderTestSuite) SetupTest() {
 		},
 		UrlRedirectSuccess: "http://localhost?success",
 		UrlRedirectFail:    "http://localhost?fail",
+		FormDefaultText: map[string]string{
+			"en": "In-game purchase",
+		},
 	}
 	projectIncorrectPaymentMethodId := &billingpb.Project{
 		Id:                 primitive.NewObjectID().Hex(),
@@ -1201,6 +1220,9 @@ func (suite *OrderTestSuite) SetupTest() {
 		},
 		UrlRedirectSuccess: "http://localhost?success",
 		UrlRedirectFail:    "http://localhost?fail",
+		FormDefaultText: map[string]string{
+			"en": "In-game purchase",
+		},
 	}
 	projectEmptyPaymentMethodTerminal := &billingpb.Project{
 		Id:                 primitive.NewObjectID().Hex(),
@@ -1221,6 +1243,9 @@ func (suite *OrderTestSuite) SetupTest() {
 		},
 		UrlRedirectSuccess: "http://localhost?success",
 		UrlRedirectFail:    "http://localhost?fail",
+		FormDefaultText: map[string]string{
+			"en": "In-game purchase",
+		},
 	}
 	projectWithoutPaymentMethods := &billingpb.Project{
 		Id:                 primitive.NewObjectID().Hex(),
@@ -1241,6 +1266,9 @@ func (suite *OrderTestSuite) SetupTest() {
 		},
 		UrlRedirectSuccess: "http://localhost?success",
 		UrlRedirectFail:    "http://localhost?fail",
+		FormDefaultText: map[string]string{
+			"en": "In-game purchase",
+		},
 	}
 	inactiveProject := &billingpb.Project{
 		Id:                 primitive.NewObjectID().Hex(),
@@ -1261,6 +1289,9 @@ func (suite *OrderTestSuite) SetupTest() {
 		},
 		UrlRedirectSuccess: "http://localhost?success",
 		UrlRedirectFail:    "http://localhost?fail",
+		FormDefaultText: map[string]string{
+			"en": "In-game purchase",
+		},
 	}
 	projects := []*billingpb.Project{
 		project,
@@ -2381,6 +2412,26 @@ func (suite *OrderTestSuite) SetupTest() {
 	suite.customer, err = suite.service.createCustomer(context.TODO(), customerRequest, projectFixedAmount)
 	if err != nil {
 		suite.FailNow("Create customer failed", "%v", err)
+	}
+
+	suite.recurringPlan = &billingpb.RecurringPlan{
+		Id:         primitive.NewObjectID().Hex(),
+		MerchantId: suite.project.MerchantId,
+		ProjectId:  suite.project.Id,
+		Charge: &billingpb.RecurringPlanCharge{
+			Period: &billingpb.RecurringPlanPeriod{
+				Type:  billingpb.RecurringPeriodDay,
+				Value: 1,
+			},
+			Amount:   99,
+			Currency: "USD",
+		},
+		Status: pkg.RecurringPlanStatusActive,
+		Name:   map[string]string{"en": "name"},
+	}
+	err = suite.service.recurringPlanRepository.Insert(context.TODO(), suite.recurringPlan)
+	if err != nil {
+		suite.FailNow("Create recurring plan failed", "%v", err)
 	}
 
 	browserCustomer := &BrowserCookieCustomer{
@@ -3638,7 +3689,7 @@ func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_Ok() {
 	assert.Equal(suite.T(), rsp.Item.MerchantInfo.AgreementNumber, suite.merchant.AgreementNumber)
 }
 
-func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_RecurringSettings_PaymentMethodRecurringNotAllowed() {
+func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_PaymentMethodRecurringNotAllowed() {
 	req := &billingpb.OrderCreateRequest{
 		Type:          pkg.OrderType_simple,
 		ProjectId:     suite.project.Id,
@@ -3652,7 +3703,7 @@ func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_RecurringSettings_Paym
 			Ip:    "127.0.0.1",
 		},
 		FormMode:        "standalone",
-		RecurringPeriod: recurringpb.RecurringPeriodDay,
+		RecurringPlanId: suite.recurringPlan.Id,
 	}
 
 	rsp := &billingpb.OrderCreateProcessResponse{}
@@ -3661,47 +3712,6 @@ func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_RecurringSettings_Paym
 	assert.Nil(suite.T(), err)
 	assert.Equal(suite.T(), billingpb.ResponseStatusBadData, rsp.Status)
 	assert.Equal(suite.T(), orderErrorRecurringNotAllowed, rsp.Message)
-}
-
-func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_RecurringSettings_DefaultDateEnd_Ok() {
-	paymentMethod, _ := suite.service.paymentMethodRepository.GetById(context.TODO(), suite.paymentMethod.Id)
-	paymentMethod.RecurringAllowed = true
-	_ = suite.service.paymentMethodRepository.Update(context.TODO(), paymentMethod)
-
-	req := &billingpb.OrderCreateRequest{
-		Type:          pkg.OrderType_simple,
-		ProjectId:     suite.project.Id,
-		PaymentMethod: paymentMethod.Group,
-		Currency:      "RUB",
-		Amount:        100,
-		Account:       "unit test",
-		Description:   "unit test",
-		User: &billingpb.OrderUser{
-			Email: "test@unit.unit",
-			Ip:    "127.0.0.1",
-		},
-		FormMode:        "standalone",
-		RecurringPeriod: recurringpb.RecurringPeriodDay,
-	}
-
-	rsp := &billingpb.OrderCreateProcessResponse{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
-
-	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp.Status)
-	assert.True(suite.T(), len(rsp.Item.Id) > 0)
-	assert.NotNil(suite.T(), rsp.Item.Project)
-	assert.NotNil(suite.T(), rsp.Item.PaymentMethod)
-	assert.Equal(suite.T(), pkg.OrderTypeOrder, rsp.Item.Type)
-	assert.Equal(suite.T(), req.FormMode, rsp.Item.FormMode)
-	assert.NotNil(suite.T(), rsp.Item.MerchantInfo)
-	assert.Equal(suite.T(), suite.merchant.GetCompanyName(), rsp.Item.MerchantInfo.CompanyName)
-	assert.Equal(suite.T(), suite.merchant.AgreementNumber, rsp.Item.MerchantInfo.AgreementNumber)
-	assert.NotNil(suite.T(), rsp.Item.RecurringSettings)
-	assert.Equal(suite.T(), recurringpb.RecurringPeriodDay, rsp.Item.RecurringSettings.Period)
-
-	dateEnd := time.Now().UTC().AddDate(1, 0, 0).Format(billingpb.FilterDateFormat)
-	assert.Equal(suite.T(), dateEnd, rsp.Item.RecurringSettings.DateEnd)
 }
 
 func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_RecurringSettings_WithoutPaymentMethod_Ok() {
@@ -3717,7 +3727,7 @@ func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_RecurringSettings_With
 			Ip:    "127.0.0.1",
 		},
 		FormMode:        "standalone",
-		RecurringPeriod: recurringpb.RecurringPeriodDay,
+		RecurringPlanId: suite.recurringPlan.Id,
 	}
 
 	rsp := &billingpb.OrderCreateProcessResponse{}
@@ -3732,19 +3742,18 @@ func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_RecurringSettings_With
 	assert.NotNil(suite.T(), rsp.Item.MerchantInfo)
 	assert.Equal(suite.T(), suite.merchant.GetCompanyName(), rsp.Item.MerchantInfo.CompanyName)
 	assert.Equal(suite.T(), suite.merchant.AgreementNumber, rsp.Item.MerchantInfo.AgreementNumber)
-	assert.NotNil(suite.T(), rsp.Item.RecurringSettings)
-	assert.Equal(suite.T(), recurringpb.RecurringPeriodDay, rsp.Item.RecurringSettings.Period)
-
-	dateEnd := time.Now().AddDate(1, 0, 0).UTC().Format(billingpb.FilterDateFormat)
-	assert.Equal(suite.T(), dateEnd, rsp.Item.RecurringSettings.DateEnd)
+	assert.Equal(suite.T(), suite.recurringPlan.Id, rsp.Item.RecurringPlanId)
 }
 
-func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_RecurringSettings_MerchantDateEnd_Ok() {
+func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_RecurringPlanDisabled() {
 	paymentMethod, _ := suite.service.paymentMethodRepository.GetById(context.TODO(), suite.paymentMethod.Id)
 	paymentMethod.RecurringAllowed = true
-	_ = suite.service.paymentMethodRepository.Update(context.TODO(), paymentMethod)
+	err := suite.service.paymentMethodRepository.Update(context.TODO(), paymentMethod)
+	assert.NoError(suite.T(), err)
 
-	dateEnd := time.Now().AddDate(0, 0, 7).UTC().Format(billingpb.FilterDateFormat)
+	suite.recurringPlan.Status = pkg.RecurringPlanStatusDisabled
+	err = suite.service.recurringPlanRepository.Update(context.TODO(), suite.recurringPlan)
+	assert.NoError(suite.T(), err)
 
 	req := &billingpb.OrderCreateRequest{
 		Type:          pkg.OrderType_simple,
@@ -3758,475 +3767,284 @@ func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_RecurringSettings_Merc
 			Email: "test@unit.unit",
 			Ip:    "127.0.0.1",
 		},
-		FormMode:         "standalone",
-		RecurringPeriod:  recurringpb.RecurringPeriodDay,
-		RecurringDateEnd: dateEnd,
+		FormMode:        "standalone",
+		RecurringPlanId: suite.recurringPlan.Id,
 	}
 
 	rsp := &billingpb.OrderCreateProcessResponse{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
+	err = suite.service.OrderCreateProcess(context.TODO(), req, rsp)
+
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), orderErrorRecurringPlanDisable, rsp.Message)
+}
+
+func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_UnknownRecurringPlan() {
+	paymentMethod, _ := suite.service.paymentMethodRepository.GetById(context.TODO(), suite.paymentMethod.Id)
+	paymentMethod.RecurringAllowed = true
+	err := suite.service.paymentMethodRepository.Update(context.TODO(), paymentMethod)
+	assert.NoError(suite.T(), err)
+
+	req := &billingpb.OrderCreateRequest{
+		Type:          pkg.OrderType_simple,
+		ProjectId:     suite.project.Id,
+		PaymentMethod: paymentMethod.Group,
+		Currency:      "RUB",
+		Amount:        100,
+		Account:       "unit test",
+		Description:   "unit test",
+		User: &billingpb.OrderUser{
+			Email: "test@unit.unit",
+			Ip:    "127.0.0.1",
+		},
+		FormMode:        "standalone",
+		RecurringPlanId: primitive.NewObjectID().Hex(),
+	}
+
+	rsp := &billingpb.OrderCreateProcessResponse{}
+	err = suite.service.OrderCreateProcess(context.TODO(), req, rsp)
+
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), orderErrorRecurringPlanNotFound, rsp.Message)
+}
+
+func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_SubscriptionAlreadyExists() {
+	paymentMethod, _ := suite.service.paymentMethodRepository.GetById(context.TODO(), suite.paymentMethod.Id)
+	paymentMethod.RecurringAllowed = true
+	err := suite.service.paymentMethodRepository.Update(context.TODO(), paymentMethod)
+	assert.NoError(suite.T(), err)
+
+	suite.recurringPlan = &billingpb.RecurringPlan{
+		Id:         primitive.NewObjectID().Hex(),
+		MerchantId: suite.projectFixedAmount.MerchantId,
+		ProjectId:  suite.projectFixedAmount.Id,
+		Charge: &billingpb.RecurringPlanCharge{
+			Period: &billingpb.RecurringPlanPeriod{
+				Type:  billingpb.RecurringPeriodDay,
+				Value: 1,
+			},
+			Amount:   10,
+			Currency: "USD",
+		},
+		Status: pkg.RecurringPlanStatusActive,
+		Name:   map[string]string{"en": "name"},
+	}
+	err = suite.service.recurringPlanRepository.Insert(context.TODO(), suite.recurringPlan)
+	assert.NoError(suite.T(), err)
+
+	subscription := &billingpb.RecurringSubscription{
+		Id:   primitive.NewObjectID().Hex(),
+		Plan: suite.recurringPlan,
+		Customer: &billingpb.RecurringSubscriptionCustomer{
+			Id: suite.customer.Id,
+		},
+		Project: &billingpb.RecurringSubscriptionProject{
+			Id: suite.recurringPlan.ProjectId,
+		},
+		Status:   billingpb.RecurringSubscriptionStatusActive,
+		ExpireAt: ptypes.TimestampNow(),
+	}
+	err = suite.service.recurringSubscriptionRepository.Insert(context.TODO(), subscription)
+	assert.NoError(suite.T(), err)
+
+	req := &billingpb.OrderCreateRequest{
+		Type:          pkg.OrderType_simple,
+		ProjectId:     suite.projectFixedAmount.Id,
+		PaymentMethod: paymentMethod.Group,
+		Currency:      "RUB",
+		Amount:        100,
+		Account:       "unit test",
+		Description:   "unit test",
+		User: &billingpb.OrderUser{
+			Id:    suite.customer.Id,
+			Email: suite.customer.Email,
+			Ip:    "127.0.0.1",
+		},
+		FormMode:        "standalone",
+		RecurringPlanId: suite.recurringPlan.Id,
+	}
+
+	rsp := &billingpb.OrderCreateProcessResponse{}
+	err = suite.service.OrderCreateProcess(context.TODO(), req, rsp)
+
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), orderErrorRecurringSubscriptionAlreadyExists, rsp.Message)
+}
+
+func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_SimpleUseRecurringAmountAndCurrency() {
+	paymentMethod, _ := suite.service.paymentMethodRepository.GetById(context.TODO(), suite.paymentMethod.Id)
+	paymentMethod.RecurringAllowed = true
+	err := suite.service.paymentMethodRepository.Update(context.TODO(), paymentMethod)
+	assert.NoError(suite.T(), err)
+
+	req := &billingpb.OrderCreateRequest{
+		Type:          pkg.OrderType_simple,
+		ProjectId:     suite.project.Id,
+		PaymentMethod: paymentMethod.Group,
+		Currency:      "RUB",
+		Amount:        100,
+		Account:       "unit test",
+		Description:   "unit test",
+		User: &billingpb.OrderUser{
+			Id:    suite.customer.Id,
+			Email: suite.customer.Email,
+			Ip:    "127.0.0.1",
+		},
+		FormMode:        "standalone",
+		RecurringPlanId: suite.recurringPlan.Id,
+	}
+
+	rsp := &billingpb.OrderCreateProcessResponse{}
+	err = suite.service.OrderCreateProcess(context.TODO(), req, rsp)
 
 	assert.Nil(suite.T(), err)
 	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp.Status)
-	assert.True(suite.T(), len(rsp.Item.Id) > 0)
-	assert.NotNil(suite.T(), rsp.Item.Project)
-	assert.NotNil(suite.T(), rsp.Item.PaymentMethod)
-	assert.Equal(suite.T(), pkg.OrderTypeOrder, rsp.Item.Type)
-	assert.Equal(suite.T(), req.FormMode, rsp.Item.FormMode)
-	assert.NotNil(suite.T(), rsp.Item.MerchantInfo)
-	assert.Equal(suite.T(), suite.merchant.GetCompanyName(), rsp.Item.MerchantInfo.CompanyName)
-	assert.Equal(suite.T(), suite.merchant.AgreementNumber, rsp.Item.MerchantInfo.AgreementNumber)
-	assert.NotNil(suite.T(), rsp.Item.RecurringSettings)
-	assert.Equal(suite.T(), recurringpb.RecurringPeriodDay, rsp.Item.RecurringSettings.Period)
-	assert.Equal(suite.T(), dateEnd, rsp.Item.RecurringSettings.DateEnd)
+	assert.Equal(suite.T(), suite.recurringPlan.Charge.Amount, rsp.Item.OrderAmount)
+	assert.Equal(suite.T(), suite.recurringPlan.Charge.Currency, rsp.Item.Currency)
 }
 
-func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_RecurringSettings_MerchantDateEnd_MinDayLimit_Error() {
+func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_ProductUseRecurringAmountAndCurrency() {
 	paymentMethod, _ := suite.service.paymentMethodRepository.GetById(context.TODO(), suite.paymentMethod.Id)
 	paymentMethod.RecurringAllowed = true
-	_ = suite.service.paymentMethodRepository.Update(context.TODO(), paymentMethod)
+	err := suite.service.paymentMethodRepository.Update(context.TODO(), paymentMethod)
+	assert.NoError(suite.T(), err)
 
-	dateEnd := time.Now().UTC().AddDate(0, 0, 6).Format(billingpb.FilterDateFormat)
-
-	req := &billingpb.OrderCreateRequest{
-		Type:          pkg.OrderType_simple,
-		ProjectId:     suite.project.Id,
-		PaymentMethod: paymentMethod.Group,
-		Currency:      "RUB",
-		Amount:        100,
-		Account:       "unit test",
-		Description:   "unit test",
-		User: &billingpb.OrderUser{
-			Email: "test@unit.unit",
-			Ip:    "127.0.0.1",
+	suite.recurringPlan = &billingpb.RecurringPlan{
+		Id:         primitive.NewObjectID().Hex(),
+		MerchantId: suite.projectWithProducts.MerchantId,
+		ProjectId:  suite.projectWithProducts.Id,
+		Charge: &billingpb.RecurringPlanCharge{
+			Period: &billingpb.RecurringPlanPeriod{
+				Type:  billingpb.RecurringPeriodDay,
+				Value: 1,
+			},
+			Amount:   99,
+			Currency: "USD",
 		},
-		FormMode:         "standalone",
-		RecurringPeriod:  recurringpb.RecurringPeriodDay,
-		RecurringDateEnd: dateEnd,
+		Status: pkg.RecurringPlanStatusActive,
+		Name:   map[string]string{"en": "name"},
 	}
-
-	rsp := &billingpb.OrderCreateProcessResponse{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
-
+	err = suite.service.recurringPlanRepository.Insert(context.TODO(), suite.recurringPlan)
 	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), billingpb.ResponseStatusBadData, rsp.Status)
-	assert.Equal(suite.T(), orderErrorRecurringDateEndOutOfRange, rsp.Message)
-}
-
-func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_RecurringSettings_MerchantDateEnd_MinDayLimit_Ok() {
-	paymentMethod, _ := suite.service.paymentMethodRepository.GetById(context.TODO(), suite.paymentMethod.Id)
-	paymentMethod.RecurringAllowed = true
-	_ = suite.service.paymentMethodRepository.Update(context.TODO(), paymentMethod)
-
-	dateEnd := time.Now().UTC().AddDate(0, 0, 7).Format(billingpb.FilterDateFormat)
 
 	req := &billingpb.OrderCreateRequest{
-		Type:          pkg.OrderType_simple,
-		ProjectId:     suite.project.Id,
+		Type:          pkg.OrderType_product,
+		ProjectId:     suite.projectWithProducts.Id,
 		PaymentMethod: paymentMethod.Group,
+		Products:      suite.productIds,
 		Currency:      "RUB",
-		Amount:        100,
 		Account:       "unit test",
 		Description:   "unit test",
 		User: &billingpb.OrderUser{
-			Email: "test@unit.unit",
+			Id:    suite.customer.Id,
+			Email: suite.customer.Email,
 			Ip:    "127.0.0.1",
 		},
-		FormMode:         "standalone",
-		RecurringPeriod:  recurringpb.RecurringPeriodDay,
-		RecurringDateEnd: dateEnd,
+		FormMode:        "standalone",
+		RecurringPlanId: suite.recurringPlan.Id,
 	}
 
 	rsp := &billingpb.OrderCreateProcessResponse{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
+	err = suite.service.OrderCreateProcess(context.TODO(), req, rsp)
 
 	assert.Nil(suite.T(), err)
 	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp.Status)
+	assert.Equal(suite.T(), suite.recurringPlan.Charge.Amount, rsp.Item.OrderAmount)
+	assert.Equal(suite.T(), suite.recurringPlan.Charge.Currency, rsp.Item.Currency)
 }
 
-func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_RecurringSettings_MerchantDateEnd_MaxDayLimit_Error() {
+func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_KeyUseRecurringAmountAndCurrency() {
 	paymentMethod, _ := suite.service.paymentMethodRepository.GetById(context.TODO(), suite.paymentMethod.Id)
 	paymentMethod.RecurringAllowed = true
-	_ = suite.service.paymentMethodRepository.Update(context.TODO(), paymentMethod)
+	err := suite.service.paymentMethodRepository.Update(context.TODO(), paymentMethod)
+	assert.NoError(suite.T(), err)
 
-	dateEnd := time.Now().UTC().AddDate(1, 0, 1).Format(billingpb.FilterDateFormat)
-
-	req := &billingpb.OrderCreateRequest{
-		Type:          pkg.OrderType_simple,
-		ProjectId:     suite.project.Id,
-		PaymentMethod: paymentMethod.Group,
-		Currency:      "RUB",
-		Amount:        100,
-		Account:       "unit test",
-		Description:   "unit test",
-		User: &billingpb.OrderUser{
-			Email: "test@unit.unit",
-			Ip:    "127.0.0.1",
+	suite.recurringPlan = &billingpb.RecurringPlan{
+		Id:         primitive.NewObjectID().Hex(),
+		MerchantId: suite.projectWithKeyProducts.MerchantId,
+		ProjectId:  suite.projectWithKeyProducts.Id,
+		Charge: &billingpb.RecurringPlanCharge{
+			Period: &billingpb.RecurringPlanPeriod{
+				Type:  billingpb.RecurringPeriodDay,
+				Value: 1,
+			},
+			Amount:   99,
+			Currency: "USD",
 		},
-		FormMode:         "standalone",
-		RecurringPeriod:  recurringpb.RecurringPeriodDay,
-		RecurringDateEnd: dateEnd,
+		Status: pkg.RecurringPlanStatusActive,
+		Name:   map[string]string{"en": "name"},
 	}
-
-	rsp := &billingpb.OrderCreateProcessResponse{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
-
+	err = suite.service.recurringPlanRepository.Insert(context.TODO(), suite.recurringPlan)
 	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), billingpb.ResponseStatusBadData, rsp.Status)
-	assert.Equal(suite.T(), orderErrorRecurringDateEndOutOfRange, rsp.Message)
-}
-
-func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_RecurringSettings_MerchantDateEnd_MaxDayLimit_Ok() {
-	paymentMethod, _ := suite.service.paymentMethodRepository.GetById(context.TODO(), suite.paymentMethod.Id)
-	paymentMethod.RecurringAllowed = true
-	_ = suite.service.paymentMethodRepository.Update(context.TODO(), paymentMethod)
-
-	dateEnd := time.Now().UTC().AddDate(0, 0, 7).Format(billingpb.FilterDateFormat)
 
 	req := &billingpb.OrderCreateRequest{
-		Type:          pkg.OrderType_simple,
-		ProjectId:     suite.project.Id,
+		Type:          pkg.OrderType_key,
+		ProjectId:     suite.projectWithKeyProducts.Id,
 		PaymentMethod: paymentMethod.Group,
+		Products:      suite.keyProductIds,
 		Currency:      "RUB",
-		Amount:        100,
 		Account:       "unit test",
 		Description:   "unit test",
 		User: &billingpb.OrderUser{
-			Email: "test@unit.unit",
+			Id:    suite.customer.Id,
+			Email: suite.customer.Email,
 			Ip:    "127.0.0.1",
 		},
-		FormMode:         "standalone",
-		RecurringPeriod:  recurringpb.RecurringPeriodDay,
-		RecurringDateEnd: dateEnd,
+		FormMode:        "standalone",
+		RecurringPlanId: suite.recurringPlan.Id,
 	}
 
 	rsp := &billingpb.OrderCreateProcessResponse{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
+	err = suite.service.OrderCreateProcess(context.TODO(), req, rsp)
 
 	assert.Nil(suite.T(), err)
 	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp.Status)
+	assert.Equal(suite.T(), suite.recurringPlan.Charge.Amount, rsp.Item.OrderAmount)
+	assert.Equal(suite.T(), suite.recurringPlan.Charge.Currency, rsp.Item.Currency)
 }
 
-func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_RecurringSettings_MerchantDateEnd_MinWeekLimit_Error() {
+func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_SubscriptionFailedOnRecurringPlanAnotherMerchant() {
 	paymentMethod, _ := suite.service.paymentMethodRepository.GetById(context.TODO(), suite.paymentMethod.Id)
 	paymentMethod.RecurringAllowed = true
-	_ = suite.service.paymentMethodRepository.Update(context.TODO(), paymentMethod)
+	err := suite.service.paymentMethodRepository.Update(context.TODO(), paymentMethod)
+	assert.NoError(suite.T(), err)
 
-	dateEnd := time.Now().UTC().AddDate(0, 0, 6).Format(billingpb.FilterDateFormat)
+	subscription := &billingpb.RecurringSubscription{
+		Id:   primitive.NewObjectID().Hex(),
+		Plan: suite.recurringPlan,
+		Customer: &billingpb.RecurringSubscriptionCustomer{
+			Id: suite.customer.Id,
+		},
+		Project: &billingpb.RecurringSubscriptionProject{
+			Id: suite.recurringPlan.ProjectId,
+		},
+		Status:   billingpb.RecurringSubscriptionStatusActive,
+		ExpireAt: ptypes.TimestampNow(),
+	}
+	err = suite.service.recurringSubscriptionRepository.Insert(context.TODO(), subscription)
+	assert.NoError(suite.T(), err)
 
 	req := &billingpb.OrderCreateRequest{
 		Type:          pkg.OrderType_simple,
-		ProjectId:     suite.project.Id,
+		ProjectId:     suite.projectFixedAmount.Id,
 		PaymentMethod: paymentMethod.Group,
 		Currency:      "RUB",
 		Amount:        100,
 		Account:       "unit test",
 		Description:   "unit test",
 		User: &billingpb.OrderUser{
-			Email: "test@unit.unit",
+			Id:    suite.customer.Id,
+			Email: suite.customer.Email,
 			Ip:    "127.0.0.1",
 		},
-		FormMode:         "standalone",
-		RecurringPeriod:  recurringpb.RecurringPeriodWeek,
-		RecurringDateEnd: dateEnd,
+		FormMode:        "standalone",
+		RecurringPlanId: suite.recurringPlan.Id,
 	}
 
 	rsp := &billingpb.OrderCreateProcessResponse{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
+	err = suite.service.OrderCreateProcess(context.TODO(), req, rsp)
 
 	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), billingpb.ResponseStatusBadData, rsp.Status)
-	assert.Equal(suite.T(), orderErrorRecurringDateEndOutOfRange, rsp.Message)
-}
-
-func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_RecurringSettings_MerchantDateEnd_MinWeekLimit_Ok() {
-	paymentMethod, _ := suite.service.paymentMethodRepository.GetById(context.TODO(), suite.paymentMethod.Id)
-	paymentMethod.RecurringAllowed = true
-	_ = suite.service.paymentMethodRepository.Update(context.TODO(), paymentMethod)
-
-	dateEnd := time.Now().UTC().AddDate(0, 0, 7).Format(billingpb.FilterDateFormat)
-
-	req := &billingpb.OrderCreateRequest{
-		Type:          pkg.OrderType_simple,
-		ProjectId:     suite.project.Id,
-		PaymentMethod: paymentMethod.Group,
-		Currency:      "RUB",
-		Amount:        100,
-		Account:       "unit test",
-		Description:   "unit test",
-		User: &billingpb.OrderUser{
-			Email: "test@unit.unit",
-			Ip:    "127.0.0.1",
-		},
-		FormMode:         "standalone",
-		RecurringPeriod:  recurringpb.RecurringPeriodWeek,
-		RecurringDateEnd: dateEnd,
-	}
-
-	rsp := &billingpb.OrderCreateProcessResponse{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
-
-	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp.Status)
-}
-
-func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_RecurringSettings_MerchantDateEnd_MaxWeekLimit_Error() {
-	paymentMethod, _ := suite.service.paymentMethodRepository.GetById(context.TODO(), suite.paymentMethod.Id)
-	paymentMethod.RecurringAllowed = true
-	_ = suite.service.paymentMethodRepository.Update(context.TODO(), paymentMethod)
-
-	dateEnd := time.Now().UTC().AddDate(1, 0, 1).Format(billingpb.FilterDateFormat)
-
-	req := &billingpb.OrderCreateRequest{
-		Type:          pkg.OrderType_simple,
-		ProjectId:     suite.project.Id,
-		PaymentMethod: paymentMethod.Group,
-		Currency:      "RUB",
-		Amount:        100,
-		Account:       "unit test",
-		Description:   "unit test",
-		User: &billingpb.OrderUser{
-			Email: "test@unit.unit",
-			Ip:    "127.0.0.1",
-		},
-		FormMode:         "standalone",
-		RecurringPeriod:  recurringpb.RecurringPeriodWeek,
-		RecurringDateEnd: dateEnd,
-	}
-
-	rsp := &billingpb.OrderCreateProcessResponse{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
-
-	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), billingpb.ResponseStatusBadData, rsp.Status)
-	assert.Equal(suite.T(), orderErrorRecurringDateEndOutOfRange, rsp.Message)
-}
-
-func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_RecurringSettings_MerchantDateEnd_MaxWeekLimit_Ok() {
-	paymentMethod, _ := suite.service.paymentMethodRepository.GetById(context.TODO(), suite.paymentMethod.Id)
-	paymentMethod.RecurringAllowed = true
-	_ = suite.service.paymentMethodRepository.Update(context.TODO(), paymentMethod)
-
-	dateEnd := time.Now().UTC().AddDate(1, 0, 0).Format(billingpb.FilterDateFormat)
-
-	req := &billingpb.OrderCreateRequest{
-		Type:          pkg.OrderType_simple,
-		ProjectId:     suite.project.Id,
-		PaymentMethod: paymentMethod.Group,
-		Currency:      "RUB",
-		Amount:        100,
-		Account:       "unit test",
-		Description:   "unit test",
-		User: &billingpb.OrderUser{
-			Email: "test@unit.unit",
-			Ip:    "127.0.0.1",
-		},
-		FormMode:         "standalone",
-		RecurringPeriod:  recurringpb.RecurringPeriodWeek,
-		RecurringDateEnd: dateEnd,
-	}
-
-	rsp := &billingpb.OrderCreateProcessResponse{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
-
-	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp.Status)
-}
-
-func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_RecurringSettings_MerchantDateEnd_MinMonthLimit_Error() {
-	paymentMethod, _ := suite.service.paymentMethodRepository.GetById(context.TODO(), suite.paymentMethod.Id)
-	paymentMethod.RecurringAllowed = true
-	_ = suite.service.paymentMethodRepository.Update(context.TODO(), paymentMethod)
-
-	dateEnd := time.Now().UTC().AddDate(0, 0, 27).Format(billingpb.FilterDateFormat)
-
-	req := &billingpb.OrderCreateRequest{
-		Type:          pkg.OrderType_simple,
-		ProjectId:     suite.project.Id,
-		PaymentMethod: paymentMethod.Group,
-		Currency:      "RUB",
-		Amount:        100,
-		Account:       "unit test",
-		Description:   "unit test",
-		User: &billingpb.OrderUser{
-			Email: "test@unit.unit",
-			Ip:    "127.0.0.1",
-		},
-		FormMode:         "standalone",
-		RecurringPeriod:  recurringpb.RecurringPeriodMonth,
-		RecurringDateEnd: dateEnd,
-	}
-
-	rsp := &billingpb.OrderCreateProcessResponse{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
-
-	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), billingpb.ResponseStatusBadData, rsp.Status)
-	assert.Equal(suite.T(), orderErrorRecurringDateEndOutOfRange, rsp.Message)
-}
-
-/*
-func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_RecurringSettings_MerchantDateEnd_MinMonthLimit_Ok() {
-	paymentMethod, _ := suite.service.paymentMethodRepository.GetById(context.TODO(), suite.paymentMethod.Id)
-	paymentMethod.RecurringAllowed = true
-	_ = suite.service.paymentMethodRepository.Update(context.TODO(), paymentMethod)
-
-	dateEnd := time.Now().UTC().AddDate(0, 1, 0).Format(billingpb.FilterDateFormat)
-
-	req := &billingpb.OrderCreateRequest{
-		Type:          pkg.OrderType_simple,
-		ProjectId:     suite.project.Id,
-		PaymentMethod: paymentMethod.Group,
-		Currency:      "RUB",
-		Amount:        100,
-		Account:       "unit test",
-		Description:   "unit test",
-		User: &billingpb.OrderUser{
-			Email: "test@unit.unit",
-			Ip:    "127.0.0.1",
-		},
-		FormMode:         "standalone",
-		RecurringPeriod:  recurringpb.RecurringPeriodMonth,
-		RecurringDateEnd: dateEnd,
-	}
-
-	recurring := &recurringMocks.RepositoryService{}
-	recurring.On("AddSubscription", mock.Anything, mock.Anything).
-		Return(&recurringpb.AddSubscriptionResponse{Status: billingpb.ResponseStatusSystemError}, nil)
-	suite.service.rep = recurring
-
-	rsp := &billingpb.OrderCreateProcessResponse{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
-
-	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp.Status)
-}
-*/
-
-func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_RecurringSettings_MerchantDateEnd_MaxMonthLimit_Error() {
-	paymentMethod, _ := suite.service.paymentMethodRepository.GetById(context.TODO(), suite.paymentMethod.Id)
-	paymentMethod.RecurringAllowed = true
-	_ = suite.service.paymentMethodRepository.Update(context.TODO(), paymentMethod)
-
-	dateEnd := time.Now().UTC().AddDate(1, 0, 1).Format(billingpb.FilterDateFormat)
-
-	req := &billingpb.OrderCreateRequest{
-		Type:          pkg.OrderType_simple,
-		ProjectId:     suite.project.Id,
-		PaymentMethod: paymentMethod.Group,
-		Currency:      "RUB",
-		Amount:        100,
-		Account:       "unit test",
-		Description:   "unit test",
-		User: &billingpb.OrderUser{
-			Email: "test@unit.unit",
-			Ip:    "127.0.0.1",
-		},
-		FormMode:         "standalone",
-		RecurringPeriod:  recurringpb.RecurringPeriodMonth,
-		RecurringDateEnd: dateEnd,
-	}
-
-	rsp := &billingpb.OrderCreateProcessResponse{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
-
-	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), billingpb.ResponseStatusBadData, rsp.Status)
-	assert.Equal(suite.T(), orderErrorRecurringDateEndOutOfRange, rsp.Message)
-}
-
-func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_RecurringSettings_MerchantDateEnd_MaxMonthLimit_Ok() {
-	paymentMethod, _ := suite.service.paymentMethodRepository.GetById(context.TODO(), suite.paymentMethod.Id)
-	paymentMethod.RecurringAllowed = true
-	_ = suite.service.paymentMethodRepository.Update(context.TODO(), paymentMethod)
-
-	dateEnd := time.Now().UTC().AddDate(1, 0, 0).Format(billingpb.FilterDateFormat)
-
-	req := &billingpb.OrderCreateRequest{
-		Type:          pkg.OrderType_simple,
-		ProjectId:     suite.project.Id,
-		PaymentMethod: paymentMethod.Group,
-		Currency:      "RUB",
-		Amount:        100,
-		Account:       "unit test",
-		Description:   "unit test",
-		User: &billingpb.OrderUser{
-			Email: "test@unit.unit",
-			Ip:    "127.0.0.1",
-		},
-		FormMode:         "standalone",
-		RecurringPeriod:  recurringpb.RecurringPeriodMonth,
-		RecurringDateEnd: dateEnd,
-	}
-
-	rsp := &billingpb.OrderCreateProcessResponse{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
-
-	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp.Status)
-}
-
-func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_RecurringSettings_MerchantDateEnd_MinYearLimit_Error() {
-	paymentMethod, _ := suite.service.paymentMethodRepository.GetById(context.TODO(), suite.paymentMethod.Id)
-	paymentMethod.RecurringAllowed = true
-	_ = suite.service.paymentMethodRepository.Update(context.TODO(), paymentMethod)
-
-	dateEnd := time.Now().UTC().AddDate(1, 0, 1).Format(billingpb.FilterDateFormat)
-
-	req := &billingpb.OrderCreateRequest{
-		Type:          pkg.OrderType_simple,
-		ProjectId:     suite.project.Id,
-		PaymentMethod: paymentMethod.Group,
-		Currency:      "RUB",
-		Amount:        100,
-		Account:       "unit test",
-		Description:   "unit test",
-		User: &billingpb.OrderUser{
-			Email: "test@unit.unit",
-			Ip:    "127.0.0.1",
-		},
-		FormMode:         "standalone",
-		RecurringPeriod:  recurringpb.RecurringPeriodYear,
-		RecurringDateEnd: dateEnd,
-	}
-
-	rsp := &billingpb.OrderCreateProcessResponse{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
-
-	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), billingpb.ResponseStatusBadData, rsp.Status)
-	assert.Equal(suite.T(), orderErrorRecurringDateEndOutOfRange, rsp.Message)
-}
-
-func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_RecurringSettings_MerchantDateEnd_MinYearLimit_Ok() {
-	paymentMethod, _ := suite.service.paymentMethodRepository.GetById(context.TODO(), suite.paymentMethod.Id)
-	paymentMethod.RecurringAllowed = true
-	_ = suite.service.paymentMethodRepository.Update(context.TODO(), paymentMethod)
-
-	dateEnd := time.Now().UTC().AddDate(1, 0, 0).Format(billingpb.FilterDateFormat)
-
-	req := &billingpb.OrderCreateRequest{
-		Type:          pkg.OrderType_simple,
-		ProjectId:     suite.project.Id,
-		PaymentMethod: paymentMethod.Group,
-		Currency:      "RUB",
-		Amount:        100,
-		Account:       "unit test",
-		Description:   "unit test",
-		User: &billingpb.OrderUser{
-			Email: "test@unit.unit",
-			Ip:    "127.0.0.1",
-		},
-		FormMode:         "standalone",
-		RecurringPeriod:  recurringpb.RecurringPeriodYear,
-		RecurringDateEnd: dateEnd,
-	}
-
-	rsp := &billingpb.OrderCreateProcessResponse{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp)
-
-	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp.Status)
+	assert.Equal(suite.T(), orderErrorRecurringPlanNotFound, rsp.Message)
 }
 
 func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_ProjectInactive_Error() {
@@ -4830,103 +4648,15 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_Ok() {
 	assert.Empty(suite.T(), rsp.Item.RecurringSettings)
 }
 
-func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_RecurringSettings_WithoutSubscriptions_Ok() {
-	paymentMethod, _ := suite.service.paymentMethodRepository.GetById(context.TODO(), suite.paymentMethod.Id)
-	paymentMethod.RecurringAllowed = true
-	_ = suite.service.paymentMethodRepository.Update(context.TODO(), paymentMethod)
-
-	recurring := &recurringMocks.RepositoryService{}
-	recurring.On("FindSavedCards", mock.Anything, mock.Anything).Return(&recurringpb.SavedCardList{SavedCards: []*recurringpb.SavedCard{}}, nil)
-	recurring.On("FindSubscriptions", mock.Anything, mock.Anything).Return(&recurringpb.FindSubscriptionsResponse{List: []*recurringpb.Subscription{}}, nil)
-	suite.service.rep = recurring
-
-	req := &billingpb.OrderCreateRequest{
-		Type:          pkg.OrderType_simple,
-		ProjectId:     suite.project.Id,
-		PaymentMethod: paymentMethod.Group,
-		Currency:      "RUB",
-		Amount:        100,
-		Account:       "unit test",
-		Description:   "unit test",
-		User: &billingpb.OrderUser{
-			Email:  "test@unit.unit",
-			Ip:     "127.0.0.1",
-			Locale: "ru-RU",
-		},
-		RecurringPeriod:  recurringpb.RecurringPeriodDay,
-		RecurringDateEnd: time.Now().AddDate(0, 1, 0).Format(billingpb.FilterDateFormat),
-	}
-
-	rsp1 := &billingpb.OrderCreateProcessResponse{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp1)
-
-	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), rsp1.Status, billingpb.ResponseStatusOk)
-	order := rsp1.Item
-	assert.NotNil(suite.T(), order.CountryRestriction)
-	assert.Equal(suite.T(), order.CountryRestriction.IsoCodeA2, "RU")
-	assert.True(suite.T(), order.CountryRestriction.PaymentsAllowed)
-	assert.True(suite.T(), order.CountryRestriction.ChangeAllowed)
-	assert.False(suite.T(), order.UserAddressDataRequired)
-	assert.Equal(suite.T(), order.PrivateStatus, int32(recurringpb.OrderStatusNew))
-
-	req1 := &billingpb.PaymentFormJsonDataRequest{
-		OrderId: order.Uuid,
-		Scheme:  "https",
-		Host:    "unit.test",
-		Ip:      "94.131.198.60", // Ukrainian IP -> payments not allowed but available to change country
-	}
-	rsp := &billingpb.PaymentFormJsonDataResponse{}
-	err = suite.service.PaymentFormJsonDataProcess(context.TODO(), req1, rsp)
-
-	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), pkg.OrderType_simple, rsp.Item.Type)
-	assert.True(suite.T(), len(rsp.Item.PaymentMethods) > 0)
-	assert.True(suite.T(), len(rsp.Item.PaymentMethods[0].Id) > 0)
-	assert.Equal(suite.T(), len(rsp.Item.Items), 0)
-	assert.Equal(suite.T(), req.Description, rsp.Item.Description)
-	assert.True(suite.T(), rsp.Item.CountryPaymentsAllowed)
-	assert.True(suite.T(), rsp.Item.CountryChangeAllowed)
-	assert.Equal(suite.T(), req.User.Locale, rsp.Item.Lang)
-	assert.NotNil(suite.T(), rsp.Item.Project)
-	assert.NotZero(suite.T(), rsp.Item.Project.Id)
-	assert.NotNil(suite.T(), rsp.Item.Project.RedirectSettings)
-	assert.Equal(suite.T(), suite.project.RedirectSettings.Usage, rsp.Item.Project.RedirectSettings.Usage)
-	assert.Equal(suite.T(), suite.project.RedirectSettings.Mode, rsp.Item.Project.RedirectSettings.Mode)
-	assert.Equal(suite.T(), suite.project.RedirectSettings.Delay, rsp.Item.Project.RedirectSettings.Delay)
-	assert.Zero(suite.T(), rsp.Item.Project.RedirectSettings.Delay)
-	assert.Equal(suite.T(), suite.project.RedirectSettings.ButtonCaption, rsp.Item.Project.RedirectSettings.ButtonCaption)
-	assert.Zero(suite.T(), rsp.Item.Project.RedirectSettings.ButtonCaption)
-	assert.NotEmpty(suite.T(), rsp.Item.RecurringSettings)
-	assert.Equal(suite.T(), req.RecurringPeriod, rsp.Item.RecurringSettings.Period)
-	assert.Equal(suite.T(), req.RecurringDateEnd, rsp.Item.RecurringSettings.DateEnd)
-	assert.Empty(suite.T(), rsp.Item.RecurringManagementUrl)
-
-	order, err = suite.service.getOrderByUuid(context.TODO(), order.Uuid)
-	assert.Nil(suite.T(), err)
-	assert.NotNil(suite.T(), order.CountryRestriction)
-	assert.Equal(suite.T(), order.CountryRestriction.IsoCodeA2, "RU")
-	assert.True(suite.T(), order.CountryRestriction.PaymentsAllowed)
-	assert.True(suite.T(), order.CountryRestriction.ChangeAllowed)
-	assert.False(suite.T(), order.UserAddressDataRequired)
-	assert.Equal(suite.T(), rsp.Item.Project.Id, order.Project.Id)
-	assert.NotEmpty(suite.T(), order.RecurringSettings)
-	assert.Equal(suite.T(), req.RecurringPeriod, order.RecurringSettings.Period)
-	assert.Equal(suite.T(), req.RecurringDateEnd, order.RecurringSettings.DateEnd)
-}
-
 func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_RecurringSettings_WithSubscriptions_Ok() {
 	paymentMethod, _ := suite.service.paymentMethodRepository.GetById(context.TODO(), suite.paymentMethod.Id)
 	paymentMethod.RecurringAllowed = true
-	_ = suite.service.paymentMethodRepository.Update(context.TODO(), paymentMethod)
+	err := suite.service.paymentMethodRepository.Update(context.TODO(), paymentMethod)
+	assert.NoError(suite.T(), err)
 
 	recurring := &recurringMocks.RepositoryService{}
 	recurring.On("FindSavedCards", mock.Anything, mock.Anything).
 		Return(&recurringpb.SavedCardList{SavedCards: []*recurringpb.SavedCard{}}, nil)
-	recurring.On("FindSubscriptions", mock.Anything, mock.Anything).
-		Return(&recurringpb.FindSubscriptionsResponse{List: []*recurringpb.Subscription{{
-			Id: primitive.NewObjectID().Hex(),
-		}}}, nil)
 	suite.service.rep = recurring
 
 	req := &billingpb.OrderCreateRequest{
@@ -4942,12 +4672,11 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_RecurringSetti
 			Ip:     "127.0.0.1",
 			Locale: "ru-RU",
 		},
-		RecurringPeriod:  recurringpb.RecurringPeriodDay,
-		RecurringDateEnd: time.Now().AddDate(0, 1, 0).Format(billingpb.FilterDateFormat),
+		RecurringPlanId: suite.recurringPlan.Id,
 	}
 
 	rsp1 := &billingpb.OrderCreateProcessResponse{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp1)
+	err = suite.service.OrderCreateProcess(context.TODO(), req, rsp1)
 
 	assert.Nil(suite.T(), err)
 	assert.Equal(suite.T(), rsp1.Status, billingpb.ResponseStatusOk)
@@ -4958,6 +4687,21 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_RecurringSetti
 	assert.True(suite.T(), order.CountryRestriction.ChangeAllowed)
 	assert.False(suite.T(), order.UserAddressDataRequired)
 	assert.Equal(suite.T(), order.PrivateStatus, int32(recurringpb.OrderStatusNew))
+
+	subscription := &billingpb.RecurringSubscription{
+		Id:   primitive.NewObjectID().Hex(),
+		Plan: suite.recurringPlan,
+		Project: &billingpb.RecurringSubscriptionProject{
+			Id: suite.project.Id,
+		},
+		Customer: &billingpb.RecurringSubscriptionCustomer{
+			Id: order.User.Id,
+		},
+		Status:   billingpb.RecurringSubscriptionStatusActive,
+		ExpireAt: ptypes.TimestampNow(),
+	}
+	err = suite.service.recurringSubscriptionRepository.Insert(context.TODO(), subscription)
+	assert.NoError(suite.T(), err)
 
 	req1 := &billingpb.PaymentFormJsonDataRequest{
 		OrderId: order.Uuid,
@@ -4987,8 +4731,9 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_RecurringSetti
 	assert.Equal(suite.T(), suite.project.RedirectSettings.ButtonCaption, rsp.Item.Project.RedirectSettings.ButtonCaption)
 	assert.Zero(suite.T(), rsp.Item.Project.RedirectSettings.ButtonCaption)
 	assert.NotEmpty(suite.T(), rsp.Item.RecurringSettings)
-	assert.Equal(suite.T(), req.RecurringPeriod, rsp.Item.RecurringSettings.Period)
-	assert.Equal(suite.T(), req.RecurringDateEnd, rsp.Item.RecurringSettings.DateEnd)
+	assert.Equal(suite.T(), suite.recurringPlan.Charge.Period.Type, rsp.Item.RecurringSettings.Period)
+	assert.Equal(suite.T(), suite.recurringPlan.Charge.Period.Value, rsp.Item.RecurringSettings.Interval)
+	assert.NotEmpty(suite.T(), rsp.Item.RecurringSettings.DateEnd)
 	assert.NotEmpty(suite.T(), rsp.Item.RecurringManagementUrl)
 
 	order, err = suite.service.getOrderByUuid(context.TODO(), order.Uuid)
@@ -4999,9 +4744,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_RecurringSetti
 	assert.True(suite.T(), order.CountryRestriction.ChangeAllowed)
 	assert.False(suite.T(), order.UserAddressDataRequired)
 	assert.Equal(suite.T(), rsp.Item.Project.Id, order.Project.Id)
-	assert.NotEmpty(suite.T(), order.RecurringSettings)
-	assert.Equal(suite.T(), req.RecurringPeriod, order.RecurringSettings.Period)
-	assert.Equal(suite.T(), req.RecurringDateEnd, order.RecurringSettings.DateEnd)
+	assert.Equal(suite.T(), suite.recurringPlan.Id, order.RecurringPlanId)
 }
 
 func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcessWithProducts_Ok() {
@@ -5709,10 +5452,31 @@ func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_WithRecurring_Ok() {
 	paymentMethod.RecurringAllowed = true
 	_ = suite.service.paymentMethodRepository.Update(context.TODO(), paymentMethod)
 
-	dateEnd := time.Now().AddDate(0, 0, 7)
-	loc, _ := time.LoadLocation("UTC")
-	expireAt := time.Date(dateEnd.Year(), dateEnd.Month(), dateEnd.Day(), 23, 59, 59, 0, loc)
-	tsExpireAt, _ := ptypes.TimestampProto(expireAt)
+	paymentSystem := &mocks.PaymentSystemInterface{}
+	paymentSystem.On("CreateRecurringSubscription", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		Return("redirect_url", nil)
+
+	gatewayManagerMock := &mocks.PaymentSystemManagerInterface{}
+	gatewayManagerMock.On("GetGateway", mock.Anything).Return(paymentSystem, nil)
+	suite.service.paymentSystemGateway = gatewayManagerMock
+
+	suite.recurringPlan = &billingpb.RecurringPlan{
+		Id:         primitive.NewObjectID().Hex(),
+		MerchantId: suite.projectWithProducts.MerchantId,
+		ProjectId:  suite.projectWithProducts.Id,
+		Charge: &billingpb.RecurringPlanCharge{
+			Period: &billingpb.RecurringPlanPeriod{
+				Type:  billingpb.RecurringPeriodDay,
+				Value: 1,
+			},
+			Amount:   10,
+			Currency: "USD",
+		},
+		Status: pkg.RecurringPlanStatusActive,
+		Name:   map[string]string{"en": "name"},
+	}
+	err := suite.service.recurringPlanRepository.Insert(context.TODO(), suite.recurringPlan)
+	assert.Nil(suite.T(), err)
 
 	req := &billingpb.OrderCreateRequest{
 		Type:          pkg.OrderType_product,
@@ -5726,11 +5490,10 @@ func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_WithRecurring_Ok() {
 			Email: "test@unit.unit",
 			Ip:    "127.0.0.1",
 		},
-		RecurringPeriod:  recurringpb.RecurringPeriodDay,
-		RecurringDateEnd: dateEnd.Format(billingpb.FilterDateFormat),
+		RecurringPlanId: suite.recurringPlan.Id,
 	}
 	rsp1 := &billingpb.OrderCreateProcessResponse{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp1)
+	err = suite.service.OrderCreateProcess(context.TODO(), req, rsp1)
 
 	assert.Nil(suite.T(), err)
 	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp1.Status)
@@ -5762,33 +5525,6 @@ func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_WithRecurring_Ok() {
 	}
 	rsp := &billingpb.PaymentCreateResponse{}
 
-	recurring := &recurringMocks.RepositoryService{}
-	recurring.On("AddSubscription", mock.Anything, &recurringpb.Subscription{
-		Period:       req.RecurringPeriod,
-		ExpireAt:     tsExpireAt,
-		Currency:     order.ChargeCurrency,
-		Amount:       order.ChargeAmount,
-		ItemType:     pkg.OrderType_product,
-		ItemList:     suite.productIds,
-		IsActive:     false,
-		ProjectId:    req.ProjectId,
-		MerchantId:   suite.project.MerchantId,
-		MaskedPan:    stringTools.MaskBankCardNumber(createPaymentRequest.Data[billingpb.PaymentCreateFieldPan]),
-		CustomerId:   order.User.Id,
-		CustomerUuid: order.User.Uuid,
-		CustomerInfo: &recurringpb.CustomerInfo{
-			ExternalId: order.User.ExternalId,
-			Email:      order.User.Email,
-			Phone:      order.User.Phone,
-		},
-		OrderId:     order.Id,
-		ProjectName: suite.projectWithProducts.Name,
-	}).
-		Return(&recurringpb.AddSubscriptionResponse{Status: billingpb.ResponseStatusOk, SubscriptionId: "id"}, nil)
-	recurring.On("UpdateSubscription", mock.Anything, mock.Anything).
-		Return(&recurringpb.UpdateSubscriptionResponse{Status: billingpb.ResponseStatusOk}, nil)
-	suite.service.rep = recurring
-
 	err = suite.service.PaymentCreateProcess(context.TODO(), createPaymentRequest, rsp)
 
 	assert.Nil(suite.T(), err)
@@ -5803,75 +5539,8 @@ func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_WithRecurring_Ok() {
 	assert.NotNil(suite.T(), order1)
 	assert.NotEmpty(suite.T(), order1.User.Id)
 	assert.NotEmpty(suite.T(), order1.User.Uuid)
-	assert.NotEmpty(suite.T(), order1.RecurringId)
-	assert.True(suite.T(), order1.Recurring)
-}
-
-func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_WithRecurring_AddSubscription_Error() {
-	paymentMethod, _ := suite.service.paymentMethodRepository.GetById(context.TODO(), suite.paymentMethod.Id)
-	paymentMethod.RecurringAllowed = true
-	_ = suite.service.paymentMethodRepository.Update(context.TODO(), paymentMethod)
-
-	req := &billingpb.OrderCreateRequest{
-		Type:          pkg.OrderType_simple,
-		PaymentMethod: paymentMethod.Group,
-		ProjectId:     suite.project.Id,
-		Currency:      "RUB",
-		Amount:        100,
-		Account:       "unit test",
-		Description:   "unit test",
-		User: &billingpb.OrderUser{
-			Email: "test@unit.unit",
-			Ip:    "127.0.0.1",
-		},
-		RecurringPeriod: recurringpb.RecurringPeriodDay,
-	}
-	rsp1 := &billingpb.OrderCreateProcessResponse{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp1)
-
-	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp1.Status)
-	order := rsp1.Item
-
-	expireYear := time.Now().AddDate(1, 0, 0)
-
-	browserCustomer := &BrowserCookieCustomer{
-		Ip:        "127.0.0.1",
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
-	}
-	suite.cookie, err = suite.service.generateBrowserCookie(browserCustomer)
-
-	createPaymentRequest := &billingpb.PaymentCreateRequest{
-		Data: map[string]string{
-			billingpb.PaymentCreateFieldOrderId:         order.Uuid,
-			billingpb.PaymentCreateFieldPaymentMethodId: suite.paymentMethod.Id,
-			billingpb.PaymentCreateFieldEmail:           "test@unit.unit",
-			billingpb.PaymentCreateFieldPan:             "4000000000000002",
-			billingpb.PaymentCreateFieldCvv:             "123",
-			billingpb.PaymentCreateFieldMonth:           "02",
-			billingpb.PaymentCreateFieldYear:            expireYear.Format("2006"),
-			billingpb.PaymentCreateFieldHolder:          "Mr. Card Holder",
-		},
-		Ip:     "127.0.0.1",
-		Cookie: suite.cookie,
-	}
-	rsp := &billingpb.PaymentCreateResponse{}
-
-	recurring := &recurringMocks.RepositoryService{}
-	recurring.On("AddSubscription", mock.Anything, mock.Anything).
-		Return(&recurringpb.AddSubscriptionResponse{Status: billingpb.ResponseStatusSystemError}, nil)
-	suite.service.rep = recurring
-
-	err = suite.service.PaymentCreateProcess(context.TODO(), createPaymentRequest, rsp)
-
-	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), billingpb.ResponseStatusSystemError, rsp.Status)
-
-	order1, err := suite.service.orderRepository.GetById(context.TODO(), order.Id)
-	assert.NoError(suite.T(), err)
-	assert.Empty(suite.T(), order1.RecurringId)
-	assert.False(suite.T(), order1.Recurring)
+	assert.NotEmpty(suite.T(), order1.RecurringPlanId)
+	assert.NotEmpty(suite.T(), order1.RecurringSubscriptionId)
 }
 
 func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_ProcessValidation_Error() {
@@ -6357,34 +6026,6 @@ func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_Subscription_Ok() 
 	gatewayManagerMock.On("GetGateway", mock.Anything).Return(paymentSystem, nil)
 	suite.service.paymentSystemGateway = gatewayManagerMock
 
-	subscription := &recurringpb.Subscription{
-		Id:                    primitive.NewObjectID().Hex(),
-		CardpaySubscriptionId: "cpid",
-	}
-
-	recurring := &recurringMocks.RepositoryService{}
-	recurring.On("AddSubscription", mock.Anything, mock.Anything).
-		Return(&recurringpb.AddSubscriptionResponse{Status: billingpb.ResponseStatusOk, SubscriptionId: "id"}, nil)
-	recurring.On("UpdateSubscription", mock.Anything, mock.Anything).
-		Return(&recurringpb.UpdateSubscriptionResponse{Status: billingpb.ResponseStatusOk}, nil)
-	recurring.On("GetSubscription", mock.Anything, mock.Anything).
-		Return(&recurringpb.GetSubscriptionResponse{
-			Status:       billingpb.ResponseStatusOk,
-			Subscription: subscription,
-		}, nil)
-	recurring.On("UpdateSubscription", mock.Anything, mock.MatchedBy(func(s *recurringpb.Subscription) bool {
-		return s.Id == subscription.Id &&
-			s.CardpaySubscriptionId == subscription.CardpaySubscriptionId &&
-			s.IsActive == true &&
-			s.LastPaymentAt != nil
-	})).
-		Return(&recurringpb.UpdateSubscriptionResponse{Status: billingpb.ResponseStatusOk}, nil)
-	recurring.On("InsertSavedCard", mock.Anything, mock.Anything).
-		Return(nil, nil)
-	recurring.On("FindSubscriptions", mock.Anything, mock.Anything).
-		Return(&recurringpb.FindSubscriptionsResponse{List: []*recurringpb.Subscription{}}, nil)
-	suite.service.rep = recurring
-
 	req := &billingpb.OrderCreateRequest{
 		ProjectId:     suite.project.Id,
 		PaymentMethod: paymentMethod.Group,
@@ -6397,7 +6038,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_Subscription_Ok() 
 			Ip:    "127.0.0.1",
 		},
 		Type:            pkg.OrderType_simple,
-		RecurringPeriod: recurringpb.RecurringPeriodDay,
+		RecurringPlanId: suite.recurringPlan.Id,
 	}
 
 	rsp1 := &billingpb.OrderCreateProcessResponse{}
@@ -6495,6 +6136,10 @@ func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_Subscription_Ok() 
 	assert.Equal(suite.T(), callbackRequest.GetId(), order2.Transaction)
 	assert.Equal(suite.T(), callbackRequest.GetAmount(), order2.TotalPaymentAmount)
 	assert.Equal(suite.T(), callbackRequest.GetCurrency(), order2.Currency)
+
+	subscription, err := suite.service.recurringSubscriptionRepository.GetByPlanIdCustomerId(ctx, suite.recurringPlan.Id, order.User.Id)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), billingpb.RecurringSubscriptionStatusActive, subscription.Status)
 }
 
 func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_Subscription_RecreateOrder_Ok() {
@@ -6525,35 +6170,6 @@ func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_Subscription_Recre
 	gatewayManagerMock.On("GetGateway", mock.Anything).Return(paymentSystem, nil)
 	suite.service.paymentSystemGateway = gatewayManagerMock
 
-	subscription := &recurringpb.Subscription{
-		Id:                    primitive.NewObjectID().Hex(),
-		CardpaySubscriptionId: "cpid",
-		LastPaymentAt:         ptypes.TimestampNow(),
-	}
-
-	recurring := &recurringMocks.RepositoryService{}
-	recurring.On("AddSubscription", mock.Anything, mock.Anything).
-		Return(&recurringpb.AddSubscriptionResponse{Status: billingpb.ResponseStatusOk, SubscriptionId: "id"}, nil)
-	recurring.On("UpdateSubscription", mock.Anything, mock.Anything).
-		Return(&recurringpb.UpdateSubscriptionResponse{Status: billingpb.ResponseStatusOk}, nil)
-	recurring.On("GetSubscription", mock.Anything, mock.Anything).
-		Return(&recurringpb.GetSubscriptionResponse{
-			Status:       billingpb.ResponseStatusOk,
-			Subscription: subscription,
-		}, nil)
-	recurring.On("UpdateSubscription", mock.Anything, mock.MatchedBy(func(s *recurringpb.Subscription) bool {
-		return s.Id == subscription.Id &&
-			s.CardpaySubscriptionId == subscription.CardpaySubscriptionId &&
-			s.IsActive == true &&
-			s.LastPaymentAt != nil
-	})).
-		Return(&recurringpb.UpdateSubscriptionResponse{Status: billingpb.ResponseStatusOk}, nil)
-	recurring.On("InsertSavedCard", mock.Anything, mock.Anything).
-		Return(nil, nil)
-	recurring.On("FindSubscriptions", mock.Anything, mock.Anything).
-		Return(&recurringpb.FindSubscriptionsResponse{List: []*recurringpb.Subscription{}}, nil)
-	suite.service.rep = recurring
-
 	req := &billingpb.OrderCreateRequest{
 		ProjectId:     suite.project.Id,
 		PaymentMethod: paymentMethod.Group,
@@ -6566,7 +6182,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_Subscription_Recre
 			Ip:    "127.0.0.1",
 		},
 		Type:            pkg.OrderType_simple,
-		RecurringPeriod: recurringpb.RecurringPeriodDay,
+		RecurringPlanId: suite.recurringPlan.Id,
 	}
 
 	rsp1 := &billingpb.OrderCreateProcessResponse{}
@@ -6652,191 +6268,30 @@ func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_Subscription_Recre
 
 	callbackResponse := &billingpb.PaymentNotifyResponse{}
 	err = suite.service.PaymentCallbackProcess(context.TODO(), callbackData, callbackResponse)
-
 	assert.Nil(suite.T(), err)
 	assert.Equal(suite.T(), pkg.StatusOK, callbackResponse.Status)
 
-	order2, err := suite.service.orderRepository.GetById(context.TODO(), order.Id)
+	subscription, err := suite.service.recurringSubscriptionRepository.GetByPlanIdCustomerId(ctx, suite.recurringPlan.Id, order.User.Id)
 	assert.NoError(suite.T(), err)
-	suite.NotNil(suite.T(), order2)
 
-	assert.Equal(suite.T(), int32(5), order2.PrivateStatus)
-	assert.Empty(suite.T(), order2.Transaction)
-	assert.Equal(suite.T(), callbackRequest.GetAmount(), order2.TotalPaymentAmount)
-	assert.Equal(suite.T(), callbackRequest.GetCurrency(), order2.Currency)
-}
-
-func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_Subscription_Error() {
-	paymentMethod, _ := suite.service.paymentMethodRepository.GetById(context.TODO(), suite.paymentMethod.Id)
-	paymentMethod.RecurringAllowed = true
-	_ = suite.service.paymentMethodRepository.Update(context.TODO(), paymentMethod)
-
-	paymentSystem := &mocks.PaymentSystemInterface{}
-	paymentSystem.On("CreateRecurringSubscription", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
-		Return("redirect_url", nil)
-	paymentSystem.On("ProcessPayment", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
-		Return(func(order *billingpb.Order, message proto.Message, _, _ string) error {
-			req := message.(*billingpb.CardPayPaymentCallback)
-			order.Transaction = req.GetId()
-			order.PrivateStatus = recurringpb.OrderStatusPaymentSystemComplete
-			return nil
-		})
-	paymentSystem.On("IsSubscriptionCallback", mock.Anything).
-		Return(true)
-	paymentSystem.On("IsRecurringCallback", mock.Anything).
-		Return(true)
-	paymentSystem.On("GetRecurringId", mock.Anything).
-		Return("recurring_id")
-
-	gatewayManagerMock := &mocks.PaymentSystemManagerInterface{}
-	gatewayManagerMock.On("GetGateway", mock.Anything).Return(paymentSystem, nil)
-	suite.service.paymentSystemGateway = gatewayManagerMock
-
-	subscription := &recurringpb.Subscription{
-		Id:                    primitive.NewObjectID().Hex(),
-		CardpaySubscriptionId: "cpid",
-	}
-
-	recurring := &recurringMocks.RepositoryService{}
-	recurring.On("AddSubscription", mock.Anything, mock.Anything).
-		Return(&recurringpb.AddSubscriptionResponse{Status: billingpb.ResponseStatusOk, SubscriptionId: "id"}, nil)
-	recurring.On("UpdateSubscription", mock.Anything, mock.Anything).
-		Return(&recurringpb.UpdateSubscriptionResponse{Status: billingpb.ResponseStatusOk}, nil).Once()
-	recurring.On("GetSubscription", mock.Anything, mock.Anything).
-		Return(&recurringpb.GetSubscriptionResponse{
-			Status:       billingpb.ResponseStatusOk,
-			Subscription: subscription,
-		}, nil)
-	recurring.On("UpdateSubscription", mock.Anything, mock.MatchedBy(func(s *recurringpb.Subscription) bool {
-		return s.Id == subscription.Id &&
-			s.CardpaySubscriptionId == subscription.CardpaySubscriptionId &&
-			s.IsActive == true &&
-			s.LastPaymentAt != nil
-	})).
-		Return(&recurringpb.UpdateSubscriptionResponse{Status: billingpb.ResponseStatusSystemError}, nil)
-	suite.service.rep = recurring
-
-	req := &billingpb.OrderCreateRequest{
-		ProjectId:     suite.project.Id,
-		PaymentMethod: paymentMethod.Group,
-		Currency:      "RUB",
-		Amount:        100,
-		Account:       "unit test",
-		Description:   "unit test",
-		User: &billingpb.OrderUser{
-			Email: "test@unit.unit",
-			Ip:    "127.0.0.1",
-		},
-		Type:            pkg.OrderType_simple,
-		RecurringPeriod: recurringpb.RecurringPeriodDay,
-	}
-
-	rsp1 := &billingpb.OrderCreateProcessResponse{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp1)
-	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp1.Status)
-	order := rsp1.Item
-
-	expireYear := time.Now().AddDate(1, 0, 0)
-
-	createPaymentRequest := &billingpb.PaymentCreateRequest{
-		Data: map[string]string{
-			billingpb.PaymentCreateFieldOrderId:         order.Uuid,
-			billingpb.PaymentCreateFieldPaymentMethodId: suite.paymentMethod.Id,
-			billingpb.PaymentCreateFieldEmail:           "test@unit.unit",
-			billingpb.PaymentCreateFieldPan:             "4000000000000002",
-			billingpb.PaymentCreateFieldCvv:             "123",
-			billingpb.PaymentCreateFieldMonth:           "02",
-			billingpb.PaymentCreateFieldYear:            expireYear.Format("2006"),
-			billingpb.PaymentCreateFieldHolder:          "Mr. Card Holder",
-			billingpb.PaymentCreateFieldStoreData:       "1",
-		},
-		Ip:     "127.0.0.1",
-		Cookie: suite.cookie,
-	}
-
-	rsp := &billingpb.PaymentCreateResponse{}
-	err = suite.service.PaymentCreateProcess(context.TODO(), createPaymentRequest, rsp)
-
-	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp.Status)
-
-	order1, err := suite.service.orderRepository.GetById(context.TODO(), order.Id)
+	orders, err := suite.service.orderRepository.GetManyBy(ctx, bson.M{"recurring_subscription_id": subscription.Id})
 	assert.NoError(suite.T(), err)
-	suite.NotNil(suite.T(), order1)
+	assert.Len(suite.T(), orders, 1)
 
-	callbackRequest := &billingpb.CardPayPaymentCallback{
-		PaymentMethod: suite.paymentMethod.ExternalId,
-		CallbackTime:  time.Now().Format("2006-01-02T15:04:05Z"),
-		MerchantOrder: &billingpb.CardPayMerchantOrder{
-			Id: order.Id,
-		},
-		CardAccount: &billingpb.CallbackCardPayBankCardAccount{
-			Holder:             order.PaymentRequisites[billingpb.PaymentCreateFieldHolder],
-			IssuingCountryCode: "RU",
-			MaskedPan:          order.PaymentRequisites[billingpb.PaymentCreateFieldPan],
-			Token:              primitive.NewObjectID().Hex(),
-		},
-		Customer: &billingpb.CardPayCustomer{
-			Email:  order.User.Email,
-			Ip:     order.User.Ip,
-			Id:     order.User.ExternalId,
-			Locale: "Europe/Moscow",
-		},
-		RecurringData: &billingpb.CardPayCallbackRecurringData{
-			Id:          primitive.NewObjectID().Hex(),
-			Amount:      order1.TotalPaymentAmount,
-			Currency:    order1.Currency,
-			Description: order.Description,
-			Is_3D:       true,
-			Rrn:         primitive.NewObjectID().Hex(),
-			Status:      billingpb.CardPayPaymentResponseStatusCompleted,
-			Filing: &billingpb.CardPayCallbackRecurringDataFilling{
-				Id: primitive.NewObjectID().Hex(),
-			},
-			Subscription: &billingpb.CardPayCallbackRecurringDataSubscription{
-				Id: "id",
-			},
-		},
-	}
-
-	buf, err := json.Marshal(callbackRequest)
-	assert.Nil(suite.T(), err)
-
-	hash := sha512.New()
-	hash.Write([]byte(string(buf) + order1.PaymentMethod.Params.SecretCallback))
-
-	callbackData := &billingpb.PaymentNotifyRequest{
-		OrderId:   order.Id,
-		Request:   buf,
-		Signature: hex.EncodeToString(hash.Sum(nil)),
-	}
-
-	callbackResponse := &billingpb.PaymentNotifyResponse{}
+	callbackResponse = &billingpb.PaymentNotifyResponse{}
 	err = suite.service.PaymentCallbackProcess(context.TODO(), callbackData, callbackResponse)
-
-	assert.Error(suite.T(), err)
+	assert.Nil(suite.T(), err)
 	assert.Equal(suite.T(), pkg.StatusOK, callbackResponse.Status)
 
-	order2, err := suite.service.orderRepository.GetById(context.TODO(), order.Id)
+	orders, err = suite.service.orderRepository.GetManyBy(ctx, bson.M{"recurring_subscription_id": subscription.Id})
 	assert.NoError(suite.T(), err)
-	suite.NotNil(suite.T(), order2)
-
-	assert.Equal(suite.T(), int32(recurringpb.OrderStatusPaymentSystemComplete), order2.PrivateStatus)
-	assert.Equal(suite.T(), callbackRequest.GetId(), order2.Transaction)
-	assert.Equal(suite.T(), callbackRequest.GetAmount(), order2.TotalPaymentAmount)
-	assert.Equal(suite.T(), callbackRequest.GetCurrency(), order2.Currency)
+	assert.Len(suite.T(), orders, 2)
 }
 
 func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_Subscription_Delete_Ok() {
 	paymentMethod, _ := suite.service.paymentMethodRepository.GetById(context.TODO(), suite.paymentMethod.Id)
 	paymentMethod.RecurringAllowed = true
 	_ = suite.service.paymentMethodRepository.Update(context.TODO(), paymentMethod)
-
-	subscription := &recurringpb.Subscription{
-		Id:                    primitive.NewObjectID().Hex(),
-		CardpaySubscriptionId: "cpid",
-	}
 
 	paymentSystem := &mocks.PaymentSystemInterface{}
 	paymentSystem.On("CreateRecurringSubscription", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
@@ -6856,10 +6311,9 @@ func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_Subscription_Delet
 		Return(true)
 	paymentSystem.On("GetRecurringId", mock.Anything).
 		Return("recurring_id")
-	paymentSystem.On("DeleteRecurringSubscription", mock.Anything, mock.MatchedBy(func(s *recurringpb.Subscription) bool {
-		return s.Id == subscription.Id &&
-			s.CardpaySubscriptionId == subscription.CardpaySubscriptionId &&
-			s.IsActive == false &&
+	paymentSystem.On("DeleteRecurringSubscription", mock.Anything, mock.MatchedBy(func(s *billingpb.RecurringSubscription) bool {
+		return s.Id != "" &&
+			s.Status == billingpb.RecurringSubscriptionStatusCanceled &&
 			s.LastPaymentAt == nil
 	})).
 		Return(nil)
@@ -6869,15 +6323,6 @@ func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_Subscription_Delet
 	suite.service.paymentSystemGateway = gatewayManagerMock
 
 	recurring := &recurringMocks.RepositoryService{}
-	recurring.On("AddSubscription", mock.Anything, mock.Anything).
-		Return(&recurringpb.AddSubscriptionResponse{Status: billingpb.ResponseStatusOk, SubscriptionId: "id"}, nil)
-	recurring.On("UpdateSubscription", mock.Anything, mock.Anything).
-		Return(&recurringpb.UpdateSubscriptionResponse{Status: billingpb.ResponseStatusOk}, nil)
-	recurring.On("GetSubscription", mock.Anything, mock.Anything).
-		Return(&recurringpb.GetSubscriptionResponse{
-			Status:       billingpb.ResponseStatusOk,
-			Subscription: subscription,
-		}, nil)
 	recurring.On("InsertSavedCard", mock.Anything, mock.Anything).
 		Return(nil, nil)
 	suite.service.rep = recurring
@@ -6894,7 +6339,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_Subscription_Delet
 			Ip:    "127.0.0.1",
 		},
 		Type:            pkg.OrderType_simple,
-		RecurringPeriod: recurringpb.RecurringPeriodDay,
+		RecurringPlanId: suite.recurringPlan.Id,
 	}
 
 	rsp1 := &billingpb.OrderCreateProcessResponse{}
@@ -6992,17 +6437,17 @@ func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_Subscription_Delet
 	assert.Equal(suite.T(), callbackRequest.GetId(), order2.Transaction)
 	assert.Equal(suite.T(), callbackRequest.GetAmount(), order2.TotalPaymentAmount)
 	assert.Equal(suite.T(), callbackRequest.GetCurrency(), order2.Currency)
+	assert.NotEmpty(suite.T(), order2.RecurringSubscriptionId)
+
+	subscription, err := suite.service.recurringSubscriptionRepository.GetByPlanIdCustomerId(ctx, suite.recurringPlan.Id, order.User.Id)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), billingpb.RecurringSubscriptionStatusCanceled, subscription.Status)
 }
 
 func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_Subscription_Delete_Error() {
 	paymentMethod, _ := suite.service.paymentMethodRepository.GetById(context.TODO(), suite.paymentMethod.Id)
 	paymentMethod.RecurringAllowed = true
 	_ = suite.service.paymentMethodRepository.Update(context.TODO(), paymentMethod)
-
-	subscription := &recurringpb.Subscription{
-		Id:                    primitive.NewObjectID().Hex(),
-		CardpaySubscriptionId: "cpid",
-	}
 
 	paymentSystem := &mocks.PaymentSystemInterface{}
 	paymentSystem.On("CreateRecurringSubscription", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
@@ -7020,10 +6465,9 @@ func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_Subscription_Delet
 		Return(true)
 	paymentSystem.On("GetRecurringId", mock.Anything).
 		Return("recurring_id")
-	paymentSystem.On("DeleteRecurringSubscription", mock.Anything, mock.MatchedBy(func(s *recurringpb.Subscription) bool {
-		return s.Id == subscription.Id &&
-			s.CardpaySubscriptionId == subscription.CardpaySubscriptionId &&
-			s.IsActive == false &&
+	paymentSystem.On("DeleteRecurringSubscription", mock.Anything, mock.MatchedBy(func(s *billingpb.RecurringSubscription) bool {
+		return s.Id != "" &&
+			s.Status == billingpb.RecurringSubscriptionStatusCanceled &&
 			s.LastPaymentAt == nil
 	})).
 		Return(errors.New("error"))
@@ -7033,15 +6477,6 @@ func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_Subscription_Delet
 	suite.service.paymentSystemGateway = gatewayManagerMock
 
 	recurring := &recurringMocks.RepositoryService{}
-	recurring.On("AddSubscription", mock.Anything, mock.Anything).
-		Return(&recurringpb.AddSubscriptionResponse{Status: billingpb.ResponseStatusOk, SubscriptionId: "id"}, nil)
-	recurring.On("UpdateSubscription", mock.Anything, mock.Anything).
-		Return(&recurringpb.UpdateSubscriptionResponse{Status: billingpb.ResponseStatusOk}, nil)
-	recurring.On("GetSubscription", mock.Anything, mock.Anything).
-		Return(&recurringpb.GetSubscriptionResponse{
-			Status:       billingpb.ResponseStatusOk,
-			Subscription: subscription,
-		}, nil)
 	recurring.On("InsertSavedCard", mock.Anything, mock.Anything).
 		Return(nil, nil)
 	suite.service.rep = recurring
@@ -7058,7 +6493,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_Subscription_Delet
 			Ip:    "127.0.0.1",
 		},
 		Type:            pkg.OrderType_simple,
-		RecurringPeriod: recurringpb.RecurringPeriodDay,
+		RecurringPlanId: suite.recurringPlan.Id,
 	}
 
 	rsp1 := &billingpb.OrderCreateProcessResponse{}
@@ -7154,151 +6589,6 @@ func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_Subscription_Delet
 
 	assert.Equal(suite.T(), int32(recurringpb.OrderStatusPaymentSystemDeclined), order2.PrivateStatus)
 	assert.Equal(suite.T(), callbackRequest.GetId(), order2.Transaction)
-	assert.Equal(suite.T(), callbackRequest.GetAmount(), order2.TotalPaymentAmount)
-	assert.Equal(suite.T(), callbackRequest.GetCurrency(), order2.Currency)
-}
-
-func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_Subscription_Get_Error() {
-	paymentMethod, _ := suite.service.paymentMethodRepository.GetById(context.TODO(), suite.paymentMethod.Id)
-	paymentMethod.RecurringAllowed = true
-	_ = suite.service.paymentMethodRepository.Update(context.TODO(), paymentMethod)
-
-	paymentSystem := &mocks.PaymentSystemInterface{}
-	paymentSystem.On("CreateRecurringSubscription", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
-		Return("redirect_url", nil)
-	paymentSystem.On("ProcessPayment", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
-		Return(func(order *billingpb.Order, message proto.Message, _, _ string) error {
-			req := message.(*billingpb.CardPayPaymentCallback)
-			order.Transaction = req.GetId()
-			order.PrivateStatus = recurringpb.OrderStatusPaymentSystemDeclined
-			return nil
-		})
-	paymentSystem.On("IsSubscriptionCallback", mock.Anything).
-		Return(true)
-
-	gatewayManagerMock := &mocks.PaymentSystemManagerInterface{}
-	gatewayManagerMock.On("GetGateway", mock.Anything).Return(paymentSystem, nil)
-	suite.service.paymentSystemGateway = gatewayManagerMock
-
-	recurring := &recurringMocks.RepositoryService{}
-	recurring.On("AddSubscription", mock.Anything, mock.Anything).
-		Return(&recurringpb.AddSubscriptionResponse{Status: billingpb.ResponseStatusOk, SubscriptionId: "id"}, nil)
-	recurring.On("UpdateSubscription", mock.Anything, mock.Anything).
-		Return(&recurringpb.UpdateSubscriptionResponse{Status: billingpb.ResponseStatusOk}, nil)
-	recurring.On("GetSubscription", mock.Anything, mock.Anything).
-		Return(&recurringpb.GetSubscriptionResponse{
-			Status: billingpb.ResponseStatusNotFound,
-		}, nil)
-	suite.service.rep = recurring
-
-	req := &billingpb.OrderCreateRequest{
-		ProjectId:     suite.project.Id,
-		PaymentMethod: paymentMethod.Group,
-		Currency:      "RUB",
-		Amount:        100,
-		Account:       "unit test",
-		Description:   "unit test",
-		User: &billingpb.OrderUser{
-			Email: "test@unit.unit",
-			Ip:    "127.0.0.1",
-		},
-		Type:            pkg.OrderType_simple,
-		RecurringPeriod: recurringpb.RecurringPeriodDay,
-	}
-
-	rsp1 := &billingpb.OrderCreateProcessResponse{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp1)
-	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp1.Status)
-	order := rsp1.Item
-
-	expireYear := time.Now().AddDate(1, 0, 0)
-
-	createPaymentRequest := &billingpb.PaymentCreateRequest{
-		Data: map[string]string{
-			billingpb.PaymentCreateFieldOrderId:         order.Uuid,
-			billingpb.PaymentCreateFieldPaymentMethodId: suite.paymentMethod.Id,
-			billingpb.PaymentCreateFieldEmail:           "test@unit.unit",
-			billingpb.PaymentCreateFieldPan:             "4000000000000002",
-			billingpb.PaymentCreateFieldCvv:             "123",
-			billingpb.PaymentCreateFieldMonth:           "02",
-			billingpb.PaymentCreateFieldYear:            expireYear.Format("2006"),
-			billingpb.PaymentCreateFieldHolder:          "Mr. Card Holder",
-			billingpb.PaymentCreateFieldStoreData:       "1",
-		},
-		Ip:     "127.0.0.1",
-		Cookie: suite.cookie,
-	}
-
-	rsp := &billingpb.PaymentCreateResponse{}
-	err = suite.service.PaymentCreateProcess(context.TODO(), createPaymentRequest, rsp)
-
-	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp.Status)
-
-	order1, err := suite.service.orderRepository.GetById(context.TODO(), order.Id)
-	assert.NoError(suite.T(), err)
-	suite.NotNil(suite.T(), order1)
-
-	callbackRequest := &billingpb.CardPayPaymentCallback{
-		PaymentMethod: suite.paymentMethod.ExternalId,
-		CallbackTime:  time.Now().Format("2006-01-02T15:04:05Z"),
-		MerchantOrder: &billingpb.CardPayMerchantOrder{
-			Id: order.Id,
-		},
-		CardAccount: &billingpb.CallbackCardPayBankCardAccount{
-			Holder:             order.PaymentRequisites[billingpb.PaymentCreateFieldHolder],
-			IssuingCountryCode: "RU",
-			MaskedPan:          order.PaymentRequisites[billingpb.PaymentCreateFieldPan],
-			Token:              primitive.NewObjectID().Hex(),
-		},
-		Customer: &billingpb.CardPayCustomer{
-			Email:  order.User.Email,
-			Ip:     order.User.Ip,
-			Id:     order.User.ExternalId,
-			Locale: "Europe/Moscow",
-		},
-		RecurringData: &billingpb.CardPayCallbackRecurringData{
-			Id:          primitive.NewObjectID().Hex(),
-			Amount:      order1.TotalPaymentAmount,
-			Currency:    order1.Currency,
-			Description: order.Description,
-			Is_3D:       true,
-			Rrn:         primitive.NewObjectID().Hex(),
-			Status:      billingpb.CardPayPaymentResponseStatusDeclined,
-			Filing: &billingpb.CardPayCallbackRecurringDataFilling{
-				Id: primitive.NewObjectID().Hex(),
-			},
-			Subscription: &billingpb.CardPayCallbackRecurringDataSubscription{
-				Id: "id",
-			},
-		},
-	}
-
-	buf, err := json.Marshal(callbackRequest)
-	assert.Nil(suite.T(), err)
-
-	hash := sha512.New()
-	hash.Write([]byte(string(buf) + order1.PaymentMethod.Params.SecretCallback))
-
-	callbackData := &billingpb.PaymentNotifyRequest{
-		OrderId:   order.Id,
-		Request:   buf,
-		Signature: hex.EncodeToString(hash.Sum(nil)),
-	}
-
-	callbackResponse := &billingpb.PaymentNotifyResponse{}
-	err = suite.service.PaymentCallbackProcess(context.TODO(), callbackData, callbackResponse)
-
-	assert.Error(suite.T(), err)
-	assert.Equal(suite.T(), pkg.StatusOK, callbackResponse.Status)
-
-	order2, err := suite.service.orderRepository.GetById(context.TODO(), order.Id)
-	assert.NoError(suite.T(), err)
-	suite.NotNil(suite.T(), order2)
-
-	assert.Equal(suite.T(), int32(5), order2.PrivateStatus)
-	assert.Empty(suite.T(), order2.Transaction)
 	assert.Equal(suite.T(), callbackRequest.GetAmount(), order2.TotalPaymentAmount)
 	assert.Equal(suite.T(), callbackRequest.GetCurrency(), order2.Currency)
 }
@@ -8102,7 +7392,7 @@ func (suite *OrderTestSuite) TestOrder_CreateOrderByToken_Ok() {
 			Amount:          100,
 			Description:     "test payment",
 			Type:            pkg.OrderType_simple,
-			RecurringPeriod: recurringpb.RecurringPeriodDay,
+			RecurringPlanId: suite.recurringPlan.Id,
 		},
 	}
 	rsp := &billingpb.TokenResponse{}
@@ -8125,10 +7415,7 @@ func (suite *OrderTestSuite) TestOrder_CreateOrderByToken_Ok() {
 	assert.NotEmpty(suite.T(), rsp1.Id)
 	assert.Equal(suite.T(), req.Settings.ProjectId, rsp1.Project.Id)
 	assert.Equal(suite.T(), req.Settings.Description, rsp1.Description)
-	assert.NotEmpty(suite.T(), rsp1.RecurringSettings)
-	assert.Equal(suite.T(), req.Settings.RecurringPeriod, rsp1.RecurringSettings.Period)
-	assert.NotEmpty(suite.T(), rsp1.RecurringSettings.DateEnd)
-	assert.NotEmpty(suite.T(), rsp1.RecurringSettings.Interval)
+	assert.Equal(suite.T(), req.Settings.RecurringPlanId, rsp1.RecurringPlanId)
 }
 
 func (suite *OrderTestSuite) TestOrder_CreateOrder_WithKeyProductAndEmptyPlatformId_Ok() {
@@ -10069,7 +9356,7 @@ func (suite *OrderTestSuite) TestOrder_PurchaseReceipt_Ok() {
 		if v, ok := input.TemplateModel["customerUuid"]; !ok || v == "" {
 			return false
 		}
-		if _, ok := input.TemplateModel["subscriptionsManagementUrl"]; !ok {
+		if _, ok := input.TemplateModel["subscriptionsManagementUrl"]; ok {
 			return false
 		}
 		return true
@@ -10091,8 +9378,6 @@ func (suite *OrderTestSuite) TestOrder_PurchaseReceipt_Ok() {
 }
 
 func (suite *OrderTestSuite) TestOrder_PurchaseReceipt_WithRecurring_Ok() {
-	recurringDateEnd := time.Now().AddDate(1, 0, 0).Format("2006-01-02")
-
 	zap.ReplaceGlobals(suite.logObserver)
 	postmarkBrokerMockFn := func(topicName string, payload proto.Message, t amqp.Table) error {
 		msg := payload.(*postmarkpb.Payload)
@@ -10108,13 +9393,13 @@ func (suite *OrderTestSuite) TestOrder_PurchaseReceipt_WithRecurring_Ok() {
 		if v, ok := input.TemplateModel["subscriptionViewUrl"]; !ok || v == "" {
 			return false
 		}
-		if v, ok := input.TemplateModel["recurringPeriod"]; !ok || v != recurringpb.RecurringPeriodMonth {
+		if v, ok := input.TemplateModel["recurringPeriod"]; !ok || v != billingpb.RecurringPeriodDay {
 			return false
 		}
 		if v, ok := input.TemplateModel["recurringInterval"]; !ok || v != "1" {
 			return false
 		}
-		if v, ok := input.TemplateModel["recurringDateEnd"]; !ok || v != recurringDateEnd {
+		if _, ok := input.TemplateModel["recurringDateEnd"]; !ok {
 			return false
 		}
 		return true
@@ -10129,8 +9414,7 @@ func (suite *OrderTestSuite) TestOrder_PurchaseReceipt_WithRecurring_Ok() {
 		suite.project,
 		suite.paymentMethod,
 		suite.cookie,
-		recurringpb.RecurringPeriodMonth,
-		recurringDateEnd,
+		suite.recurringPlan.Id,
 	)
 	assert.NotNil(suite.T(), order)
 	assert.Equal(suite.T(), order.ReceiptUrl, suite.service.cfg.GetReceiptPurchaseUrl(order.Uuid, order.ReceiptId))
@@ -10174,8 +9458,7 @@ func (suite *OrderTestSuite) TestOrder_PurchaseReceipt_WithSubscriptions_Ok() {
 		suite.project,
 		suite.paymentMethod,
 		suite.cookie,
-		recurringpb.RecurringPeriodMonth,
-		time.Now().AddDate(1, 0, 0).Format("2006-01-02"),
+		suite.recurringPlan.Id,
 	)
 	assert.NotNil(suite.T(), order)
 	assert.Equal(suite.T(), order.ReceiptUrl, suite.service.cfg.GetReceiptPurchaseUrl(order.Uuid, order.ReceiptId))
@@ -10204,7 +9487,7 @@ func (suite *OrderTestSuite) TestOrder_RefundReceipt_Ok() {
 		if v, ok := input.TemplateModel["customerUuid"]; !ok || v == "" {
 			return false
 		}
-		if _, ok := input.TemplateModel["subscriptionsManagementUrl"]; !ok {
+		if _, ok := input.TemplateModel["subscriptionsManagementUrl"]; ok {
 			return false
 		}
 		return true
@@ -10257,17 +9540,18 @@ func (suite *OrderTestSuite) TestOrder_RefundReceipt_WithRecurring_Ok() {
 		return nil
 	}
 
-	subscriptionDateEnd := time.Now().AddDate(1, 0, 0).Format("2006-01-02")
+	subscriptionDateEnd := time.Now().AddDate(0, 0, 1).Format("2006-01-02")
 
 	postmarkBrokerMock := &mocks.BrokerInterface{}
 	postmarkBrokerMock.On("Publish", postmarkpb.PostmarkSenderTopicName, mock.MatchedBy(func(input *postmarkpb.Payload) bool {
+		fmt.Println(input)
 		if v, ok := input.TemplateModel["customerUuid"]; !ok || v == "" {
 			return false
 		}
 		if v, ok := input.TemplateModel["subscriptionViewUrl"]; !ok || v == "" {
 			return false
 		}
-		if v, ok := input.TemplateModel["recurringPeriod"]; !ok || v != recurringpb.RecurringPeriodMonth {
+		if v, ok := input.TemplateModel["recurringPeriod"]; !ok || v != billingpb.RecurringPeriodDay {
 			return false
 		}
 		if v, ok := input.TemplateModel["recurringInterval"]; !ok || v != "1" {
@@ -10289,8 +9573,7 @@ func (suite *OrderTestSuite) TestOrder_RefundReceipt_WithRecurring_Ok() {
 		suite.project,
 		suite.paymentMethod,
 		suite.cookie,
-		recurringpb.RecurringPeriodMonth,
-		subscriptionDateEnd,
+		suite.recurringPlan.Id,
 	)
 	assert.NotNil(suite.T(), order)
 	assert.Equal(suite.T(), order.ReceiptUrl, suite.service.cfg.GetReceiptPurchaseUrl(order.Uuid, order.ReceiptId))
@@ -10358,8 +9641,7 @@ func (suite *OrderTestSuite) TestOrder_RefundReceipt_WithSubscriptions_Ok() {
 		suite.project,
 		suite.paymentMethod,
 		suite.cookie,
-		recurringpb.RecurringPeriodMonth,
-		time.Now().AddDate(1, 0, 0).Format("2006-01-02"),
+		suite.recurringPlan.Id,
 	)
 	assert.NotNil(suite.T(), order)
 	assert.Equal(suite.T(), order.ReceiptUrl, suite.service.cfg.GetReceiptPurchaseUrl(order.Uuid, order.ReceiptId))
@@ -11441,23 +10723,4 @@ func (suite *OrderTestSuite) TestOrder_OrderWithProducts_BankingCurrencyNotMatch
 		assert.EqualValues(suite.T(), entry.Amount, v.Amount)
 		assert.Equal(suite.T(), entry.Currency, v.Currency)
 	}
-}
-
-func (suite *OrderTestSuite) TestOrder_processRecurringSettings_CalculateInterval_AlwaysOne() {
-	req := &billingpb.OrderCreateRequest{
-		Type:            pkg.OrderType_simple,
-		ProjectId:       suite.project.Id,
-		RecurringPeriod: recurringpb.RecurringPeriodDay,
-	}
-	processor := &OrderCreateRequestProcessor{
-		Service: suite.service,
-		request: req,
-		checked: &orderCreateRequestProcessorChecked{
-			paymentMethod: &billingpb.PaymentMethod{RecurringAllowed: true},
-		},
-	}
-
-	err := processor.processRecurringSettings()
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), int32(1), processor.checked.recurringInterval)
 }

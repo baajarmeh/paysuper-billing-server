@@ -100,7 +100,7 @@ func NewCardPayMock() payment_system.PaymentSystemInterface {
 		)
 	cpMock.On("CreateRecurringSubscription", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		Return(
-			func(order *billingpb.Order, subscription *recurringpb.Subscription, successUrl, failUrl string, requisites map[string]string) string {
+			func(order *billingpb.Order, subscription *billingpb.RecurringSubscription, successUrl, failUrl string, requisites map[string]string) string {
 				return "http://localhost"
 			},
 			nil,
@@ -142,7 +142,7 @@ func (m *PaymentSystemMockOk) ProcessRefund(_ *billingpb.Order, refund *billingp
 	return nil
 }
 
-func (m *PaymentSystemMockOk) CreateRecurringSubscription(_ *billingpb.Order, _ *recurringpb.Subscription, _, _ string, _ map[string]string) (string, error) {
+func (m *PaymentSystemMockOk) CreateRecurringSubscription(_ *billingpb.Order, _ *billingpb.RecurringSubscription, _, _ string, _ map[string]string) (string, error) {
 	return "", nil
 }
 
@@ -150,7 +150,7 @@ func (m *PaymentSystemMockOk) IsSubscriptionCallback(_ proto.Message) bool {
 	return false
 }
 
-func (m *PaymentSystemMockOk) DeleteRecurringSubscription(_ *billingpb.Order, _ *recurringpb.Subscription) error {
+func (m *PaymentSystemMockOk) DeleteRecurringSubscription(_ *billingpb.Order, _ *billingpb.RecurringSubscription) error {
 	return nil
 }
 
@@ -184,7 +184,7 @@ func (m *PaymentSystemMockError) ProcessRefund(_ *billingpb.Order, refund *billi
 	return errors2.NewBillingServerResponseError(billingpb.ResponseStatusBadData, payment_system.PaymentSystemErrorRefundRequestAmountOrCurrencyIsInvalid)
 }
 
-func (m *PaymentSystemMockError) CreateRecurringSubscription(_ *billingpb.Order, _ *recurringpb.Subscription, _, _ string, _ map[string]string) (string, error) {
+func (m *PaymentSystemMockError) CreateRecurringSubscription(_ *billingpb.Order, _ *billingpb.RecurringSubscription, _, _ string, _ map[string]string) (string, error) {
 	return "", nil
 }
 
@@ -192,7 +192,7 @@ func (m *PaymentSystemMockError) IsSubscriptionCallback(_ proto.Message) bool {
 	return false
 }
 
-func (m *PaymentSystemMockError) DeleteRecurringSubscription(_ *billingpb.Order, _ *recurringpb.Subscription) error {
+func (m *PaymentSystemMockError) DeleteRecurringSubscription(_ *billingpb.Order, _ *billingpb.RecurringSubscription) error {
 	return nil
 }
 

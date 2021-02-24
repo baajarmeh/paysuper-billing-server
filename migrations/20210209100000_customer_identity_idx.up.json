@@ -1,0 +1,15 @@
+[
+  {
+    "createIndexes": "customer",
+    "indexes": [
+      {
+        "key": {
+          "identity.type": 1,
+          "identity.merchant_id": 1,
+          "identity.value": 1
+        },
+        "name": "customer_identity_idx"
+      }
+    ]
+  }
+]

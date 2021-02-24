@@ -95,9 +95,8 @@ type MgoOrder struct {
 	RoyaltyReportId             string                                   `bson:"royalty_report_id"`
 	NetRevenue                  *billingpb.OrderViewMoney                `bson:"-"`
 	Fee                         *billingpb.OrderViewMoney                `bson:"-"`
-	RecurringSettings           *billingpb.OrderRecurringSettings        `bson:"recurring_settings"`
-	Recurring                   bool                                     `bson:"recurring"`
-	RecurringId                 string                                   `bson:"recurring_id"`
+	RecurringPlanId             string                                   `bson:"recurring_plan_id"`
+	RecurringSubscriptionId     string                                   `bson:"recurring_subscription_id"`
 }
 
 type orderMapper struct{}
@@ -199,9 +198,8 @@ func (o *orderMapper) MapObjectToMgo(obj interface{}) (interface{}, error) {
 		RoyaltyReportId:             m.RoyaltyReportId,
 		NetRevenue:                  m.NetRevenue,
 		Fee:                         m.Fee,
-		RecurringSettings:           m.RecurringSettings,
-		Recurring:                   m.Recurring,
-		RecurringId:                 m.RecurringId,
+		RecurringPlanId:             m.RecurringPlanId,
+		RecurringSubscriptionId:     m.RecurringSubscriptionId,
 	}
 
 	if m.Refund != nil {
@@ -363,6 +361,12 @@ func (o *orderMapper) MapObjectToMgo(obj interface{}) (interface{}, error) {
 		}
 	}
 
+	if m.Project != nil && len(m.Project.FormDefaultText) > 0 {
+		for k, v := range m.Project.FormDefaultText {
+			st.Project.FormDefaultText = append(st.Project.FormDefaultText, &MgoMultiLang{Lang: k, Value: v})
+		}
+	}
+
 	if m.Project != nil && m.Project.FirstPaymentAt != nil {
 		st.Project.FirstPaymentAt, err = ptypes.Timestamp(m.Project.FirstPaymentAt)
 		if err != nil {
@@ -460,9 +464,8 @@ func (o *orderMapper) MapMgoToObject(obj interface{}) (interface{}, error) {
 	m.IsCurrencyPredefined = decoded.IsCurrencyPredefined
 	m.Fee = decoded.Fee
 	m.NetRevenue = decoded.NetRevenue
-	m.RecurringSettings = decoded.RecurringSettings
-	m.Recurring = decoded.Recurring
-	m.RecurringId = decoded.RecurringId
+	m.RecurringPlanId = decoded.RecurringPlanId
+	m.RecurringSubscriptionId = decoded.RecurringSubscriptionId
 
 	if decoded.Refund != nil {
 		m.Refund = &billingpb.OrderNotificationRefund{
@@ -511,6 +514,15 @@ func (o *orderMapper) MapMgoToObject(obj interface{}) (interface{}, error) {
 
 			for _, v := range decoded.Project.Name {
 				m.Project.Name[v.Lang] = v.Value
+			}
+		}
+
+		formDefaultTextLen := len(decoded.Project.FormDefaultText)
+		if formDefaultTextLen > 0 {
+			m.Project.FormDefaultText = make(map[string]string, formDefaultTextLen)
+
+			for _, v := range decoded.Project.FormDefaultText {
+				m.Project.FormDefaultText[v.Lang] = v.Value
 			}
 		}
 	}
