@@ -62,6 +62,7 @@ func (suite *ZipCodeTestSuite) SetupTest() {
 		&casbinMocks.CasbinService{},
 		nil,
 		mocks.NewBrokerMockOk(),
+		mocks.NewBrokerMockOk(),
 	)
 	err = suite.service.Init()
 

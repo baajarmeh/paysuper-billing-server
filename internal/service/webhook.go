@@ -85,6 +85,8 @@ func (s *Service) SendWebhookToMerchant(
 			return err
 		}
 		break
+	case pkg.OrderType_simple:
+		processor.processAmount()
 	case pkg.OrderTypeVirtualCurrency:
 		err = processor.processVirtualCurrency(ctx)
 
@@ -94,8 +96,6 @@ func (s *Service) SendWebhookToMerchant(
 			return nil
 		}
 		break
-	case pkg.OrderType_simple:
-		processor.processAmount()
 	default:
 		zap.L().Error(
 			webhookTypeIncorrect.Message,

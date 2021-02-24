@@ -131,6 +131,14 @@ func (app *Application) Init() {
 
 	validateUserBroker.SetExchangeName(notifierpb.PayOneTopicNameValidateUser)
 
+	recurringBroker, err := rabbitmq.NewBroker(app.cfg.BrokerAddress)
+
+	if err != nil {
+		app.logger.Fatal("Creating recurring broker failed", zap.Error(err))
+	}
+
+	recurringBroker.SetExchangeName(recurringpb.RecurringSubscriptionExchangeName)
+
 	options := []micro.Option{
 		micro.Name(billingpb.ServiceName),
 		micro.WrapHandler(metrics.NewHandlerWrapper()),
@@ -239,6 +247,7 @@ func (app *Application) Init() {
 		casbin,
 		webHookNotifier,
 		validateUserBroker,
+		recurringBroker,
 	)
 
 	if err := app.svc.Init(); err != nil {

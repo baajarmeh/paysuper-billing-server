@@ -598,8 +598,8 @@ func (h *orderRepository) UpdateOrderView(ctx context.Context, ids []string) err
 			},
 			TaxRate:                 order.Tax.Rate,
 			PaymentMethodTerminalId: "",
-			Recurring:               order.Recurring,
-			RecurringId:             order.RecurringId,
+			RecurringPlanId:         order.RecurringPlanId,
+			RecurringSubscriptionId: order.RecurringSubscriptionId,
 			RoyaltyReportId:         order.RoyaltyReportId,
 			AmountBeforeVat:         order.OrderAmount,
 			MetadataValues:          []string{},
@@ -744,6 +744,50 @@ func (h *orderRepository) GetManyBy(ctx context.Context, filter bson.M, opts ...
 				pkg.ErrorMapModelFailed,
 				zap.Error(err),
 				zap.Any(pkg.ErrorDatabaseFieldQuery, mgo),
+			)
+			return nil, err
+		}
+		orders[i] = obj.(*billingpb.Order)
+	}
+
+	return orders, nil
+}
+
+func (h *orderRepository) GetBySubscriptionId(ctx context.Context, subscriptionId string) (items []*billingpb.Order, err error) {
+	query := bson.M{"recurring_subscription_id": subscriptionId}
+
+	cursor, err := h.db.Collection(CollectionOrder).Find(ctx, query)
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, CollectionOrder),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+		)
+		return nil, err
+	}
+
+	var res []*models.MgoOrder
+
+	err = cursor.All(ctx, &res)
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, CollectionOrder),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+		)
+		return nil, err
+	}
+
+	orders := make([]*billingpb.Order, len(res))
+	for i, order := range res {
+		obj, err := h.mapper.MapMgoToObject(order)
+		if err != nil {
+			zap.L().Error(
+				pkg.ErrorMapModelFailed,
+				zap.Error(err),
+				zap.Any(pkg.ErrorDatabaseFieldQuery, res),
 			)
 			return nil, err
 		}

@@ -68,6 +68,7 @@ type Service struct {
 	formatter                              paysuper_i18n.Formatter
 	reporterService                        reporterpb.ReporterService
 	postmarkBroker                         rabbitmq.BrokerInterface
+	recurringBroker                        rabbitmq.BrokerInterface
 	casbinService                          casbinpb.CasbinService
 	notifier                               notifierpb.NotifierService
 	paymentSystemGateway                   payment_system.PaymentSystemManagerInterface
@@ -114,6 +115,8 @@ type Service struct {
 	merchantDocumentRepository             repository.MerchantDocumentRepositoryInterface
 	validateUserBroker                     rabbitmq.BrokerInterface
 	autoincrementRepository                repository.AutoincrementRepositoryInterface
+	recurringPlanRepository                repository.RecurringPlanRepositoryInterface
+	recurringSubscriptionRepository        repository.RecurringSubscriptionRepositoryInterface
 	moneyRegistry                          map[string]*helper.Money
 	moneyRegistryMx                        sync.Mutex
 }
@@ -135,6 +138,7 @@ func NewBillingService(
 	casbinService casbinpb.CasbinService,
 	notifier notifierpb.NotifierService,
 	validateUserBroker rabbitmq.BrokerInterface,
+	recurringBroker rabbitmq.BrokerInterface,
 ) *Service {
 	return &Service{
 		db:                 db,
@@ -153,6 +157,7 @@ func NewBillingService(
 		casbinService:      casbinService,
 		notifier:           notifier,
 		validateUserBroker: validateUserBroker,
+		recurringBroker:    recurringBroker,
 		moneyRegistry:      make(map[string]*helper.Money),
 	}
 }
@@ -204,6 +209,8 @@ func (s *Service) Init() (err error) {
 	s.dashboardRepository = repository.NewDashboardRepository(s.db, s.cacher)
 	s.autoincrementRepository = repository.NewAutoincrementRepository(s.db)
 	s.merchantDocumentRepository = repository.NewMerchantDocumentRepository(s.db)
+	s.recurringPlanRepository = repository.NewRecurringPlanRepository(s.db)
+	s.recurringSubscriptionRepository = repository.NewRecurringSubscriptionRepository(s.db)
 
 	sCurr, err := s.curService.GetSupportedCurrencies(context.TODO(), &currenciespb.EmptyRequest{})
 	if err != nil {

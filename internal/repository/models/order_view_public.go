@@ -64,8 +64,8 @@ type MgoOrderViewPublic struct {
 	VatPayer                                string                                   `bson:"vat_payer"`
 	IsProduction                            bool                                     `bson:"is_production"`
 	MerchantInfo                            *billingpb.OrderViewMerchantInfo         `bson:"merchant_info"`
-	Recurring                               bool                                     `bson:"recurring"`
-	RecurringId                             string                                   `bson:"recurring_id"`
+	RecurringPlanId                         string                                   `bson:"recurring_plan_id"`
+	RecurringSubscriptionId                 string                                   `bson:"recurring_subscription_id"`
 	PaymentGrossRevenue                     *billingpb.OrderViewMoney                `bson:"payment_gross_revenue"`
 	PaymentRefundGrossRevenue               *billingpb.OrderViewMoney                `bson:"payment_refund_gross_revenue"`
 	RefundTaxFeeTotal                       *billingpb.OrderViewMoney                `bson:"refund_tax_fee_total"`
@@ -146,8 +146,8 @@ func (o *orderViewPublicMapper) MapMgoToObject(obj interface{}) (interface{}, er
 	m.VatPayer = decoded.VatPayer
 	m.IsProduction = decoded.IsProduction
 	m.MerchantInfo = decoded.MerchantInfo
-	m.Recurring = decoded.Recurring
-	m.RecurringId = decoded.RecurringId
+	m.RecurringPlanId = decoded.RecurringPlanId
+	m.RecurringSubscriptionId = decoded.RecurringSubscriptionId
 
 	m.PaymentGrossRevenue = getOrderViewMoney(decoded.PaymentGrossRevenue)
 	m.PaymentRefundGrossRevenue = getOrderViewMoney(decoded.PaymentRefundGrossRevenue)

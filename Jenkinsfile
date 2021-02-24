@@ -2,7 +2,7 @@
 
 p1pipeline("p1paybilling",
            "p1paybilling",
-           "feature/190525-webhook-api", // development branch for test releases
-           "190525", // kubernetes namespace for test releases
-           "190525-" // domain name prefix in kubernetes for test releases
+           "recurring_plan", // development branch for test releases
+           "recurringplan", // kubernetes namespace for test releases
+           "recurringplan-" // domain name prefix in kubernetes for test releases
 )

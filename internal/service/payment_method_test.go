@@ -122,6 +122,7 @@ func (suite *PaymentMethodTestSuite) SetupTest() {
 		&casbinMocks.CasbinService{},
 		mocks.NewNotifierOk(),
 		mocks.NewBrokerMockOk(),
+		mocks.NewBrokerMockOk(),
 	)
 
 	if err := suite.service.Init(); err != nil {
