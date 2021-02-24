@@ -10,7 +10,6 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-proto/go/billingpb"
 	casbinMocks "github.com/paysuper/paysuper-proto/go/casbinpb/mocks"
-	"github.com/paysuper/paysuper-proto/go/recurringpb"
 	reportingMocks "github.com/paysuper/paysuper-proto/go/reporterpb/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -18,7 +17,6 @@ import (
 	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v2"
 	"net"
 	"testing"
-	"time"
 )
 
 type TokenTestSuite struct {
@@ -1281,10 +1279,28 @@ func (suite *TokenTestSuite) TestToken_CreateToken_Customer_AddressReplaceGeoAdd
 	assert.Len(suite.T(), customer.AddressHistory, 2)
 }
 
-func (suite *TokenTestSuite) TestToken_CreateToken_RecurringSettings_DefaultDateEnd_Ok() {
-	suite.defaultTokenReq.Settings.RecurringPeriod = recurringpb.RecurringPeriodDay
+func (suite *TokenTestSuite) TestToken_CreateToken_WithRecurringPlan() {
+	recurringPlan := &billingpb.RecurringPlan{
+		Id:         primitive.NewObjectID().Hex(),
+		MerchantId: suite.project.MerchantId,
+		ProjectId:  suite.project.Id,
+		Charge: &billingpb.RecurringPlanCharge{
+			Period: &billingpb.RecurringPlanPeriod{
+				Type:  billingpb.RecurringPeriodDay,
+				Value: 1,
+			},
+			Currency: "RUB",
+			Amount:   1,
+		},
+		Status: pkg.RecurringPlanStatusActive,
+		Name:   map[string]string{"en": "name"},
+	}
+	err := suite.service.recurringPlanRepository.Insert(context.TODO(), recurringPlan)
+	assert.NoError(suite.T(), err)
+
+	suite.defaultTokenReq.Settings.RecurringPlanId = recurringPlan.Id
 	rsp := &billingpb.TokenResponse{}
-	err := suite.service.CreateToken(context.TODO(), suite.defaultTokenReq, rsp)
+	err = suite.service.CreateToken(context.TODO(), suite.defaultTokenReq, rsp)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp.Status)
 	assert.Empty(suite.T(), rsp.Message)
@@ -1296,27 +1312,5 @@ func (suite *TokenTestSuite) TestToken_CreateToken_RecurringSettings_DefaultDate
 	}
 	err = rep.getToken(rsp.Token)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), suite.defaultTokenReq.Settings.RecurringPeriod, rep.token.Settings.RecurringPeriod)
-	assert.Empty(suite.T(), rep.token.Settings.RecurringDateEnd)
-}
-
-func (suite *TokenTestSuite) TestToken_CreateToken_RecurringSettings_MerchantDateEnd_Ok() {
-	dateEnd := time.Now().UTC().AddDate(0, 0, 1)
-	suite.defaultTokenReq.Settings.RecurringPeriod = recurringpb.RecurringPeriodDay
-	suite.defaultTokenReq.Settings.RecurringDateEnd = dateEnd.Format("2006-01-02")
-	rsp := &billingpb.TokenResponse{}
-	err := suite.service.CreateToken(context.TODO(), suite.defaultTokenReq, rsp)
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp.Status)
-	assert.Empty(suite.T(), rsp.Message)
-	assert.NotEmpty(suite.T(), rsp.Token)
-
-	rep := &tokenRepository{
-		service: suite.service,
-		token:   &Token{},
-	}
-	err = rep.getToken(rsp.Token)
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), suite.defaultTokenReq.Settings.RecurringPeriod, rep.token.Settings.RecurringPeriod)
-	assert.Equal(suite.T(), suite.defaultTokenReq.Settings.RecurringDateEnd, rep.token.Settings.RecurringDateEnd)
+	assert.Equal(suite.T(), suite.defaultTokenReq.Settings.RecurringPlanId, rep.token.Settings.RecurringPlanId)
 }

@@ -355,28 +355,28 @@ func (s *Service) ProcessRefundCallback(
 
 	s.sendMailWithReceipt(ctx, refundOrder)
 
-	if order.Recurring {
-		subscription, err := s.rep.GetSubscription(ctx, &recurringpb.GetSubscriptionRequest{Id: order.RecurringId})
+	if order.HasRecurringSubscription() {
+		subscription, err := s.recurringSubscriptionRepository.GetById(ctx, order.RecurringSubscriptionId)
+
 		if err != nil {
 			zap.L().Error(
 				"Unable to get subscription on refund",
 				zap.Error(err),
 				zap.String("orderId", order.Id),
-				zap.String("recurringId", order.RecurringId),
+				zap.String("subscriptionId", order.RecurringSubscriptionId),
 			)
 			return nil
 		}
 
-		subscription.Subscription.TotalAmount -= subscription.Subscription.Amount
-		updateRsp, err := s.rep.UpdateSubscription(ctx, subscription.Subscription)
+		subscription.TotalAmount -= subscription.Plan.Charge.Amount
+		err = s.recurringSubscriptionRepository.Update(ctx, subscription)
 
-		if err != nil || updateRsp.Status != billingpb.ResponseStatusOk {
+		if err != nil {
 			zap.L().Error(
 				"Unable to update subscription on refund",
 				zap.Error(err),
 				zap.String("orderId", order.Id),
-				zap.String("subscriptionId", order.RecurringId),
-				zap.Any("update_response", updateRsp),
+				zap.String("subscriptionId", order.RecurringSubscriptionId),
 			)
 		}
 	}
