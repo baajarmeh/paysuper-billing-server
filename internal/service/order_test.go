@@ -312,6 +312,7 @@ func (suite *OrderTestSuite) SetupTest() {
 	}
 
 	pmBankCardNotUsed := &billingpb.PaymentMethod{
+		LimitsCurrency:   "EUR",
 		Id:               primitive.NewObjectID().Hex(),
 		Name:             "Bank card NEVER USING",
 		Group:            "BANKCARD",
@@ -375,10 +376,11 @@ func (suite *OrderTestSuite) SetupTest() {
 	}
 
 	pmBankCard := &billingpb.PaymentMethod{
+		LimitsCurrency:   "EUR",
 		Id:               primitive.NewObjectID().Hex(),
 		Name:             "Bank card",
 		Group:            "BANKCARD",
-		MinPaymentAmount: 100,
+		MinPaymentAmount: 0.01,
 		MaxPaymentAmount: 15000,
 		ExternalId:       "BANKCARD",
 		ProductionSettings: map[string]*billingpb.PaymentMethodParams{
@@ -456,11 +458,12 @@ func (suite *OrderTestSuite) SetupTest() {
 	}
 
 	pmBitcoin1 := &billingpb.PaymentMethod{
+		LimitsCurrency:   "EUR",
 		Id:               primitive.NewObjectID().Hex(),
 		Name:             "Bitcoin",
 		Group:            "BITCOIN_1",
 		MinPaymentAmount: 0,
-		MaxPaymentAmount: 0,
+		MaxPaymentAmount: 100,
 		ExternalId:       "BITCOIN",
 		ProductionSettings: map[string]*billingpb.PaymentMethodParams{
 			keyRubBitcoin: {
@@ -497,11 +500,12 @@ func (suite *OrderTestSuite) SetupTest() {
 		PaymentSystemId: ps2.Id,
 	}
 	pmBitcoin2 := &billingpb.PaymentMethod{
+		LimitsCurrency:   "EUR",
 		Id:               primitive.NewObjectID().Hex(),
 		Name:             "Bitcoin 2",
 		Group:            "BITCOIN_2",
 		MinPaymentAmount: 0,
-		MaxPaymentAmount: 0,
+		MaxPaymentAmount: 100,
 		ExternalId:       "BITCOIN",
 		ProductionSettings: map[string]*billingpb.PaymentMethodParams{
 			keyRubBitcoin + " 2": {
@@ -550,11 +554,12 @@ func (suite *OrderTestSuite) SetupTest() {
 	}
 
 	pmQiwi := &billingpb.PaymentMethod{
+		LimitsCurrency:   "EUR",
 		Id:               primitive.NewObjectID().Hex(),
 		Name:             "Qiwi",
 		Group:            "QIWI",
 		MinPaymentAmount: 0,
-		MaxPaymentAmount: 0,
+		MaxPaymentAmount: 24999,
 		ExternalId:       "QIWI",
 		ProductionSettings: map[string]*billingpb.PaymentMethodParams{
 			keyRubQiwi: {
@@ -603,11 +608,12 @@ func (suite *OrderTestSuite) SetupTest() {
 	}
 
 	pmQiwiActive := &billingpb.PaymentMethod{
+		LimitsCurrency:   "EUR",
 		Id:               primitive.NewObjectID().Hex(),
 		Name:             "Qiwi",
 		Group:            "QIWI",
 		MinPaymentAmount: 0,
-		MaxPaymentAmount: 0,
+		MaxPaymentAmount: 24999,
 		ExternalId:       "QIWI",
 		ProductionSettings: map[string]*billingpb.PaymentMethodParams{
 			keyRubQiwi: {
@@ -999,7 +1005,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		CallbackCurrency:         "RUB",
 		CallbackProtocol:         "default",
 		LimitsCurrency:           "USD",
-		MaxPaymentAmount:         15000,
+		MaxPaymentAmount:         17000,
 		MinPaymentAmount:         1,
 		Name:                     map[string]string{"en": "test project 0"},
 		IsProductsCheckout:       false,
@@ -1316,11 +1322,12 @@ func (suite *OrderTestSuite) SetupTest() {
 	}
 
 	pmWebMoney := &billingpb.PaymentMethod{
+		LimitsCurrency:   "EUR",
 		Id:               primitive.NewObjectID().Hex(),
 		Name:             "WebMoney",
 		Group:            "WEBMONEY",
 		MinPaymentAmount: 0,
-		MaxPaymentAmount: 0,
+		MaxPaymentAmount: 24999,
 		ExternalId:       "WEBMONEY",
 		ProductionSettings: map[string]*billingpb.PaymentMethodParams{
 			keyRubWebmoney: {
@@ -1369,11 +1376,12 @@ func (suite *OrderTestSuite) SetupTest() {
 	}
 
 	pmWebMoneyWME := &billingpb.PaymentMethod{
+		LimitsCurrency:   "EUR",
 		Id:               primitive.NewObjectID().Hex(),
 		Name:             "WebMoney WME",
 		Group:            "WEBMONEY_WME",
 		MinPaymentAmount: 0,
-		MaxPaymentAmount: 0,
+		MaxPaymentAmount: 24999,
 		ExternalId:       "WEBMONEY",
 		ProductionSettings: map[string]*billingpb.PaymentMethodParams{
 			keyRubWebmoney: {
@@ -1418,11 +1426,12 @@ func (suite *OrderTestSuite) SetupTest() {
 		PaymentSystemId: ps5.Id,
 	}
 	pmBitcoin := &billingpb.PaymentMethod{
+		LimitsCurrency:   "EUR",
 		Id:               primitive.NewObjectID().Hex(),
 		Name:             "Bitcoin",
 		Group:            "BITCOIN",
 		MinPaymentAmount: 0,
-		MaxPaymentAmount: 0,
+		MaxPaymentAmount: 100,
 		ExternalId:       "BITCOIN",
 		ProductionSettings: map[string]*billingpb.PaymentMethodParams{
 			keyRubBitcoin: {
@@ -3218,10 +3227,10 @@ func (suite *OrderTestSuite) TestOrder_ProcessLimitAmounts_ProjectMaxAmount_Erro
 func (suite *OrderTestSuite) TestOrder_ProcessLimitAmounts_PaymentMethodMinAmount_Error() {
 	req := &billingpb.OrderCreateRequest{
 		Type:          pkg.OrderType_simple,
-		ProjectId:     suite.project.Id,
+		ProjectId:     suite.projectEmptyPaymentMethodTerminal.Id,
 		PaymentMethod: suite.paymentMethod.Group,
 		Currency:      "RUB",
-		Amount:        99,
+		Amount:        0.01,
 	}
 	processor := &OrderCreateRequestProcessor{
 		Service: suite.service,
@@ -3258,8 +3267,8 @@ func (suite *OrderTestSuite) TestOrder_ProcessLimitAmounts_PaymentMethodMaxAmoun
 		Type:          pkg.OrderType_simple,
 		ProjectId:     suite.project.Id,
 		PaymentMethod: suite.paymentMethod.Group,
-		Currency:      "RUB",
-		Amount:        15001,
+		Currency:      "USD",
+		Amount:        17000,
 	}
 	processor := &OrderCreateRequestProcessor{
 		Service: suite.service,
@@ -9859,7 +9868,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_AllPaymentMeth
 	assert.Nil(suite.T(), err)
 	assert.True(suite.T(), len(rsp.Item.PaymentMethods) > 0)
 	assert.True(suite.T(), len(rsp.Item.PaymentMethods[0].Id) > 0)
-	assert.Len(suite.T(), rsp.Item.PaymentMethods, 6)
+	assert.Len(suite.T(), rsp.Item.PaymentMethods, 5)
 }
 
 func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_OnePaymentMethods() {
@@ -11483,7 +11492,8 @@ func (suite *OrderTestSuite) TestOrder_processRecurringSettings_CalculateInterva
 		Service: suite.service,
 		request: req,
 		checked: &orderCreateRequestProcessorChecked{
-			paymentMethod: &billingpb.PaymentMethod{RecurringAllowed: true},
+			paymentMethod: &billingpb.PaymentMethod{
+				LimitsCurrency: "EUR", RecurringAllowed: true},
 		},
 	}
 

@@ -76,6 +76,7 @@ func HelperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 		Id:               primitive.NewObjectID().Hex(),
 		Name:             "Bank card",
 		Group:            "BANKCARD",
+		LimitsCurrency:   "RUB",
 		MinPaymentAmount: 10,
 		MaxPaymentAmount: 15000,
 		ExternalId:       "BANKCARD",

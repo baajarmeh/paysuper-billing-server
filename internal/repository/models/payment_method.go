@@ -19,6 +19,7 @@ type MgoPaymentMethod struct {
 	Name               string                   `bson:"name"`
 	Group              string                   `bson:"group_alias"`
 	ExternalId         string                   `bson:"external_id"`
+	LimitsCurrency     string                   `bson:"limits_currency"`
 	MinPaymentAmount   float64                  `bson:"min_payment_amount"`
 	MaxPaymentAmount   float64                  `bson:"max_payment_amount"`
 	TestSettings       []*MgoPaymentMethodParam `bson:"test_settings"`
@@ -52,6 +53,7 @@ func (m *paymentMethodMapper) MapObjectToMgo(obj interface{}) (interface{}, erro
 		Name:             in.Name,
 		Group:            in.Group,
 		ExternalId:       in.ExternalId,
+		LimitsCurrency:   in.LimitsCurrency,
 		MinPaymentAmount: in.MinPaymentAmount,
 		MaxPaymentAmount: in.MaxPaymentAmount,
 		Type:             in.Type,
@@ -171,6 +173,7 @@ func (m *paymentMethodMapper) MapMgoToObject(obj interface{}) (interface{}, erro
 		Name:             in.Name,
 		Group:            in.Group,
 		ExternalId:       in.ExternalId,
+		LimitsCurrency:   in.LimitsCurrency,
 		MinPaymentAmount: in.MinPaymentAmount,
 		MaxPaymentAmount: in.MaxPaymentAmount,
 		Type:             in.Type,

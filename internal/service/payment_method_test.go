@@ -71,6 +71,7 @@ func (suite *PaymentMethodTestSuite) SetupTest() {
 	key := helper.GetPaymentMethodKey("RUB", billingpb.MccCodeLowRisk, suite.operatingCompany.Id, "")
 
 	suite.pmQiwi = &billingpb.PaymentMethod{
+		LimitsCurrency:   "EUR",
 		Id:               primitive.NewObjectID().Hex(),
 		Name:             "Qiwi",
 		Group:            "QIWI",
@@ -180,7 +181,7 @@ func (suite *PaymentMethodTestSuite) TearDownTest() {
 }
 
 func (suite *PaymentMethodTestSuite) TestPaymentMethod_GetPaymentSettings_ErrorNoTestSettings() {
-	method := &billingpb.PaymentMethod{}
+	method := &billingpb.PaymentMethod{LimitsCurrency: "EUR"}
 	_, err := suite.service.getPaymentSettings(method, "RUB", billingpb.MccCodeLowRisk, suite.operatingCompany.Id, "VISA", false)
 
 	assert.Error(suite.T(), err)
@@ -191,10 +192,11 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_GetPaymentSettings_OkTest
 	key := helper.GetPaymentMethodKey("RUB", billingpb.MccCodeLowRisk, suite.operatingCompany.Id, "VISA")
 
 	method := &billingpb.PaymentMethod{
-		Id:         primitive.NewObjectID().Hex(),
-		Name:       "Unit Test",
-		Group:      "Unit",
-		ExternalId: "Unit",
+		LimitsCurrency: "EUR",
+		Id:             primitive.NewObjectID().Hex(),
+		Name:           "Unit Test",
+		Group:          "Unit",
+		ExternalId:     "Unit",
 		ProductionSettings: map[string]*billingpb.PaymentMethodParams{
 			key: {
 				Currency:           "RUB",
@@ -224,6 +226,7 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_GetPaymentSettings_OkTest
 
 func (suite *PaymentMethodTestSuite) TestPaymentMethod_GetPaymentSettings_ErrorNoPaymentCurrency() {
 	method := &billingpb.PaymentMethod{
+		LimitsCurrency: "EUR",
 		ProductionSettings: map[string]*billingpb.PaymentMethodParams{
 			"RUB": {Currency: "RUB"},
 		},
@@ -240,10 +243,11 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_GetPaymentSettings_Ok() {
 	key := helper.GetPaymentMethodKey("EUR", billingpb.MccCodeLowRisk, suite.operatingCompany.Id, "VISA")
 
 	method := &billingpb.PaymentMethod{
-		Id:         primitive.NewObjectID().Hex(),
-		Name:       "Unit Test",
-		Group:      "Unit",
-		ExternalId: "Unit",
+		LimitsCurrency: "EUR",
+		Id:             primitive.NewObjectID().Hex(),
+		Name:           "Unit Test",
+		Group:          "Unit",
+		ExternalId:     "Unit",
 		TestSettings: map[string]*billingpb.PaymentMethodParams{
 			key: {
 				Currency:           "EUR",
@@ -269,6 +273,7 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_GetPaymentSettings_Ok() {
 
 func (suite *PaymentMethodTestSuite) TestPaymentMethod_CreateOrUpdatePaymentMethod_ErrorPaymentSystem() {
 	req := &billingpb.PaymentMethod{
+		LimitsCurrency:  "EUR",
 		PaymentSystemId: primitive.NewObjectID().Hex(),
 	}
 	rsp := &billingpb.ChangePaymentMethodResponse{}
@@ -285,6 +290,7 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_CreateOrUpdatePaymentMeth
 
 func (suite *PaymentMethodTestSuite) TestPaymentMethod_CreateOrUpdatePaymentMethod_ErrorInvalidId() {
 	req := &billingpb.PaymentMethod{
+		LimitsCurrency:  "EUR",
 		Id:              primitive.NewObjectID().Hex(),
 		PaymentSystemId: primitive.NewObjectID().Hex(),
 	}
@@ -301,6 +307,7 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_CreateOrUpdatePaymentMeth
 
 func (suite *PaymentMethodTestSuite) TestPaymentMethod_CreateOrUpdatePaymentMethod_ErrorActivate() {
 	req := &billingpb.PaymentMethod{
+		LimitsCurrency:  "EUR",
 		PaymentSystemId: primitive.NewObjectID().Hex(),
 		IsActive:        true,
 	}
@@ -355,6 +362,7 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_CreateOrUpdatePaymentMeth
 
 func (suite *PaymentMethodTestSuite) TestPaymentMethod_CreateOrUpdatePaymentMethod_OkWithActivate() {
 	req := &billingpb.PaymentMethod{
+		LimitsCurrency:     "EUR",
 		PaymentSystemId:    primitive.NewObjectID().Hex(),
 		IsActive:           true,
 		ExternalId:         "externalId",
@@ -377,6 +385,7 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_CreateOrUpdatePaymentMeth
 
 func (suite *PaymentMethodTestSuite) TestPaymentMethod_CreateOrUpdatePaymentMethod_OkWithoutActivate() {
 	req := &billingpb.PaymentMethod{
+		LimitsCurrency:  "EUR",
 		PaymentSystemId: primitive.NewObjectID().Hex(),
 	}
 	rsp := &billingpb.ChangePaymentMethodResponse{}
@@ -419,7 +428,7 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_CreateOrUpdatePaymentMeth
 	rsp := &billingpb.ChangePaymentMethodParamsResponse{}
 	method := &mocks.PaymentMethodRepositoryInterface{}
 
-	method.On("GetById", mock2.Anything, req.PaymentMethodId).Return(&billingpb.PaymentMethod{}, nil)
+	method.On("GetById", mock2.Anything, req.PaymentMethodId).Return(&billingpb.PaymentMethod{LimitsCurrency: "EUR"}, nil)
 	method.On("Update", mock2.Anything, mock2.Anything).Return(errors.New("not found"))
 	suite.service.paymentMethodRepository = method
 
@@ -442,7 +451,7 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_CreateOrUpdatePaymentMeth
 	rsp := &billingpb.ChangePaymentMethodParamsResponse{}
 	method := &mocks.PaymentMethodRepositoryInterface{}
 
-	method.On("GetById", mock2.Anything, req.PaymentMethodId).Return(&billingpb.PaymentMethod{}, nil)
+	method.On("GetById", mock2.Anything, req.PaymentMethodId).Return(&billingpb.PaymentMethod{LimitsCurrency: "EUR"}, nil)
 	method.On("Update", mock2.Anything, mock2.Anything).Return(nil)
 	suite.service.paymentMethodRepository = method
 
@@ -475,6 +484,7 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_GetPaymentMethodProductio
 
 	key := helper.GetPaymentMethodKey("EUR", billingpb.MccCodeLowRisk, suite.operatingCompany.Id, "")
 	method.On("GetById", mock2.Anything, req.PaymentMethodId).Return(&billingpb.PaymentMethod{
+		LimitsCurrency: "EUR",
 		ProductionSettings: map[string]*billingpb.PaymentMethodParams{
 			key: {
 				Currency:           "EUR",
@@ -526,6 +536,7 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_DeletePaymentMethodProduc
 
 	key := helper.GetPaymentMethodKey("RUB", billingpb.MccCodeLowRisk, suite.operatingCompany.Id, "")
 	method.On("GetById", mock2.Anything, req.PaymentMethodId).Return(&billingpb.PaymentMethod{
+		LimitsCurrency: "EUR",
 		ProductionSettings: map[string]*billingpb.PaymentMethodParams{
 			key: {Currency: "RUB", Secret: "unit_test"},
 		},
@@ -550,6 +561,7 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_DeletePaymentMethodProduc
 
 	key := helper.GetPaymentMethodKey("RUB", billingpb.MccCodeLowRisk, suite.operatingCompany.Id, "")
 	method.On("GetById", mock2.Anything, req.PaymentMethodId).Return(&billingpb.PaymentMethod{
+		LimitsCurrency: "EUR",
 		ProductionSettings: map[string]*billingpb.PaymentMethodParams{
 			key: {Currency: "RUB", Secret: "unit_test"},
 		},
@@ -575,6 +587,7 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_DeletePaymentMethodProduc
 
 	key := helper.GetPaymentMethodKey("RUB", billingpb.MccCodeLowRisk, suite.operatingCompany.Id, "")
 	method.On("GetById", mock2.Anything, req.PaymentMethodId).Return(&billingpb.PaymentMethod{
+		LimitsCurrency: "EUR",
 		ProductionSettings: map[string]*billingpb.PaymentMethodParams{
 			key: {Currency: "RUB", Secret: "unit_test"},
 		},
@@ -617,7 +630,7 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_CreateOrUpdatePaymentMeth
 	rsp := &billingpb.ChangePaymentMethodParamsResponse{}
 	method := &mocks.PaymentMethodRepositoryInterface{}
 
-	method.On("GetById", mock2.Anything, req.PaymentMethodId).Return(&billingpb.PaymentMethod{}, nil)
+	method.On("GetById", mock2.Anything, req.PaymentMethodId).Return(&billingpb.PaymentMethod{LimitsCurrency: "EUR"}, nil)
 	method.On("Update", mock2.Anything, mock2.Anything).Return(errors.New("not found"))
 	suite.service.paymentMethodRepository = method
 
@@ -640,7 +653,7 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_CreateOrUpdatePaymentMeth
 	rsp := &billingpb.ChangePaymentMethodParamsResponse{}
 	method := &mocks.PaymentMethodRepositoryInterface{}
 
-	method.On("GetById", mock2.Anything, req.PaymentMethodId).Return(&billingpb.PaymentMethod{}, nil)
+	method.On("GetById", mock2.Anything, req.PaymentMethodId).Return(&billingpb.PaymentMethod{LimitsCurrency: "EUR"}, nil)
 	method.On("Update", mock2.Anything, mock2.Anything).Return(nil)
 	suite.service.paymentMethodRepository = method
 
@@ -673,6 +686,7 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_GetPaymentMethodTestSetti
 
 	key := helper.GetPaymentMethodKey("EUR", billingpb.MccCodeLowRisk, suite.operatingCompany.Id, "")
 	method.On("GetById", mock2.Anything, req.PaymentMethodId).Return(&billingpb.PaymentMethod{
+		LimitsCurrency: "EUR",
 		TestSettings: map[string]*billingpb.PaymentMethodParams{
 			key: {
 				Currency:           "EUR",
@@ -724,6 +738,7 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_DeletePaymentMethodTestSe
 
 	key := helper.GetPaymentMethodKey("RUB", billingpb.MccCodeLowRisk, suite.operatingCompany.Id, "")
 	method.On("GetById", mock2.Anything, req.PaymentMethodId).Return(&billingpb.PaymentMethod{
+		LimitsCurrency: "EUR",
 		TestSettings: map[string]*billingpb.PaymentMethodParams{
 			key: {
 				Currency:           "RUB",
@@ -754,6 +769,7 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_DeletePaymentMethodTestSe
 
 	key := helper.GetPaymentMethodKey("RUB", billingpb.MccCodeLowRisk, suite.operatingCompany.Id, "")
 	method.On("GetById", mock2.Anything, req.PaymentMethodId).Return(&billingpb.PaymentMethod{
+		LimitsCurrency: "EUR",
 		TestSettings: map[string]*billingpb.PaymentMethodParams{
 			key: {
 				Currency:           "RUB",
@@ -785,6 +801,7 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_DeletePaymentMethodTestSe
 
 	key := helper.GetPaymentMethodKey("RUB", billingpb.MccCodeLowRisk, suite.operatingCompany.Id, "")
 	method.On("GetById", mock2.Anything, req.PaymentMethodId).Return(&billingpb.PaymentMethod{
+		LimitsCurrency: "EUR",
 		TestSettings: map[string]*billingpb.PaymentMethodParams{
 			key: {
 				Currency:           "RUB",

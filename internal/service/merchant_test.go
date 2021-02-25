@@ -76,8 +76,9 @@ func (suite *MerchantTestSuite) SetupTest() {
 	}
 
 	suite.pmBankCard = &billingpb.PaymentMethod{
-		Id:   primitive.NewObjectID().Hex(),
-		Name: "Bank card",
+		LimitsCurrency: "EUR",
+		Id:             primitive.NewObjectID().Hex(),
+		Name:           "Bank card",
 	}
 	suite.merchant = &billingpb.Merchant{
 		Id: primitive.NewObjectID().Hex(),

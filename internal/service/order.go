@@ -139,6 +139,7 @@ var (
 	orderErrorRecurringSubscriptionNotFound                   = errors2.NewBillingServerErrorMsg("fm000086", "recurring subscription not found")
 	orderErrorRecurringUnableToAdd                            = errors2.NewBillingServerErrorMsg("fm000087", "unable to add recurring subscription")
 	orderErrorRecurringUnableToUpdate                         = errors2.NewBillingServerErrorMsg("fm000088", "unable to update recurring subscription")
+	orderErrorPaymentMethodLimitsNotConfigured                = errors2.NewBillingServerErrorMsg("fm000089", "payment method limits is not configured")
 
 	virtualCurrencyPayoutCurrencyMissed = errors2.NewBillingServerErrorMsg("vc000001", "virtual currency don't have price in merchant payout currency")
 
@@ -2760,20 +2761,33 @@ func (v *OrderCreateRequestProcessor) processLimitAmounts() (err error) {
 		amount = rsp.ExchangedAmount
 	}
 
-	if amount < v.checked.project.MinPaymentAmount {
-		return orderErrorAmountLowerThanMinAllowed
-	}
+	if v.checked.project.HasConfiguredLimits() {
 
-	if v.checked.project.MaxPaymentAmount > 0 && amount > v.checked.project.MaxPaymentAmount {
-		return orderErrorAmountGreaterThanMaxAllowed
+		if amount < v.checked.project.MinPaymentAmount {
+			return orderErrorAmountLowerThanMinAllowed
+		}
+
+		if v.checked.project.MaxPaymentAmount > 0 && amount > v.checked.project.MaxPaymentAmount {
+			return orderErrorAmountGreaterThanMaxAllowed
+		}
 	}
 
 	if v.checked.paymentMethod != nil {
-		if v.request.Amount < v.checked.paymentMethod.MinPaymentAmount {
+
+		if !v.checked.paymentMethod.HasConfiguredLimits() {
+			return orderErrorPaymentMethodLimitsNotConfigured
+		}
+
+		amount, err = v.Service.ExchangeAmountToPaymentMethodLimitsCurrency(v.ctx, v.checked.amount, v.checked.currency, v.checked.paymentMethod.LimitsCurrency)
+		if err != nil {
+			return orderErrorConvertionCurrency
+		}
+
+		if amount < v.checked.paymentMethod.MinPaymentAmount {
 			return orderErrorAmountLowerThanMinAllowedPaymentMethod
 		}
 
-		if v.checked.paymentMethod.MaxPaymentAmount > 0 && v.request.Amount > v.checked.paymentMethod.MaxPaymentAmount {
+		if v.checked.paymentMethod.MaxPaymentAmount > 0 && amount > v.checked.paymentMethod.MaxPaymentAmount {
 			return orderErrorAmountGreaterThanMaxAllowedPaymentMethod
 		}
 	}
@@ -3085,10 +3099,20 @@ func (v *PaymentFormProcessor) processRenderFormPaymentMethods(
 			continue
 		}
 
-		if v.order.OrderAmount < pm.MinPaymentAmount ||
-			(pm.MaxPaymentAmount > 0 && v.order.OrderAmount > pm.MaxPaymentAmount) {
+		if !pm.HasConfiguredLimits() {
 			continue
 		}
+
+		amount, err := v.service.ExchangeAmountToPaymentMethodLimitsCurrency(ctx, v.order.OrderAmount, v.order.Currency, pm.LimitsCurrency)
+		if err != nil {
+			continue
+		}
+
+		if amount < pm.MinPaymentAmount ||
+			(pm.MaxPaymentAmount > 0 && amount > pm.MaxPaymentAmount) {
+			continue
+		}
+
 		_, err = v.service.getPaymentSettings(pm, v.order.Currency, v.order.MccCode, v.order.OperatingCompanyId, "", v.order.IsProduction)
 
 		if err != nil {
@@ -5242,4 +5266,36 @@ func (s *Service) addRecurringSubscription(
 // Set caption for redirect button in payment form
 func (m *orderCreateRequestProcessorChecked) setRedirectButtonCaption(caption string) {
 	m.project.RedirectSettings.ButtonCaption = caption
+}
+
+func (s *Service) ExchangeAmountToPaymentMethodLimitsCurrency(ctx context.Context, PaymentAmount float64, PaymentCurrency, LimitsCurrency string) (ExchangedAmount float64, err error) {
+
+	if PaymentAmount == 0 || PaymentCurrency == LimitsCurrency {
+		return PaymentAmount, nil
+	}
+
+	reqCur := &currenciespb.ExchangeCurrencyCurrentCommonRequest{
+		From:              PaymentCurrency,
+		To:                LimitsCurrency,
+		RateType:          currenciespb.RateTypeOxr,
+		Amount:            PaymentAmount,
+		ExchangeDirection: currenciespb.ExchangeDirectionSell,
+	}
+
+	rspCur, err := s.curService.ExchangeCurrencyCurrentCommon(ctx, reqCur)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorGrpcServiceCallFailed,
+			zap.Error(err),
+			zap.String(errorFieldService, "CurrencyRatesService"),
+			zap.String(errorFieldMethod, "ExchangeCurrencyCurrentCommon"),
+			zap.Any(errorFieldRequest, reqCur),
+			zap.Any(errorFieldEntrySource, "limit conversion"),
+		)
+
+		return 0, orderErrorConvertionCurrency
+	}
+
+	return rspCur.ExchangedAmount, nil
 }
