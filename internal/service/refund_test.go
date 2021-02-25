@@ -140,6 +140,7 @@ func (suite *RefundTestSuite) SetupTest() {
 		Handler:            PaymentSystemHandlerCardPayMock,
 	}
 	pmBankCard := &billingpb.PaymentMethod{
+		LimitsCurrency:   "EUR",
 		Id:               primitive.NewObjectID().Hex(),
 		Name:             "Bank card",
 		Group:            "BANKCARD",
@@ -307,6 +308,7 @@ func (suite *RefundTestSuite) SetupTest() {
 		Handler:            "mock_error",
 	}
 	pmQiwi := &billingpb.PaymentMethod{
+		LimitsCurrency:   "EUR",
 		Id:               primitive.NewObjectID().Hex(),
 		Name:             "Qiwi",
 		Group:            "QIWI",
@@ -327,6 +329,7 @@ func (suite *RefundTestSuite) SetupTest() {
 		PaymentSystemId: psErr.Id,
 	}
 	pmBitcoin := &billingpb.PaymentMethod{
+		LimitsCurrency:   "EUR",
 		Id:               primitive.NewObjectID().Hex(),
 		Name:             "Bitcoin",
 		Group:            "BITCOIN",

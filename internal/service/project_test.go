@@ -202,6 +202,7 @@ func (suite *ProjectCRUDTestSuite) SetupTest() {
 		Handler:            "cardpay",
 	}
 	pm1 := &billingpb.PaymentMethod{
+		LimitsCurrency:   "EUR",
 		Id:               primitive.NewObjectID().Hex(),
 		Name:             "Bank card",
 		Group:            "BANKCARD",
@@ -232,6 +233,7 @@ func (suite *ProjectCRUDTestSuite) SetupTest() {
 		Handler:            "cardpay",
 	}
 	pm2 := &billingpb.PaymentMethod{
+		LimitsCurrency:   "EUR",
 		Id:               primitive.NewObjectID().Hex(),
 		Name:             "Bitcoin",
 		Group:            "BITCOIN_1",

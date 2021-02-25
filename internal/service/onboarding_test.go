@@ -149,6 +149,7 @@ func (suite *OnboardingTestSuite) SetupTest() {
 	}
 
 	pmBankCard := &billingpb.PaymentMethod{
+		LimitsCurrency:   "EUR",
 		Id:               primitive.NewObjectID().Hex(),
 		Name:             "Bank card",
 		Group:            "BANKCARD",
@@ -169,6 +170,7 @@ func (suite *OnboardingTestSuite) SetupTest() {
 	}
 
 	pmQiwi := &billingpb.PaymentMethod{
+		LimitsCurrency:   "EUR",
 		Id:               primitive.NewObjectID().Hex(),
 		Name:             "QIWI",
 		Group:            "QIWI",

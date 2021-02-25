@@ -361,6 +361,7 @@ func (s *Service) updateProject(ctx context.Context, req *billingpb.Project, pro
 	project.VirtualCurrency = req.VirtualCurrency
 	project.VatPayer = req.VatPayer
 	project.Cover = req.Cover
+	project.FormDefaultText = req.FormDefaultText
 
 	if req.RedirectSettings != nil {
 		project.RedirectSettings = req.RedirectSettings

@@ -64,6 +64,7 @@ func (s *Service) CreateOrUpdatePaymentMethod(
 		pm.Group = req.Group
 		pm.Type = req.Type
 		pm.AccountRegexp = req.AccountRegexp
+		pm.LimitsCurrency = req.LimitsCurrency
 		pm.MaxPaymentAmount = req.MaxPaymentAmount
 		pm.MinPaymentAmount = req.MinPaymentAmount
 		err = s.paymentMethodRepository.Update(ctx, pm)

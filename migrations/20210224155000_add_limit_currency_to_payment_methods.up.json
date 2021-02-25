@@ -1,0 +1,20 @@
+[
+  {
+    "update": "payment_method",
+    "updates": [
+      {
+        "q": {},
+        "u": [
+          {
+            "$set": {
+              "limits_currency": "EUR",
+              "min_payment_amount": 0.01,
+              "max_payment_amount": 24999.99
+            }
+          }
+        ],
+        "multi": true
+      }
+    ]
+  }
+]
