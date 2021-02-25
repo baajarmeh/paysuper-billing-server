@@ -543,6 +543,7 @@ func (suite *RecurringTestSuite) TestAddRecurringPlanWithEmptyStatusOk() {
 
 	planRep := &mocks.RecurringPlanRepositoryInterface{}
 	planRep.On("Insert", mock.Anything, req).Return(nil)
+	planRep.On("GetById", mock.Anything, mock.Anything).Return(req, nil)
 	suite.service.recurringPlanRepository = planRep
 
 	res := &billingpb.AddRecurringPlanResponse{}
@@ -577,6 +578,7 @@ func (suite *RecurringTestSuite) TestAddRecurringPlanOk() {
 
 	planRep := &mocks.RecurringPlanRepositoryInterface{}
 	planRep.On("Insert", mock.Anything, req).Return(nil)
+	planRep.On("GetById", mock.Anything, mock.Anything).Return(req, nil)
 	suite.service.recurringPlanRepository = planRep
 
 	res := &billingpb.AddRecurringPlanResponse{}
@@ -1739,4 +1741,32 @@ func (suite *RecurringTestSuite) TestFindExpiredSubscriptions_Ok() {
 	}, rsp)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp.Status)
+}
+
+func (suite *RecurringTestSuite) TestCheckRecurringExpirationPeriod_True() {
+	valid := suite.service.checkRecurringExpirationPeriod(
+		&billingpb.RecurringPlanPeriod{
+			Type:  billingpb.RecurringPeriodDay,
+			Value: 1,
+		},
+		&billingpb.RecurringPlanPeriod{
+			Type:  billingpb.RecurringPeriodDay,
+			Value: 2,
+		},
+	)
+	assert.True(suite.T(), valid)
+}
+
+func (suite *RecurringTestSuite) TestCheckRecurringExpirationPeriod_False() {
+	valid := suite.service.checkRecurringExpirationPeriod(
+		&billingpb.RecurringPlanPeriod{
+			Type:  billingpb.RecurringPeriodDay,
+			Value: 2,
+		},
+		&billingpb.RecurringPlanPeriod{
+			Type:  billingpb.RecurringPeriodDay,
+			Value: 1,
+		},
+	)
+	assert.False(suite.T(), valid)
 }

@@ -143,7 +143,7 @@ func (s *Service) AddRecurringPlan(ctx context.Context, req *billingpb.Recurring
 		return nil
 	}
 
-	rsp.Item = req
+	rsp.Item, _ = s.recurringPlanRepository.GetById(ctx, req.Id)
 	rsp.Status = billingpb.ResponseStatusOk
 
 	return nil
@@ -770,10 +770,12 @@ func (s *Service) validateRecurringPlanRequest(req *billingpb.RecurringPlan) *bi
 		return recurringErrorInvalidPeriod
 	}
 
-	if req.Expiration != nil && !s.checkRecurringPeriod(req.Expiration.Type, req.Expiration.Value) {
+	if req.Expiration != nil && (!s.checkRecurringPeriod(req.Expiration.Type, req.Expiration.Value) ||
+		!s.checkRecurringExpirationPeriod(req.Charge.Period, req.Expiration)) {
 		zap.L().Error(
 			"Invalid expiration period settings",
-			zap.Any("settings", req.Expiration),
+			zap.Any("expiration", req.Expiration),
+			zap.Any("charge", req.Charge.Period),
 		)
 
 		return recurringErrorInvalidPeriod
@@ -807,6 +809,45 @@ func (s *Service) checkRecurringPeriod(period string, value int32) bool {
 		period == billingpb.RecurringPeriodWeek && value > 52 ||
 		period == billingpb.RecurringPeriodMonth && value > 12 ||
 		period == billingpb.RecurringPeriodYear && value > 1 {
+		return false
+	}
+
+	return true
+}
+
+func (s *Service) checkRecurringExpirationPeriod(chargePeriod, expiration *billingpb.RecurringPlanPeriod) bool {
+	var (
+		currentTime                        = time.Now().UTC()
+		chargeDateTime, expirationDateTime time.Time
+	)
+
+	switch chargePeriod.Type {
+	case billingpb.RecurringPeriodMinute:
+		chargeDateTime = currentTime.Add(time.Minute * time.Duration(chargePeriod.Value))
+	case billingpb.RecurringPeriodDay:
+		chargeDateTime = currentTime.AddDate(0, 0, int(chargePeriod.Value))
+	case billingpb.RecurringPeriodWeek:
+		chargeDateTime = currentTime.AddDate(0, 0, int(chargePeriod.Value)*7)
+	case billingpb.RecurringPeriodMonth:
+		chargeDateTime = currentTime.AddDate(0, int(chargePeriod.Value), 0)
+	case billingpb.RecurringPeriodYear:
+		chargeDateTime = currentTime.AddDate(int(chargePeriod.Value), 0, 0)
+	}
+
+	switch expiration.Type {
+	case billingpb.RecurringPeriodMinute:
+		expirationDateTime = currentTime.Add(time.Minute * time.Duration(expiration.Value))
+	case billingpb.RecurringPeriodDay:
+		expirationDateTime = currentTime.AddDate(0, 0, int(expiration.Value))
+	case billingpb.RecurringPeriodWeek:
+		expirationDateTime = currentTime.AddDate(0, 0, int(expiration.Value)*7)
+	case billingpb.RecurringPeriodMonth:
+		expirationDateTime = currentTime.AddDate(0, int(expiration.Value), 0)
+	case billingpb.RecurringPeriodYear:
+		expirationDateTime = currentTime.AddDate(int(expiration.Value), 0, 0)
+	}
+
+	if expirationDateTime.Unix() < chargeDateTime.Unix() {
 		return false
 	}
 
