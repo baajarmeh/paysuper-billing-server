@@ -133,7 +133,6 @@ func (s *Service) getMerchantPaymentMethod(ctx context.Context, merchantId, meth
 	return merchantPaymentMethods[method], nil
 }
 
-
 func (s *Service) UpdateFirstPayments(ctx context.Context) error {
 	zap.L().Info("start updating first payments for merchants")
 
