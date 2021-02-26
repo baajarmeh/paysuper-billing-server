@@ -1,0 +1,31 @@
+[
+  {
+    "create": "recurring_subscription"
+  },
+  {
+    "createIndexes": "recurring_subscription",
+    "indexes": [
+      {
+        "key": {
+          "customer.id": 1,
+          "plan.id": 1
+        },
+        "name": "customer_plan"
+      },
+      {
+        "key": {
+          "customer.id": 1,
+          "plan.merchant_id": 1
+        },
+        "name": "customer_merchant"
+      },
+      {
+        "key": {
+          "plan.merchant_id": 1,
+          "plan.project_id": 1
+        },
+        "name": "merchant_project"
+      }
+    ]
+  }
+]
