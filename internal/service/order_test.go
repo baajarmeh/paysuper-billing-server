@@ -3677,6 +3677,34 @@ func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_Ok() {
 	assert.Equal(suite.T(), rsp.Item.MerchantInfo.AgreementNumber, suite.merchant.AgreementNumber)
 }
 
+func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_MerchantSuspended() {
+	suite.merchant.Status = billingpb.MerchantStatusSuspend
+	err := suite.service.merchantRepository.Update(context.TODO(), suite.merchant)
+	assert.NoError(suite.T(), err)
+
+	req := &billingpb.OrderCreateRequest{
+		Type:          pkg.OrderType_simple,
+		ProjectId:     suite.project.Id,
+		PaymentMethod: suite.paymentMethod.Group,
+		Currency:      "RUB",
+		Amount:        100,
+		Account:       "unit test",
+		Description:   "unit test",
+		User: &billingpb.OrderUser{
+			Email: "test@unit.unit",
+			Ip:    "127.0.0.1",
+		},
+		FormMode: "standalone",
+	}
+
+	rsp := &billingpb.OrderCreateProcessResponse{}
+	err = suite.service.OrderCreateProcess(context.TODO(), req, rsp)
+
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), billingpb.ResponseStatusBadData, rsp.Status)
+	assert.Equal(suite.T(), orderErrorMerchantAccountIsSuspended, rsp.Message)
+}
+
 func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_RecurringSettings_PaymentMethodRecurringNotAllowed() {
 	req := &billingpb.OrderCreateRequest{
 		Type:          pkg.OrderType_simple,

@@ -33,6 +33,7 @@ const (
 	merchantStatusDeletedMessage  = "Sorry, but while processing your license agreement signing request we encountered insuperable obstacles which lead to termination of our deal."
 	merchantStatusPendingMessage  = "We've got your onboarding request. We will check information about your company and return with resolution."
 	merchantStatusAcceptedMessage = "Preliminary verification is complete and now you are welcome to sign the license agreement."
+	merchantStatusSuspendMessage  = "Your account has been temporarily suspended. Your customers cannot make payments."
 )
 
 var (
@@ -67,6 +68,7 @@ var (
 		billingpb.MerchantStatusRejected:         merchantStatusRejectedMessage,
 		billingpb.MerchantStatusPending:          merchantStatusPendingMessage,
 		billingpb.MerchantStatusAccepted:         merchantStatusAcceptedMessage,
+		billingpb.MerchantStatusSuspend:          merchantStatusSuspendMessage,
 	}
 )
 

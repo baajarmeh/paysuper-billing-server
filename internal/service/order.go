@@ -140,6 +140,7 @@ var (
 	orderErrorRecurringUnableToAdd                            = errors2.NewBillingServerErrorMsg("fm000087", "unable to add recurring subscription")
 	orderErrorRecurringUnableToUpdate                         = errors2.NewBillingServerErrorMsg("fm000088", "unable to update recurring subscription")
 	orderErrorPaymentMethodLimitsNotConfigured                = errors2.NewBillingServerErrorMsg("fm000089", "payment method limits is not configured")
+	orderErrorMerchantAccountIsSuspended                      = errors2.NewBillingServerErrorMsg("fm000090", "payments for this project have been temporarily suspended")
 
 	virtualCurrencyPayoutCurrencyMissed = errors2.NewBillingServerErrorMsg("vc000001", "virtual currency don't have price in merchant payout currency")
 
@@ -2513,6 +2514,10 @@ func (v *OrderCreateRequestProcessor) processMerchant() error {
 
 	if v.checked.merchant.HasTariff() == false {
 		return orderErrorMerchantBadTariffs
+	}
+
+	if v.checked.merchant.Status == billingpb.MerchantStatusSuspend {
+		return orderErrorMerchantAccountIsSuspended
 	}
 
 	return nil
