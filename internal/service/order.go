@@ -1243,6 +1243,10 @@ func (s *Service) PaymentCallbackProcess(
 		return orderErrorNotFound
 	}
 
+	if order.PrivateStatus != recurringpb.OrderStatusProjectInProgress {
+		return orderErrorAlreadyProcessed
+	}
+
 	var data protobuf.Message
 
 	ps, err := s.paymentSystemRepository.GetById(ctx, order.PaymentMethod.PaymentSystemId)
