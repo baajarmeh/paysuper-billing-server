@@ -4995,6 +4995,10 @@ func (s *Service) setOrderChargeAmountAndCurrency(ctx context.Context, order *bi
 		return nil
 	}
 
+	if !pm.HasConfiguredLimits() {
+		return orderErrorPaymentMethodLimitsNotConfigured
+	}
+
 	_, err = s.getPaymentSettings(pm, binCountry.Currency, order.MccCode, order.OperatingCompanyId, binCardBrand, order.IsProduction)
 	if err != nil {
 		return nil
@@ -5021,6 +5025,19 @@ func (s *Service) setOrderChargeAmountAndCurrency(ctx context.Context, order *bi
 		)
 
 		return orderErrorConvertionCurrency
+	}
+
+	limitsCheckAmount, err := s.ExchangeAmountToPaymentMethodLimitsCurrency(ctx, rspCur.ExchangedAmount, binCountry.Currency, pm.LimitsCurrency)
+	if err != nil {
+		return orderErrorConvertionCurrency
+	}
+
+	if limitsCheckAmount < pm.MinPaymentAmount {
+		return orderErrorAmountLowerThanMinAllowedPaymentMethod
+	}
+
+	if pm.MaxPaymentAmount > 0 && limitsCheckAmount > pm.MaxPaymentAmount {
+		return orderErrorAmountGreaterThanMaxAllowedPaymentMethod
 	}
 
 	order.ChargeCurrency = binCountry.Currency
