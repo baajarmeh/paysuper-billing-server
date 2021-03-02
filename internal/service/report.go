@@ -12,6 +12,7 @@ import (
 	"github.com/paysuper/paysuper-proto/go/billingpb"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.uber.org/zap"
 	"regexp"
 	"time"
@@ -335,7 +336,10 @@ func (s *Service) getOrdersList(
 
 	aggregateQuery := helper.MakeOrderAggregateQuery(query, repository.CollectionOrderView, req.Sort, req.Offset, req.Limit)
 
-	cursor, err := s.db.Collection(source).Aggregate(ctx, aggregateQuery)
+	opts := &options.AggregateOptions{}
+	opts.SetAllowDiskUse(true)
+
+	cursor, err := s.db.Collection(source).Aggregate(ctx, aggregateQuery, opts)
 
 	if err != nil {
 		zap.L().Error(
